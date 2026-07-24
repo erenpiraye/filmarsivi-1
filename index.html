@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>Film Arşivi</title>
+<style>
+*{box-sizing:border-box}
+body{font-family:Arial;background:#111;color:#eee;margin:0}
+.container{display:flex;height:100vh}
+.column{width:50%;padding:0;box-sizing:border-box;overflow-y:auto;overflow-x:hidden;scroll-behavior:smooth}
+.sticky-header{position:sticky;top:0;padding:20px 20px 10px 20px;background:#111;z-index:5;border-bottom:1px solid #222}
+.list-wrap{padding:0 20px 20px 20px}
+.column:first-child{border-right:2px solid #444}
+h2{text-align:center;margin-bottom:10px;font-size:20px}
+.top-btn,.view-btn{cursor:pointer;display:inline-block;margin:0 3px;user-select:none}
+.top-btn:hover,.view-btn:hover{opacity:0.7}
+.search{width:95%;padding:10px;margin:0 auto 8px auto;display:block;background:#333;color:#eee;border:1px solid #555;border-radius:4px;font-size:16px}
+.sort-select{padding:6px 8px;font-size:13px;background:#222;color:#ccc;border:1px solid #444;border-radius:4px}
+.movie{width:95%;display:flex;align-items:center;margin:0 auto 15px auto;background:#222;padding:12px 16px;border-radius:8px;position:relative}
+.movie img{width:90px;height:135px;object-fit:cover;margin-right:15px;border-radius:4px}
+.movie img.poster-link{cursor:pointer}
+.number{font-size:2.2em;color:#555;width:80px;display:flex;justify-content:center;align-items:center;margin-right:20px}
+.btn{margin-top:6px;padding:6px 12px;background:#555;color:#fff;border:none;border-radius:4px;cursor:pointer}
+.tick-btn{position:absolute;top:38px;right:10px;background:#333;color:#0f0;border:none;width:24px;height:24px;border-radius:50%;cursor:pointer}
+.delete-btn{position:absolute;top:10px;right:10px;background:#333;color:#bbb;border:none;width:24px;height:24px;border-radius:50%;cursor:pointer}
+.meta{font-size:13px;color:#bbb;margin-top:3px}
+.tr-title{color:#888;font-size:13px;margin-top:2px}
+.controls{width:95%;margin:0 auto 10px auto;display:flex;flex-wrap:wrap;gap:8px}
+.controls .sort-select{flex:1 1 130px;min-width:110px}
+.findbox{width:95%;padding:8px;margin:0 auto 12px auto;display:block;background:#222;color:#eee;border:1px solid #444;border-radius:4px;font-size:14px}
+.movie.highlight{outline:3px solid #ffd700;box-shadow:0 0 14px #ffd700}
+.person-link{color:inherit;text-decoration:none;cursor:pointer}
+.person-link:hover{color:#d9a441;text-decoration:underline}
+
+#watchedList.grid-view,#watchList.grid-view{width:95%;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px 15px;align-items:start}
+.grid-view .movie{width:100%;margin:0;min-width:0;overflow:hidden}
+.grid-view .movie .number{width:48px;font-size:1.3em;margin-right:10px;flex-shrink:0;flex-grow:0}
+.grid-view .movie img{width:55px;height:82px;margin-right:10px;flex-shrink:0}
+.grid-view .movie>div:not(.number){min-width:0;overflow-wrap:break-word}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<div class="column">
+<div class="sticky-header">
+<h2><span class="top-btn" onclick="scrollToTop('watched')" title="Başa dön">🎬</span><span class="view-btn" onclick="toggleView('watched')" title="Görünümü değiştir">▦</span> İzlenen • <span id="watchedCount">0</span> • <span id="watchedTime">0 dk</span></h2>
+<input id="searchWatched" class="search" placeholder="Film ara" oninput="searchMain(this,'watched')">
+<div class="controls">
+ <select id="sortWatched" class="sort-select" onchange="onSortChange('watched')">
+  <option value="" disabled>Sıralama</option>
+  <option value="az">A → Z</option>
+  <option value="za">Z → A</option>
+  <option value="year-desc">Yıl: Yeni → Eski</option>
+  <option value="year-asc">Yıl: Eski → Yeni</option>
+  <option value="added-desc" selected>Eklenme: Yeni → Eski</option>
+  <option value="added-asc">Eklenme: Eski → Yeni</option>
+  <option value="rating-desc">Puan ↓</option>
+  <option value="rating-asc">Puan ↑</option>
+ </select>
+ <select id="genreWatched" class="sort-select" onchange="onGenreChange('watched')">
+  <option value="all">Kategori</option>
+ </select>
+ <select id="directorWatched" class="sort-select" onchange="onDirectorChange('watched')">
+  <option value="all">Yönetmen</option>
+ </select>
+ <select id="actorWatched" class="sort-select" onchange="onActorChange('watched')">
+  <option value="all">Oyuncu</option>
+ </select>
+</div>
+<input id="findWatched" class="findbox" placeholder="Listede ara" oninput="findInList(this,'watched')">
+</div>
+<div class="list-wrap"><div id="watchedList"></div></div>
+</div>
+
+<div class="column">
+<div class="sticky-header">
+<h2><span class="top-btn" onclick="scrollToTop('watchlist')" title="Başa dön">🎬</span><span class="view-btn" onclick="toggleView('watchlist')" title="Görünümü değiştir">▦</span> İzlenecek • <span id="watchCount">0</span> • <span id="watchTime">0 dk</span></h2>
+<input id="searchWatch" class="search" placeholder="Film ara" oninput="searchMain(this,'watchlist')">
+<div class="controls">
+ <select id="sortWatch" class="sort-select" onchange="onSortChange('watchlist')">
+  <option value="" disabled>Sıralama</option>
+  <option value="az">A → Z</option>
+  <option value="za">Z → A</option>
+  <option value="year-desc">Yıl: Yeni → Eski</option>
+  <option value="year-asc">Yıl: Eski → Yeni</option>
+  <option value="added-desc" selected>Eklenme: Yeni → Eski</option>
+  <option value="added-asc">Eklenme: Eski → Yeni</option>
+  <option value="rating-desc">Puan ↓</option>
+  <option value="rating-asc">Puan ↑</option>
+ </select>
+ <select id="genreWatch" class="sort-select" onchange="onGenreChange('watchlist')">
+  <option value="all">Kategori</option>
+ </select>
+ <select id="directorWatch" class="sort-select" onchange="onDirectorChange('watchlist')">
+  <option value="all">Yönetmen</option>
+ </select>
+ <select id="actorWatch" class="sort-select" onchange="onActorChange('watchlist')">
+  <option value="all">Oyuncu</option>
+ </select>
+</div>
+<input id="findWatch" class="findbox" placeholder="Listede ara" oninput="findInList(this,'watchlist')">
+</div>
+<div class="list-wrap"><div id="watchList"></div></div>
+</div>
+
+</div>
+
+<script>
+const TMDB_KEY="a5857b5312ef2f6ba36d4e5314c2b231";
+let turkishCache={};   // imdbID -> {title, poster, genres:[...]}
+let genreMap={};       // TMDB genre id -> Türkçe isim
+let genreMapLoaded=false;
+let searchTimer=null;
+
+const watchedList=document.getElementById("watchedList");
+const watchList=document.getElementById("watchList");
+const watchedCount=document.getElementById("watchedCount");
+const watchCount=document.getElementById("watchCount");
+const watchedTime=document.getElementById("watchedTime");
+const watchTime=document.getElementById("watchTime");
+
+let allData={watched:[],watchlist:[]};
+let sortState={watched:"added-desc",watchlist:"added-desc"};
+let genreState={watched:"all",watchlist:"all"};
+let directorState={watched:"all",watchlist:"all"};
+let actorState={watched:"all",watchlist:"all"};
+let viewState={watched:"list",watchlist:"list"};
+let searchGen={watched:0,watchlist:0};
+
+function runtimeMin(r){return(!r||r==="N/A")?0:parseInt(r)}
+function formatTime(m){const h=Math.floor(m/60);return h?`${h}s ${m%60}dk`:`${m}dk`}
+
+function escapeHtml(s){
+ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+}
+
+function personLinksHtml(str,kind){
+ return (str||"").split(",").map(s=>s.trim()).filter(s=>s&&s!=="N/A")
+   .map(name=>`<span class="person-link" data-kind="${kind}" data-name="${escapeHtml(name)}">${escapeHtml(name)}</span>`)
+   .join(", ");
+}
+
+function personClick(type,kind,name){
+ genreState[type]="all";
+ if(kind==="director"){
+   directorState[type]=(directorState[type]===name)?"all":name;
+ }else{
+   actorState[type]=(actorState[type]===name)?"all":name;
+ }
+ renderColumn(type);
+}
+
+watchedList.addEventListener("click",e=>{
+ const t=e.target.closest(".person-link");
+ if(!t) return;
+ personClick("watched",t.dataset.kind,t.dataset.name);
+});
+watchList.addEventListener("click",e=>{
+ const t=e.target.closest(".person-link");
+ if(!t) return;
+ personClick("watchlist",t.dataset.kind,t.dataset.name);
+});
+
+watchedList.addEventListener("contextmenu",e=>{
+ const t=e.target.closest(".person-link");
+ if(!t) return;
+ e.preventDefault();
+ personRightClick("watched",t.dataset.kind,t.dataset.name);
+});
+watchList.addEventListener("contextmenu",e=>{
+ const t=e.target.closest(".person-link");
+ if(!t) return;
+ e.preventDefault();
+ personRightClick("watchlist",t.dataset.kind,t.dataset.name);
+});
+
+function personRightClick(type,kind,name){
+ const input=document.getElementById(type==="watchlist"?"searchWatch":"searchWatched");
+ if(input) input.value=name;
+ searchPerson(name,kind==="director"?"Director":"Actor",type);
+}
+
+/* ===================== TÜRKÇE BİLGİ (başlık / poster / kategori) ===================== */
+
+async function loadGenreMap(){
+ if(genreMapLoaded) return;
+ try{
+   const d=await fetchJson(`https://api.themoviedb.org/3/genre/movie/list?api_key=${TMDB_KEY}&language=tr-TR`);
+   (d.genres||[]).forEach(g=>genreMap[g.id]=g.name);
+ }catch(e){}
+ genreMapLoaded=true;
+}
+
+async function fetchJson(url,timeoutMs=12000){
+ const controller=new AbortController();
+ const t=setTimeout(()=>controller.abort(),timeoutMs);
+ try{
+   const r=await fetch(url,{signal:controller.signal});
+   return await r.json();
+ }finally{
+   clearTimeout(t);
+ }
+}
+
+async function getTurkishInfo(imdbID,title,year){
+ if(turkishCache[imdbID]) return turkishCache[imdbID];
+ const info={title:null,poster:null,genres:[]};
+ try{
+   const data=await fetchJson(`https://api.themoviedb.org/3/find/${imdbID}?api_key=${TMDB_KEY}&external_source=imdb_id&language=tr-TR`);
+   let movie=data.movie_results?.[0]||null;
+
+   if(!movie && title){
+     const trySearch=async(withYear)=>{
+       let url=`https://api.themoviedb.org/3/search/movie?api_key=${TMDB_KEY}&language=tr-TR&query=${encodeURIComponent(title)}`;
+       const y=parseInt(year);
+       if(withYear && !isNaN(y)) url+=`&year=${y}`;
+       try{
+         const d=await fetchJson(url);
+         return d.results?.[0]||null;
+       }catch(e){return null;}
+     };
+     movie=await trySearch(true);
+     if(!movie) movie=await trySearch(false);
+   }
+
+   if(movie){
+     if(movie.title) info.title=movie.title;
+     if(movie.poster_path) info.poster=`https://image.tmdb.org/t/p/w200${movie.poster_path}`;
+     if(movie.genre_ids && movie.genre_ids.length){
+       info.genres=movie.genre_ids.map(id=>genreMap[id]).filter(Boolean);
+     }
+   }
+ }catch(e){}
+ // sadece gerçekten bir sonuç bulduysak kalıcı olarak önbelleğe al;
+ // boş/başarısız sonucu kalıcı hale getirmeyelim ki bir sonraki reload'ta tekrar denensin
+ if(info.title || info.poster || info.genres.length){
+   turkishCache[imdbID]=info;
+ }
+ return info;
+}
+
+async function preloadInfo(){
+ await loadGenreMap();
+ const all=[...allData.watched,...allData.watchlist].filter(m=>!turkishCache[m.imdbID]);
+ const batchSize=5;
+ for(let i=0;i<all.length;i+=batchSize){
+   const batch=all.slice(i,i+batchSize);
+   await Promise.all(batch.map(m=>getTurkishInfo(m.imdbID,m.Title,m.Year)));
+   if(i+batchSize<all.length) await new Promise(res=>setTimeout(res,150));
+ }
+}
+
+/* ===================== ARAMA ===================== */
+
+function searchMain(input,type){
+ clearTimeout(searchTimer);
+ searchGen[type]++;
+ const myGen=searchGen[type];
+ const raw=input.value.trim();
+ if(raw.length<3){reload();return;}
+ searchTimer=setTimeout(()=>searchImmediate(raw,type,myGen),400);
+}
+
+async function searchTmdbTurkishImdbIds(query){
+ try{
+   const d=await fetchJson(`https://api.themoviedb.org/3/search/movie?api_key=${TMDB_KEY}&language=tr-TR&query=${encodeURIComponent(query)}`);
+   const results=(d.results||[]).slice(0,6);
+   const ids=await Promise.all(results.map(async r=>{
+     try{
+       const ext=await fetchJson(`https://api.themoviedb.org/3/movie/${r.id}/external_ids?api_key=${TMDB_KEY}`);
+       return ext.imdb_id||null;
+     }catch(e){return null;}
+   }));
+   return ids.filter(Boolean);
+ }catch(e){return [];}
+}
+
+async function searchImmediate(raw,type,myGen){
+ const q=raw.toLowerCase();
+ const list=type==="watched"?watchedList:watchList;
+ list.innerHTML="Aranıyor...";
+
+ if(q.startsWith("yönetmen:")){
+   searchPerson(raw.split(":")[1].trim(),"Director",type,myGen);return;
+ }
+ if(q.startsWith("oyuncu:")){
+   searchPerson(raw.split(":")[1].trim(),"Actor",type,myGen);return;
+ }
+ if(/^tt\d{7,9}$/.test(q)){
+   searchByImdbId(q,type,myGen);return;
+ }
+
+ const [omdbRes,tmdbImdbIds]=await Promise.all([
+   window.pywebview.api.search_movie(raw),
+   searchTmdbTurkishImdbIds(raw)
+ ]);
+
+ if(searchGen[type]!==myGen) return;
+
+ const seen=new Set();
+ const results=[];
+ if(omdbRes && omdbRes.Search){
+   omdbRes.Search.forEach(m=>{
+     if(!seen.has(m.imdbID)){seen.add(m.imdbID);results.push(m);}
+   });
+ }
+
+ const extraIds=tmdbImdbIds.filter(id=>!seen.has(id)).slice(0,5);
+ if(extraIds.length){
+   const extraMovies=await Promise.all(extraIds.map(id=>window.pywebview.api.search_movie(id)));
+   if(searchGen[type]!==myGen) return;
+   extraMovies.forEach(m=>{
+     if(m && m.Response!=="False" && !seen.has(m.imdbID)){
+       seen.add(m.imdbID);
+       results.push(m);
+     }
+   });
+ }
+
+ if(searchGen[type]!==myGen) return;
+ list.innerHTML="";
+ if(results.length){
+   results.slice(0,8).forEach(m=>addSearchResultCard(m,type,myGen));
+ }else{
+   list.innerHTML="Sonuç bulunamadı";
+ }
+}
+
+function searchByImdbId(id,type,myGen){
+ window.pywebview.api.search_movie(id).then(d=>{
+   if(searchGen[type]!==myGen) return;
+   const list=type==="watched"?watchedList:watchList;
+   list.innerHTML="";
+   if(d && d.Response!=="False"){
+     addSearchResultCard(d,type,myGen);
+   }
+ });
+}
+
+function movieExists(imdbId){
+ return allData.watched.some(m=>m.imdbID===imdbId) || allData.watchlist.some(m=>m.imdbID===imdbId);
+}
+
+function searchPerson(name,role,type,myGen){
+ if(myGen===undefined){searchGen[type]++;myGen=searchGen[type];}
+ fetch(`https://api.themoviedb.org/3/search/person?api_key=${TMDB_KEY}&query=${name}&language=tr-TR`)
+ .then(r=>r.json())
+ .then(d=>{
+   if(searchGen[type]!==myGen) return;
+   const person=d.results?.[0];
+   if(!person)return;
+   fetch(`https://api.themoviedb.org/3/person/${person.id}/movie_credits?api_key=${TMDB_KEY}&language=tr-TR`)
+   .then(r=>r.json())
+   .then(credits=>{
+     if(searchGen[type]!==myGen) return;
+     const list=type==="watched"?watchedList:watchList;
+     list.innerHTML="";
+     let movies=role==="Director"?credits.crew.filter(c=>c.job==="Director"):credits.cast;
+     // en popüler / bilinen filmler önce gelsin
+     movies=movies.slice().sort((a,b)=>(b.popularity||0)-(a.popularity||0));
+     let shown=0;
+     movies.slice(0,20).forEach(m=>{
+       if(!m.id || shown>=10)return;
+       fetch(`https://api.themoviedb.org/3/movie/${m.id}?api_key=${TMDB_KEY}&append_to_response=external_ids`)
+       .then(r=>r.json())
+       .then(detail=>{
+         if(searchGen[type]!==myGen) return;
+         const imdbId=detail.external_ids?.imdb_id;
+         if(imdbId && !movieExists(imdbId) && shown<10){
+           window.pywebview.api.search_movie(imdbId)
+           .then(res=>{
+             if(searchGen[type]!==myGen) return;
+             if(res && res.Response!=="False" && !movieExists(imdbId)){
+               shown++;
+               addSearchResultCard(res,type,myGen);
+             }
+           });
+         }
+       });
+     });
+   });
+ });
+}
+
+/* ===================== KARTLAR ===================== */
+
+function addSearchResultCard(m,type,myGen){
+ if(myGen!==undefined && searchGen[type]!==myGen) return;
+ const list=type==="watched"?watchedList:watchList;
+ const div=document.createElement("div");
+ div.className="movie";
+ const hasOmdbPoster=!!(m.Poster&&m.Poster!=="N/A");
+ const initialPoster=hasOmdbPoster?m.Poster:"https://via.placeholder.com/90x135";
+ div.innerHTML=`
+ <img id="poster-${m.imdbID}" src="${initialPoster}">
+ <div>
+ <b>${m.Title}</b> (${m.Year})
+ <div class="tr-title" id="tr-${m.imdbID}"></div>
+ <button class="btn" onclick="addMovie('${m.imdbID}','${type}')">➕ Ekle</button>
+ </div>`;
+ list.appendChild(div);
+
+ const imgEl=div.querySelector("img");
+ imgEl.onerror=()=>fetchPoster(m.imdbID,imgEl,m.Title,m.Year);
+ if(!hasOmdbPoster){
+   fetchPoster(m.imdbID,imgEl,m.Title,m.Year);
+ }
+
+ getTurkishInfo(m.imdbID,m.Title,m.Year).then(info=>{
+   if(myGen!==undefined && searchGen[type]!==myGen) return;
+   if(info.title){
+     const el=document.getElementById(`tr-${m.imdbID}`);
+     if(el) el.textContent=info.title;
+   }
+ });
+}
+
+function card(m,i,isWatch){
+ const info=turkishCache[m.imdbID]||{};
+ const hasOmdbPoster=!!(m.Poster&&m.Poster!=="N/A");
+ const poster=hasOmdbPoster?m.Poster:"https://via.placeholder.com/90x135";
+ const trTitle=info.title||"";
+
+ const d=document.createElement("div");
+ d.className="movie";
+ d.dataset.id=m.imdbID;
+ d.dataset.hasPoster=hasOmdbPoster?"1":"0";
+ d.innerHTML=`
+ <div class="number">${i+1}</div>
+ <img class="poster-link" src="${poster}" onclick="openImdb('${m.imdbID}')">
+ <div>
+ <b>${m.Title}</b> (${m.Year})
+ <div class="tr-title">${trTitle}</div>
+ <div class="meta">⭐ ${m.imdbRating}</div>
+ <div class="meta">⏱ ${m.Runtime}</div>
+ <div class="meta">🎬 ${personLinksHtml(m.Director,"director")}</div>
+ <div class="meta">🎭 ${personLinksHtml(m.Actors,"actor")}</div>
+ </div>
+ ${isWatch?`<button class="tick-btn" onclick="move('${m.imdbID}')">✔</button>`:""}
+ <button class="delete-btn" onclick="deleteMovie('${m.imdbID}','${isWatch?'watchlist':'watched'}')">✕</button>`;
+
+ const imgEl=d.querySelector("img.poster-link");
+ imgEl.onerror=()=>fetchPoster(m.imdbID,imgEl,m.Title,m.Year);
+ if(!hasOmdbPoster){
+   // OMDb'de poster yok (N/A); onerror burada tetiklenmez çünkü placeholder her zaman yüklenir,
+   // o yüzden TMDB'yi doğrudan deniyoruz.
+   fetchPoster(m.imdbID,imgEl,m.Title,m.Year);
+ }
+ return d;
+}
+
+/* ===================== POSTER FALLBACK ===================== */
+// OMDb posteri yoksa (N/A) ya da yüklenemezse (kırık URL) TMDB Find/Search
+// üzerinden bulunan posteri devreye sokar; o da yoksa placeholder'da kalır.
+function fetchPoster(imdbID,imgEl,title,year){
+ if(imgEl.dataset.posterStage==="done") return;
+ imgEl.dataset.posterStage="done";
+ getTurkishInfo(imdbID,title,year).then(info=>{
+   if(info.poster){
+     imgEl.onerror=()=>{imgEl.onerror=null;imgEl.src="https://via.placeholder.com/90x135";};
+     imgEl.src=info.poster;
+   }else{
+     imgEl.onerror=null;
+     imgEl.src="https://via.placeholder.com/90x135";
+   }
+ });
+}
+
+/* ===================== LİSTE İŞLEMLERİ ===================== */
+
+function addMovie(id,type){
+ window.pywebview.api.add_movie(id,type).then(()=>{
+   const input=document.getElementById(type==="watchlist"?"searchWatch":"searchWatched");
+   if(input) input.value="";
+   reload();
+ });
+}
+
+function move(id){
+ window.pywebview.api.move_to_watched(id).then(()=>reload());
+}
+
+function deleteMovie(id,type){
+ window.pywebview.api.delete_movie(id,type).then(()=>reload());
+}
+
+/* ===================== SIRALAMA / KATEGORİ / YÖNETMEN / OYUNCU ===================== */
+
+function sortIndexed(indexed,mode){
+ const arr=indexed.slice();
+ switch(mode){
+   case "added-asc": arr.sort((a,b)=>a.i-b.i); break;
+   case "az": arr.sort((a,b)=>(a.m.Title||"").localeCompare(b.m.Title||"","tr")); break;
+   case "za": arr.sort((a,b)=>(b.m.Title||"").localeCompare(a.m.Title||"","tr")); break;
+   case "year-desc": arr.sort((a,b)=>(parseInt(b.m.Year)||0)-(parseInt(a.m.Year)||0)); break;
+   case "year-asc": arr.sort((a,b)=>(parseInt(a.m.Year)||0)-(parseInt(b.m.Year)||0)); break;
+   case "rating-desc": arr.sort((a,b)=>{
+     const rb=parseFloat(b.m.imdbRating); const ra=parseFloat(a.m.imdbRating);
+     return (isNaN(rb)?-1:rb)-(isNaN(ra)?-1:ra);
+   }); break;
+   case "rating-asc": arr.sort((a,b)=>{
+     const rb=parseFloat(b.m.imdbRating); const ra=parseFloat(a.m.imdbRating);
+     return (isNaN(ra)?999:ra)-(isNaN(rb)?999:rb);
+   }); break;
+   case "added-desc":
+   default: arr.sort((a,b)=>b.i-a.i); break;
+ }
+ return arr;
+}
+
+function movieGenres(m){
+ return (m.Genre||"").split(",").map(g=>g.trim()).filter(g=>g&&g!=="N/A");
+}
+function movieGenresTr(m){
+ const info=turkishCache[m.imdbID];
+ if(info && info.genres && info.genres.length) return info.genres;
+ return movieGenres(m);
+}
+function movieDirectors(m){
+ return (m.Director||"").split(",").map(s=>s.trim()).filter(s=>s&&s!=="N/A");
+}
+function movieActors(m){
+ return (m.Actors||"").split(",").map(s=>s.trim()).filter(s=>s&&s!=="N/A");
+}
+
+function populateGenreSelect(type){
+ const sel=document.getElementById(type==="watchlist"?"genreWatch":"genreWatched");
+ const current=genreState[type];
+ const set=new Set();
+ allData[type].forEach(m=>movieGenresTr(m).forEach(g=>set.add(g)));
+ const genres=Array.from(set).sort((a,b)=>a.localeCompare(b,"tr"));
+ sel.innerHTML='<option value="all">Kategori</option>'+genres.map(g=>`<option value="${g}">${g}</option>`).join("");
+ if(current!=="all" && !genres.includes(current)) genreState[type]="all";
+ sel.value=genreState[type];
+}
+
+function populateDirectorSelect(type){
+ const sel=document.getElementById(type==="watchlist"?"directorWatch":"directorWatched");
+ const current=directorState[type];
+ const set=new Set();
+ allData[type].forEach(m=>movieDirectors(m).forEach(dName=>set.add(dName)));
+ const names=Array.from(set).sort((a,b)=>a.localeCompare(b,"tr"));
+ sel.innerHTML='<option value="all">Yönetmen</option>'+names.map(n=>`<option value="${n}">${n}</option>`).join("");
+ if(current!=="all" && !names.includes(current)) directorState[type]="all";
+ sel.value=directorState[type];
+}
+
+function populateActorSelect(type){
+ const sel=document.getElementById(type==="watchlist"?"actorWatch":"actorWatched");
+ const current=actorState[type];
+ const set=new Set();
+ allData[type].forEach(m=>movieActors(m).forEach(a=>set.add(a)));
+ const names=Array.from(set).sort((a,b)=>a.localeCompare(b,"tr"));
+ sel.innerHTML='<option value="all">Oyuncu</option>'+names.map(n=>`<option value="${n}">${n}</option>`).join("");
+ if(current!=="all" && !names.includes(current)) actorState[type]="all";
+ sel.value=actorState[type];
+}
+
+function onSortChange(type){
+ sortState[type]=document.getElementById(type==="watchlist"?"sortWatch":"sortWatched").value;
+ renderColumn(type);
+}
+function onGenreChange(type){
+ genreState[type]=document.getElementById(type==="watchlist"?"genreWatch":"genreWatched").value;
+ renderColumn(type);
+}
+function onDirectorChange(type){
+ directorState[type]=document.getElementById(type==="watchlist"?"directorWatch":"directorWatched").value;
+ renderColumn(type);
+}
+function onActorChange(type){
+ actorState[type]=document.getElementById(type==="watchlist"?"actorWatch":"actorWatched").value;
+ renderColumn(type);
+}
+
+/* ===================== LİSTEDE BUL ===================== */
+
+function findInList(input,type){
+ const q=input.value.trim().toLowerCase();
+ if(!q)return;
+
+ let changed=false;
+ if(genreState[type]!=="all"){genreState[type]="all";changed=true;}
+ if(directorState[type]!=="all"){directorState[type]="all";changed=true;}
+ if(actorState[type]!=="all"){actorState[type]="all";changed=true;}
+ if(changed) renderColumn(type);
+
+ const listEl=type==="watchlist"?watchList:watchedList;
+ const cards=Array.from(listEl.querySelectorAll(".movie"));
+ const match=cards.find(c=>{
+   const titleEl=c.querySelector("b");
+   const trEl=c.querySelector(".tr-title");
+   const text=((titleEl?titleEl.textContent:"")+" "+(trEl?trEl.textContent:"")).toLowerCase();
+   return text.includes(q);
+ });
+ if(match){
+   match.classList.add("highlight");
+   setTimeout(()=>match.classList.remove("highlight"),2000);
+
+   requestAnimationFrame(()=>{
+     const container=listEl.closest(".column");
+     const containerRect=container.getBoundingClientRect();
+     const matchRect=match.getBoundingClientRect();
+     const offset=matchRect.top-containerRect.top+container.scrollTop-(container.clientHeight/2)+(matchRect.height/2);
+     const prevBehavior=container.style.scrollBehavior;
+     container.style.scrollBehavior="auto";
+     container.scrollTop=Math.max(offset,0);
+     container.style.scrollBehavior=prevBehavior||"";
+   });
+ }
+}
+
+/* ===================== RENDER ===================== */
+
+function renderColumn(type){
+ const isWatchlist=type==="watchlist";
+ const listEl=isWatchlist?watchList:watchedList;
+ const countEl=isWatchlist?watchCount:watchedCount;
+ const timeEl=isWatchlist?watchTime:watchedTime;
+
+ populateGenreSelect(type);
+ populateDirectorSelect(type);
+ populateActorSelect(type);
+
+ let indexed=allData[type].map((m,i)=>({m,i}));
+ if(genreState[type]!=="all"){
+   indexed=indexed.filter(x=>movieGenresTr(x.m).includes(genreState[type]));
+ }
+ if(directorState[type]!=="all"){
+   indexed=indexed.filter(x=>movieDirectors(x.m).includes(directorState[type]));
+ }
+ if(actorState[type]!=="all"){
+   indexed=indexed.filter(x=>movieActors(x.m).includes(actorState[type]));
+ }
+ indexed=sortIndexed(indexed,sortState[type]);
+
+ listEl.innerHTML="";
+ listEl.classList.toggle("grid-view",viewState[type]==="grid");
+ let totalMin=0;
+ indexed.forEach((x,displayIdx)=>{
+   totalMin+=runtimeMin(x.m.Runtime);
+   listEl.appendChild(card(x.m,displayIdx,isWatchlist));
+ });
+
+ countEl.textContent=indexed.length;
+ timeEl.textContent=formatTime(totalMin);
+}
+
+function render(){
+ renderColumn("watched");
+ renderColumn("watchlist");
+}
+
+function refreshCardsInPlace(){
+ document.querySelectorAll(".movie[data-id]").forEach(el=>{
+   const id=el.dataset.id;
+   const info=turkishCache[id];
+   if(!info) return;
+   if(info.title){
+     const trEl=el.querySelector(".tr-title");
+     if(trEl && !trEl.textContent) trEl.textContent=info.title;
+   }
+ });
+ populateGenreSelect("watched");
+ populateGenreSelect("watchlist");
+}
+
+function reload(){
+ window.pywebview.api.get_movies().then(d=>{
+   allData=d||{watched:[],watchlist:[]};
+   render();
+   preloadInfo().then(()=>{
+     refreshCardsInPlace();
+   });
+ });
+}
+
+function openImdb(id){
+ window.pywebview.api.open_imdb_window(`https://www.imdb.com/title/${id}/`);
+}
+
+function scrollToTop(type){
+ const container=(type==="watchlist"?watchList:watchedList).closest(".column");
+ container.scrollTo({top:0,behavior:"smooth"});
+}
+
+function toggleView(type){
+ viewState[type]=viewState[type]==="list"?"grid":"list";
+ const listEl=type==="watchlist"?watchList:watchedList;
+ listEl.classList.toggle("grid-view",viewState[type]==="grid");
+}
+
+window.addEventListener("pywebviewready",reload);
+</script>
+
+</body>
+</html>
