@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>Film Arşivi</title>
+<style>
+*{box-sizing:border-box}
+body{font-family:Arial;background:#111;color:#eee;margin:0}
+.container{display:flex;height:100vh}
+.column{width:50%;padding:0;box-sizing:border-box;overflow-y:auto;overflow-x:hidden;scroll-behavior:smooth}
+.sticky-header{position:sticky;top:0;padding:20px 20px 10px 20px;background:#111;z-index:5;border-bottom:1px solid #222}
+.list-wrap{padding:0 20px 20px 20px}
+.column:first-child{border-right:2px solid #444}
+h2{text-align:center;margin-bottom:10px;font-size:20px}
+.top-btn,.view-btn{cursor:pointer;display:inline-block;margin:0 3px;user-select:none}
+.top-btn:hover,.view-btn:hover{opacity:0.7}
+.search{width:95%;padding:10px;margin:0 auto 8px auto;display:block;background:#333;color:#eee;border:1px solid #555;border-radius:4px;font-size:16px}
+.sort-select{padding:6px 8px;font-size:13px;background:#222;color:#ccc;border:1px solid #444;border-radius:4px}
+.movie{width:95%;display:flex;align-items:center;margin:0 auto 15px auto;background:#222;padding:12px 16px;border-radius:8px;position:relative}
+.movie img{width:90px;height:135px;object-fit:cover;margin-right:15px;border-radius:4px}
+.number{font-size:2.2em;color:#555;width:80px;display:flex;justify-content:center;align-items:center;margin-right:20px}
+.btn, label.import-btn{margin-top:6px;padding:6px 12px;background:#e50914;color:#fff;border:none;border-radius:4px;cursor:pointer;display:inline-block;font-weight:bold;text-align:center;}
+.btn:hover, label.import-btn:hover{background:#b20710;}
+input[type="file"]{display:none;}
+.delete-btn{position:absolute;top:10px;right:10px;background:#333;color:#bbb;border:none;width:24px;height:24px;border-radius:50%;cursor:pointer}
+.meta{font-size:13px;color:#bbb;margin-top:3px}
+.tr-title{color:#888;font-size:13px;margin-top:2px}
+.controls{width:95%;margin:0 auto 10px auto;display:flex;flex-wrap:wrap;gap:8px}
+</style>
+</head>
+<body>
+
+<div class="container">
+    <div class="column">
+        <div class="sticky-header">
+            <h2>İzlenenler (<span id="watchedCount">0</span>)</h2>
+            <!-- movies.json Yükleme Butonu -->
+            <div style="text-align:center; margin-bottom:10px;">
+                <label for="importFile" class="import-btn">⬆️ movies.json İçe Aktar</label>
+                <input type="file" id="importFile" accept=".json">
+            </div>
+            <input id="searchWatched" class="search" placeholder="Film ara" oninput="filterMovies(this.value)">
+        </div>
+        <div class="list-wrap"><div id="watchedList"></div></div>
+    </div>
+
+    <div class="column">
+        <div class="sticky-header">
+            <h2>İzlenecekler (<span id="watchCount">0</span>)</h2>
+        </div>
+        <div class="list-wrap"><div id="watchList"></div></div>
+    </div>
+</div>
+
+<!-- Firebase ve Firestore Entegrasyonu -->
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyCyavR84Jp0pd_HlxwrtAPw4LrPA3vhbW8",
+        authDomain: "filmarsivi-1.firebaseapp.com",
+        projectId: "filmarsivi-1",
+        storageBucket: "filmarsivi-1.firebasestorage.app",
+        messagingSenderId: "785164334077",
+        appId: "1:785164334077:web:9e580983baa0947fa31f94",
+        measurementId: "G-HKDT1QFC5C"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    let allMovies = [];
+
+    async function loadMovies() {
+        const watchedListEl = document.getElementById("watchedList");
+        watchedListEl.innerHTML = "<div style='text-align:center; padding:20px;'>Yükleniyor...</div>";
+
+        try {
+            const querySnapshot = await getDocs(collection(db, "movies"));
+            allMovies = [];
+            querySnapshot.forEach((docSnap) => {
+                allMovies.push({ id: docSnap.id, ...docSnap.data() });
+            });
+            renderMovies(allMovies);
+        } catch (e) {
+            watchedListEl.innerHTML = "<div style='text-align:center; color:red; padding:20px;'>Yüklenirken hata oluştu.</div>";
+        }
+    }
+
+    window.renderMovies = function(movies) {
+        const watchedListEl = document.getElementById("watchedList");
+        const watchListEl = document.getElementById("watchList");
+        
+        watchedListEl.innerHTML = "";
+        watchListEl.innerHTML = "";
+
+        let watchedCount = 0;
+        let watchCount = 0;
+
+        movies.forEach((m, index) => {
+            const title = m.title || m.Title || m.ad || "Bilinmeyen Film";
+            const year = m.year || m.Year || m.yil || "";
+            const genre = m.genre || m.Genre || m.tur || "";
+            const poster = m.Poster && m.Poster !== "N/A" ? m.Poster : "https://via.placeholder.com/90x135";
+            const isWatched = m.status === "watchlist" ? false : true; // Varsayılan izlenen kabul edelim
+
+            const cardHtml = `
+                <div class="movie">
+                    <div class="number">${index + 1}</div>
+                    <img src="${poster}">
+                    <div>
+                        <b>${title}</b> (${year})
+                        <div class="meta">🎭 ${genre}</div>
+                    </div>
+                    <button class="delete-btn" onclick="deleteMovie('${m.id}')">✕</button>
+                </div>
+            `;
+
+            if (isWatched) {
+                watchedListEl.innerHTML += cardHtml;
+                watchedCount++;
+            } else {
+                watchListEl.innerHTML += cardHtml;
+                watchCount++;
+            }
+        });
+
+        document.getElementById("watchedCount").textContent = watchedCount;
+        document.getElementById("watchCount").textContent = watchCount;
+    }
+
+    // movies.json Dosyasını İçe Aktarma
+    document.getElementById("importFile").addEventListener("change", async function(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = async function(e) {
+            try {
+                const movies = JSON.parse(e.target.result);
+                alert(`${movies.length} adet film içe aktarılıyor, lütfen bekleyin...`);
+                
+                for (const movie of movies) {
+                    await addDoc(collection(db, "movies"), movie);
+                }
+                
+                alert("Tüm filmler başarıyla yüklendi!");
+                loadMovies();
+            } catch (err) {
+                alert("Hata oluştu: " + err.message);
+            }
+        };
+        reader.readAsText(file);
+    });
+
+    window.deleteMovie = async function(id) {
+        if (confirm("Bu filmi silmek istediğinize emin misiniz?")) {
+            await deleteDoc(doc(db, "movies", id));
+            loadMovies();
+        }
+    }
+
+    window.filterMovies = function(query) {
+        const q = query.toLowerCase();
+        const filtered = allMovies.filter(m => {
+            const title = (m.title || m.Title || m.ad || "").toLowerCase();
+            return title.includes(q);
+        });
+        renderMovies(filtered);
+    }
+
+    loadMovies();
+</script>
+
+</body>
+</html>
