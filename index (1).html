@@ -135,12 +135,13 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 /* ===================== AYARLAR ===================== */
 // Kendi Firebase projenin bilgilerini buraya yapıştır (REHBER.md dosyasına bak)
 const firebaseConfig = {
-  apiKey: "BURAYA_YAPISTIR",
-  authDomain: "BURAYA_YAPISTIR.firebaseapp.com",
-  projectId: "BURAYA_YAPISTIR",
-  storageBucket: "BURAYA_YAPISTIR.appspot.com",
-  messagingSenderId: "BURAYA_YAPISTIR",
-  appId: "BURAYA_YAPISTIR"
+  apiKey: "AIzaSyCyavR84Jp0pd_HlxwrtAPw4LrPA3vhbW8",
+  authDomain: "filmarsivi-1.firebaseapp.com",
+  projectId: "filmarsivi-1",
+  storageBucket: "filmarsivi-1.firebasestorage.app",
+  messagingSenderId: "785164334077",
+  appId: "1:785164334077:web:9e580983baa0947fa31f94",
+  measurementId: "G-HKDT1QFC5C"
 };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
@@ -383,11 +384,11 @@ function movieExists(imdbId){
 
 function searchPerson(name,role,type,myGen){
  if(myGen===undefined){searchGen[type]++;myGen=searchGen[type];}
- fetch(`https://api.themoviedb.org/3/search/person?api_key=${TMDB_KEY}&query=${name}&language=tr-TR`)
+ fetch(`https://api.themoviedb.org/3/search/person?api_key=${TMDB_KEY}&query=${encodeURIComponent(name)}&language=tr-TR`)
  .then(r=>r.json())
  .then(d=>{
    if(searchGen[type]!==myGen) return;
-   const person=d.results?.[0];
+   const person=d?.results?.[0];
    if(!person)return;
    fetch(`https://api.themoviedb.org/3/person/${person.id}/movie_credits?api_key=${TMDB_KEY}&language=tr-TR`)
    .then(r=>r.json())
@@ -395,7 +396,9 @@ function searchPerson(name,role,type,myGen){
      if(searchGen[type]!==myGen) return;
      const list=type==="watched"?watchedList:watchList;
      list.innerHTML="";
-     let movies=role==="Director"?credits.crew.filter(c=>c.job==="Director"):credits.cast;
+     const crew=Array.isArray(credits?.crew)?credits.crew:[];
+     const cast=Array.isArray(credits?.cast)?credits.cast:[];
+     let movies=role==="Director"?crew.filter(c=>c.job==="Director"):cast;
      // en popüler / bilinen filmler önce gelsin
      movies=movies.slice().sort((a,b)=>(b.popularity||0)-(a.popularity||0));
      let shown=0;
@@ -416,10 +419,13 @@ function searchPerson(name,role,type,myGen){
              }
            });
          }
-       });
+       })
+       .catch(()=>{});
      });
-   });
- });
+   })
+   .catch(()=>{});
+ })
+ .catch(()=>{});
 }
 
 /* ===================== KARTLAR ===================== */
