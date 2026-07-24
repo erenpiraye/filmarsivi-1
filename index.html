@@ -88,6 +88,7 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 
 <div class="sync-bar" style="padding:10px 20px 0 20px;">
  <span class="sync-status" id="syncStatus">Bağlanıyor…</span>
+ <button onclick="reload()" id="refreshBtn">🔄 Yenile</button>
  <button onclick="document.getElementById('importFile').click()">⬆️ movies.json İçe Aktar</button>
  <input type="file" id="importFile" accept="application/json" style="display:none" onchange="handleImportFile(this.files[0])">
  <button onclick="exportData()">⬇️ Yedek İndir (movies.json)</button>
@@ -773,8 +774,13 @@ async function searchOmdb(query){
  }catch(e){console.error("OMDb arama hatası:",e);return {Response:"False"};}
 }
 
+let isReloading=false;
 async function reload(){
+ if(isReloading) return;
+ isReloading=true;
  const statusEl=document.getElementById("syncStatus");
+ const btn=document.getElementById("refreshBtn");
+ if(btn) btn.disabled=true;
  try{
    if(statusEl) statusEl.textContent="Yükleniyor…";
    const [watchedSnap,watchlistSnap]=await Promise.all([
@@ -793,6 +799,9 @@ async function reload(){
  }catch(e){
    console.error(e);
    if(statusEl) statusEl.textContent="Bağlantı hatası — firebaseConfig'i kontrol et (REHBER.md)";
+ }finally{
+   isReloading=false;
+   if(btn) btn.disabled=false;
  }
 }
 
@@ -883,6 +892,15 @@ function toggleView(type){
 }
 
 reload();
+
+// Ana ekrandan açılan uygulama modunda (standalone) tarayıcı arayüzü olmadığı için
+// "yenile" imkanı yok; uygulamayı arka plandan öne getirince otomatik yenile.
+document.addEventListener("visibilitychange", ()=>{
+ if(document.visibilityState === "visible") reload();
+});
+window.addEventListener("pageshow", (e)=>{
+ if(e.persisted) reload();
+});
 </script>
 
 </body>
