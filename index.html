@@ -46,9 +46,32 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 .sync-bar button:hover{opacity:0.8}
 .sync-status{font-size:12px;color:#888}
 @media (max-width:700px){
- .container{flex-direction:column;height:auto;min-height:100vh}
- .column{width:100%}
+ .container{display:block;height:auto;min-height:100vh}
+ .column{width:100%;overflow:visible}
  .column:first-child{border-right:none;border-bottom:2px solid #444}
+ .sticky-header{padding:6px 12px 5px 12px}
+ h2{font-size:13px;margin-bottom:4px}
+ .search{padding:5px 8px;font-size:14px;margin-bottom:4px}
+ .controls{gap:4px;margin-bottom:4px}
+ .controls .sort-select{flex:1 1 47%;min-width:0;font-size:11px;padding:3px 5px}
+ .findbox{padding:4px 8px;font-size:12px;margin-bottom:0}
+ .list-wrap{padding:0 12px 12px 12px}
+ .movie{padding:8px 10px;margin:0 auto 10px auto}
+ .movie img{width:60px;height:90px;margin-right:10px}
+ .number{font-size:1.3em;width:38px;margin-right:10px}
+ .sync-bar{padding:5px 12px 0 12px!important;gap:6px}
+ .sync-bar button{font-size:11px;padding:4px 7px}
+ .sync-status{font-size:11px}
+}
+/* Yatay (landscape) telefon: dikey alan az, üst bloğu daha da sıkıştır */
+@media (max-width:700px) and (orientation:landscape){
+ .sticky-header{padding:4px 12px 3px 12px}
+ h2{font-size:12px;margin-bottom:3px}
+ .search{padding:3px 6px;font-size:13px;margin-bottom:3px}
+ .controls{gap:3px;margin-bottom:3px}
+ .controls .sort-select{font-size:10px;padding:2px 4px}
+ .findbox{padding:3px 6px;font-size:11px}
+ .sync-bar{padding:3px 12px 0 12px!important}
 }
 </style>
 </head>
@@ -656,13 +679,17 @@ function findInList(input,type){
 
    requestAnimationFrame(()=>{
      const container=listEl.closest(".column");
-     const containerRect=container.getBoundingClientRect();
-     const matchRect=match.getBoundingClientRect();
-     const offset=matchRect.top-containerRect.top+container.scrollTop-(container.clientHeight/2)+(matchRect.height/2);
-     const prevBehavior=container.style.scrollBehavior;
-     container.style.scrollBehavior="auto";
-     container.scrollTop=Math.max(offset,0);
-     container.style.scrollBehavior=prevBehavior||"";
+     if(isScrollContainer(container)){
+       const containerRect=container.getBoundingClientRect();
+       const matchRect=match.getBoundingClientRect();
+       const offset=matchRect.top-containerRect.top+container.scrollTop-(container.clientHeight/2)+(matchRect.height/2);
+       const prevBehavior=container.style.scrollBehavior;
+       container.style.scrollBehavior="auto";
+       container.scrollTop=Math.max(offset,0);
+       container.style.scrollBehavior=prevBehavior||"";
+     } else {
+       match.scrollIntoView({behavior:"auto",block:"center"});
+     }
    });
  }
 }
@@ -831,9 +858,17 @@ function exportData(){
  URL.revokeObjectURL(url);
 }
 
+function isScrollContainer(el){
+ return el && el.scrollHeight > el.clientHeight + 2;
+}
+
 function scrollToTop(type){
  const container=(type==="watchlist"?watchList:watchedList).closest(".column");
- container.scrollTo({top:0,behavior:"smooth"});
+ if(isScrollContainer(container)){
+   container.scrollTo({top:0,behavior:"smooth"});
+ } else {
+   container.scrollIntoView({behavior:"smooth",block:"start"});
+ }
 }
 
 function toggleView(type){
