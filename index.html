@@ -10,6 +10,13 @@
 <link rel="apple-touch-icon" sizes="167x167" href="apple-touch-icon-167x167.png">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+<script>
+// Ana ekrandan farklı isimle eklenen ikinci kısayıt için: ?buyuk=izlenen linkiyle
+// açılırsa, sadece İzlenenler görünsün ve yazılar büyük olsun.
+if(new URLSearchParams(location.search).get("buyuk")==="izlenen"){
+ document.documentElement.classList.add("big-watched-only");
+}
+</script>
 <title>Film Arşivi</title>
 <style>
 *{box-sizing:border-box}
@@ -78,6 +85,20 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
  .findbox{padding:3px 6px;font-size:11px}
  .sync-bar{padding:3px 12px 0 12px!important}
 }
+/* ===================== BÜYÜK / SADECE İZLENEN MODU (ikinci ana ekran kısayolu için) ===================== */
+/* Bu link ile açıldığında aktif olur: ?buyuk=izlenen */
+html.big-watched-only .column:last-child{display:none}
+html.big-watched-only .column:first-child{width:100%}
+html.big-watched-only h2{font-size:22px}
+html.big-watched-only .search{font-size:20px;padding:12px}
+html.big-watched-only .findbox{font-size:18px;padding:10px}
+html.big-watched-only .controls .sort-select{font-size:16px;padding:8px 10px}
+html.big-watched-only .movie{padding:16px 14px}
+html.big-watched-only .movie .number{font-size:2em;width:60px}
+html.big-watched-only .movie img{width:85px;height:127px}
+html.big-watched-only .movie b{font-size:19px}
+html.big-watched-only .movie .meta{font-size:16px}
+html.big-watched-only .movie .tr-title{font-size:16px}
 </style>
 </head>
 <body>
@@ -97,7 +118,7 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 
 <div class="column">
 <div class="sticky-header">
-<h2><span class="top-btn" onclick="scrollToTop('watched')" title="Başa dön">🎬</span><span class="view-btn" onclick="toggleView('watched')" title="Görünümü değiştir">▦</span> İzlenen • <span id="watchedCount">0</span> • <span id="watchedTime">0 dk</span></h2>
+<h2><span class="top-btn" onclick="scrollToTop('watched')" title="Başa dön">🎬</span> İzlenen • <span id="watchedCount">0</span> • <span id="watchedTime">0 dk</span></h2>
 <input id="searchWatched" class="search" placeholder="Film ara" oninput="searchMain(this,'watched')">
 <div class="controls">
  <select id="sortWatched" class="sort-select" onchange="onSortChange('watched')">
@@ -128,7 +149,7 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 
 <div class="column">
 <div class="sticky-header">
-<h2><span class="top-btn" onclick="scrollToTop('watchlist')" title="Başa dön">🎬</span><span class="view-btn" onclick="toggleView('watchlist')" title="Görünümü değiştir">▦</span> İzlenecek • <span id="watchCount">0</span> • <span id="watchTime">0 dk</span></h2>
+<h2><span class="top-btn" onclick="scrollToTop('watchlist')" title="Başa dön">🎬</span> İzlenecek • <span id="watchCount">0</span> • <span id="watchTime">0 dk</span></h2>
 <input id="searchWatch" class="search" placeholder="Film ara" oninput="searchMain(this,'watchlist')">
 <div class="controls">
  <select id="sortWatch" class="sort-select" onchange="onSortChange('watchlist')">
@@ -195,6 +216,7 @@ let directorState={watched:"all",watchlist:"all"};
 let actorState={watched:"all",watchlist:"all"};
 let viewState={watched:"list",watchlist:"list"};
 let searchGen={watched:0,watchlist:0};
+let searchActive={watched:false,watchlist:false};
 
 function runtimeMin(r){return(!r||r==="N/A")?0:parseInt(r)}
 function formatTime(m){const h=Math.floor(m/60);return h?`${h}s ${m%60}dk`:`${m}dk`}
@@ -326,7 +348,8 @@ function searchMain(input,type){
  searchGen[type]++;
  const myGen=searchGen[type];
  const raw=input.value.trim();
- if(raw.length<3){reload();return;}
+ if(raw.length<3){searchActive[type]=false;reload();return;}
+ searchActive[type]=true;
  searchTimer=setTimeout(()=>searchImmediate(raw,type,myGen),400);
 }
 
@@ -551,6 +574,7 @@ async function addMovie(id,type){
  }
  const input=document.getElementById(type==="watchlist"?"searchWatch":"searchWatched");
  if(input) input.value="";
+ searchActive[type]=false;
  reload();
 }
 
@@ -702,6 +726,7 @@ function findInList(input,type){
 /* ===================== RENDER ===================== */
 
 function renderColumn(type){
+ if(searchActive[type]) return; // arama sonuçları ekranda gösteriliyor, üzerine yazma
  const isWatchlist=type==="watchlist";
  const listEl=isWatchlist?watchList:watchedList;
  const countEl=isWatchlist?watchCount:watchedCount;
