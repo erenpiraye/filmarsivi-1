@@ -109,16 +109,13 @@ html.big-watched-only .movie .tr-title{font-size:16px}
 
 <div class="sync-bar" style="padding:10px 20px 0 20px;">
  <span class="sync-status" id="syncStatus">Bağlanıyor…</span>
- <button onclick="reload()" id="refreshBtn">🔄 Yenile</button>
- <button onclick="document.getElementById('importFile').click()">⬆️ movies.json İçe Aktar</button>
- <input type="file" id="importFile" accept="application/json" style="display:none" onchange="handleImportFile(this.files[0])">
 </div>
 
 <div class="container">
 
 <div class="column">
 <div class="sticky-header">
-<h2><span class="top-btn" onclick="scrollToTop('watched')" title="Başa dön">🎬</span> İzlenen • <span id="watchedCount">0</span> • <span id="watchedTime">0 dk</span></h2>
+<h2><span class="top-btn refresh-btn" onclick="reload()" title="Yenile">🔄</span><span class="top-btn" onclick="scrollToTop('watched')" title="Başa dön">🎬</span> İzlenen • <span id="watchedCount">0</span> • <span id="watchedTime">0 dk</span></h2>
 <input id="searchWatched" class="search" placeholder="Film ara" oninput="searchMain(this,'watched')">
 <div class="controls">
  <select id="sortWatched" class="sort-select" onchange="onSortChange('watched')">
@@ -149,7 +146,7 @@ html.big-watched-only .movie .tr-title{font-size:16px}
 
 <div class="column">
 <div class="sticky-header">
-<h2><span class="top-btn" onclick="scrollToTop('watchlist')" title="Başa dön">🎬</span> İzlenecek • <span id="watchCount">0</span> • <span id="watchTime">0 dk</span></h2>
+<h2><span class="top-btn refresh-btn" onclick="reload()" title="Yenile">🔄</span><span class="top-btn" onclick="scrollToTop('watchlist')" title="Başa dön">🎬</span> İzlenecek • <span id="watchCount">0</span> • <span id="watchTime">0 dk</span></h2>
 <input id="searchWatch" class="search" placeholder="Film ara" oninput="searchMain(this,'watchlist')">
 <div class="controls">
  <select id="sortWatch" class="sort-select" onchange="onSortChange('watchlist')">
@@ -803,8 +800,8 @@ async function reload(){
  if(isReloading) return;
  isReloading=true;
  const statusEl=document.getElementById("syncStatus");
- const btn=document.getElementById("refreshBtn");
- if(btn) btn.disabled=true;
+ const btns=document.querySelectorAll(".refresh-btn");
+ btns.forEach(b=>{b.style.pointerEvents="none";b.style.opacity="0.4";});
  try{
    if(statusEl) statusEl.textContent="Yükleniyor…";
    const [watchedSnap,watchlistSnap]=await Promise.all([
@@ -817,7 +814,7 @@ async function reload(){
      watchlist: sortByAdded(watchlistSnap.docs.map(d=>d.data()))
    };
    render();
-   if(statusEl) statusEl.textContent=`Senkron ✓ (${allData.watched.length + allData.watchlist.length} film)`;
+   if(statusEl) statusEl.textContent="";
    preloadInfo().then(()=>{ refreshCardsInPlace(); });
    backfillGenres();
  }catch(e){
@@ -825,7 +822,7 @@ async function reload(){
    if(statusEl) statusEl.textContent="Bağlantı hatası — firebaseConfig'i kontrol et (REHBER.md)";
  }finally{
    isReloading=false;
-   if(btn) btn.disabled=false;
+   btns.forEach(b=>{b.style.pointerEvents="";b.style.opacity="";});
  }
 }
 
