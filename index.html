@@ -105,6 +105,7 @@ html.big-watched-only .movie .tr-title{font-size:16px}
 
 <!-- Firebase (Firestore) - senkron veri deposu -->
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
 <div class="sync-bar" style="padding:10px 20px 0 20px;">
@@ -192,8 +193,22 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
+// Görünmez otomatik giriş — kullanıcıya hiçbir giriş ekranı çıkmaz.
+// Firestore kuralları artık "sadece giriş yapmış istek" istiyor, bu
+// da linki/anahtarı bilen rastgele birinin veriye erişmesini engelliyor.
+const APP_EMAIL = "eren.filmarsivi@internal.app";
+const APP_PASSWORD = "qKWNpQUtDID1nBlZukr1nZMY";
+const authReady = firebase.auth().signInWithEmailAndPassword(APP_EMAIL, APP_PASSWORD)
+  .catch(e=>{
+    console.error("Firebase Auth hatası:", e);
+    const statusEl=document.getElementById("syncStatus");
+    if(statusEl) statusEl.textContent="Giriş hatası — REHBER.md'yi kontrol et";
+  });
+
 const OMDB_API_KEY = "3fe09fcd";
-const TMDB_KEY="a5857b5312ef2f6ba36d4e5314c2b231";
+const TMDB_KEYS=["a5857b5312ef2f6ba36d4e5314c2b231","740c0c0aacc8c5f292083b11e9dc3de2"];
+let tmdbKeyIndex=0;
+let TMDB_KEY=TMDB_KEYS[tmdbKeyIndex];
 let turkishCache={};   // imdbID -> {title, poster, genres:[...]}
 let genreMap={};       // TMDB genre id -> Türkçe isim
 let genreMapLoaded=false;
@@ -279,14 +294,39 @@ async function loadGenreMap(){
  genreMapLoaded=true;
 }
 
+function isTmdbKeyError(status,data){
+ if(status===401) return true;
+ if(data && data.success===false && (data.status_code===7 || /invalid api key/i.test(data.status_message||""))) return true;
+ return false;
+}
+
 async function fetchJson(url,timeoutMs=12000){
- const controller=new AbortController();
- const t=setTimeout(()=>controller.abort(),timeoutMs);
- try{
-   const r=await fetch(url,{signal:controller.signal});
-   return await r.json();
- }finally{
-   clearTimeout(t);
+ for(let attempt=0; attempt<TMDB_KEYS.length; attempt++){
+   const controller=new AbortController();
+   const t=setTimeout(()=>controller.abort(),timeoutMs);
+   try{
+     const r=await fetch(url,{signal:controller.signal});
+     const data=await r.json();
+     if(isTmdbKeyError(r.status,data) && attempt<TMDB_KEYS.length-1){
+       const oldKey=TMDB_KEY;
+       tmdbKeyIndex=(tmdbKeyIndex+1)%TMDB_KEYS.length;
+       TMDB_KEY=TMDB_KEYS[tmdbKeyIndex];
+       url=url.split(oldKey).join(TMDB_KEY);
+       continue;
+     }
+     return data;
+   }catch(e){
+     if(attempt<TMDB_KEYS.length-1){
+       const oldKey=TMDB_KEY;
+       tmdbKeyIndex=(tmdbKeyIndex+1)%TMDB_KEYS.length;
+       TMDB_KEY=TMDB_KEYS[tmdbKeyIndex];
+       url=url.split(oldKey).join(TMDB_KEY);
+       continue;
+     }
+     throw e;
+   }finally{
+     clearTimeout(t);
+   }
  }
 }
 
@@ -432,14 +472,12 @@ function movieExists(imdbId){
 
 function searchPerson(name,role,type,myGen){
  if(myGen===undefined){searchGen[type]++;myGen=searchGen[type];}
- fetch(`https://api.themoviedb.org/3/search/person?api_key=${TMDB_KEY}&query=${encodeURIComponent(name)}&language=tr-TR`)
- .then(r=>r.json())
+ fetchJson(`https://api.themoviedb.org/3/search/person?api_key=${TMDB_KEY}&query=${encodeURIComponent(name)}&language=tr-TR`)
  .then(d=>{
    if(searchGen[type]!==myGen) return;
    const person=d?.results?.[0];
    if(!person)return;
-   fetch(`https://api.themoviedb.org/3/person/${person.id}/movie_credits?api_key=${TMDB_KEY}&language=tr-TR`)
-   .then(r=>r.json())
+   fetchJson(`https://api.themoviedb.org/3/person/${person.id}/movie_credits?api_key=${TMDB_KEY}&language=tr-TR`)
    .then(credits=>{
      if(searchGen[type]!==myGen) return;
      const list=type==="watched"?watchedList:watchList;
@@ -452,8 +490,7 @@ function searchPerson(name,role,type,myGen){
      let shown=0;
      movies.slice(0,20).forEach(m=>{
        if(!m.id || shown>=10)return;
-       fetch(`https://api.themoviedb.org/3/movie/${m.id}?api_key=${TMDB_KEY}&append_to_response=external_ids`)
-       .then(r=>r.json())
+       fetchJson(`https://api.themoviedb.org/3/movie/${m.id}?api_key=${TMDB_KEY}&append_to_response=external_ids`)
        .then(detail=>{
          if(searchGen[type]!==myGen) return;
          const imdbId=detail.external_ids?.imdb_id;
@@ -563,6 +600,7 @@ function fetchPoster(imdbID,imgEl,title,year){
 /* ===================== LİSTE İŞLEMLERİ ===================== */
 
 async function addMovie(id,type){
+ await authReady;
  if(movieExists(id)) return;
  const movie=await fetchOmdbById(id);
  if(movie.Response==="True"){
@@ -576,6 +614,7 @@ async function addMovie(id,type){
 }
 
 async function move(id){
+ await authReady;
  const snap=await db.collection("watchlist").doc(id).get();
  if(snap.exists){
    const movie=snap.data();
@@ -586,6 +625,7 @@ async function move(id){
 }
 
 async function deleteMovie(id,type){
+ await authReady;
  await db.collection(type).doc(id).delete();
  await db.collection("deleted").doc(id).set({deletedAt: Date.now()});
  reload();
@@ -798,6 +838,7 @@ async function searchOmdb(query){
 
 let isReloading=false;
 async function reload(){
+ await authReady;
  if(isReloading) return;
  isReloading=true;
  const statusEl=document.getElementById("syncStatus");
@@ -855,6 +896,7 @@ async function backfillGenres(){
 /* ===================== İÇE / DIŞA AKTAR ===================== */
 
 async function handleImportFile(file){
+ await authReady;
  if(!file) return;
  const statusEl=document.getElementById("syncStatus");
  try{
