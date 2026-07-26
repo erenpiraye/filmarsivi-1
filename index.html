@@ -587,6 +587,7 @@ async function move(id){
 
 async function deleteMovie(id,type){
  await db.collection(type).doc(id).delete();
+ await db.collection("deleted").doc(id).set({deletedAt: Date.now()});
  reload();
 }
 
