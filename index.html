@@ -36,6 +36,13 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 .movie img.poster-link{cursor:pointer}
 .number{font-size:2.2em;color:#555;width:80px;display:flex;justify-content:center;align-items:center;margin-right:20px}
 .btn{margin-top:6px;padding:6px 12px;background:#555;color:#fff;border:none;border-radius:4px;cursor:pointer}
+.add-poster{cursor:pointer}
+.add-hint{font-size:11px;color:#888;margin-top:4px}
+.movie{touch-action:pan-y}
+.dragging-source{opacity:0.35}
+.drag-ghost{position:fixed;pointer-events:none;z-index:9999;opacity:0.9;box-shadow:0 6px 18px rgba(0,0,0,0.6);margin:0 !important}
+.column.drop-ready{background:rgba(217,164,65,0.04)}
+.column.drop-target{outline:3px dashed #d9a441;outline-offset:-3px;background:rgba(217,164,65,0.1)}
 .tick-btn{position:absolute;top:38px;right:10px;background:#333;color:#0f0;border:none;width:24px;height:24px;border-radius:50%;cursor:pointer}
 .delete-btn{position:absolute;top:10px;right:10px;background:#333;color:#bbb;border:none;width:24px;height:24px;border-radius:50%;cursor:pointer}
 .meta{font-size:13px;color:#bbb;margin-top:3px}
@@ -105,7 +112,6 @@ html.big-watched-only .movie .tr-title{font-size:16px}
 
 <!-- Firebase (Firestore) - senkron veri deposu -->
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
 <div class="sync-bar" style="padding:10px 20px 0 20px;">
@@ -114,7 +120,7 @@ html.big-watched-only .movie .tr-title{font-size:16px}
 
 <div class="container">
 
-<div class="column">
+<div class="column" data-type="watched">
 <div class="sticky-header">
 <h2><span class="top-btn refresh-btn" onclick="reload()" title="Yenile">🔄</span><span class="top-btn" onclick="scrollToTop('watched')" title="Başa dön">🎬</span> İzlenen • <span id="watchedCount">0</span> • <span id="watchedTime">0 dk</span></h2>
 <input id="searchWatched" class="search" placeholder="Film ara" oninput="searchMain(this,'watched')">
@@ -145,7 +151,7 @@ html.big-watched-only .movie .tr-title{font-size:16px}
 <div class="list-wrap"><div id="watchedList"></div></div>
 </div>
 
-<div class="column">
+<div class="column" data-type="watchlist">
 <div class="sticky-header">
 <h2><span class="top-btn refresh-btn" onclick="reload()" title="Yenile">🔄</span><span class="top-btn" onclick="scrollToTop('watchlist')" title="Başa dön">🎬</span> İzlenecek • <span id="watchCount">0</span> • <span id="watchTime">0 dk</span></h2>
 <input id="searchWatch" class="search" placeholder="Film ara" oninput="searchMain(this,'watchlist')">
@@ -193,22 +199,8 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// Görünmez otomatik giriş — kullanıcıya hiçbir giriş ekranı çıkmaz.
-// Firestore kuralları artık "sadece giriş yapmış istek" istiyor, bu
-// da linki/anahtarı bilen rastgele birinin veriye erişmesini engelliyor.
-const APP_EMAIL = "eren.filmarsivi@internal.app";
-const APP_PASSWORD = "qKWNpQUtDID1nBlZukr1nZMY";
-const authReady = firebase.auth().signInWithEmailAndPassword(APP_EMAIL, APP_PASSWORD)
-  .catch(e=>{
-    console.error("Firebase Auth hatası:", e);
-    const statusEl=document.getElementById("syncStatus");
-    if(statusEl) statusEl.textContent="Giriş hatası — REHBER.md'yi kontrol et";
-  });
-
 const OMDB_API_KEY = "3fe09fcd";
-const TMDB_KEYS=["a5857b5312ef2f6ba36d4e5314c2b231","740c0c0aacc8c5f292083b11e9dc3de2"];
-let tmdbKeyIndex=0;
-let TMDB_KEY=TMDB_KEYS[tmdbKeyIndex];
+const TMDB_KEY="a5857b5312ef2f6ba36d4e5314c2b231";
 let turkishCache={};   // imdbID -> {title, poster, genres:[...]}
 let genreMap={};       // TMDB genre id -> Türkçe isim
 let genreMapLoaded=false;
@@ -294,39 +286,14 @@ async function loadGenreMap(){
  genreMapLoaded=true;
 }
 
-function isTmdbKeyError(status,data){
- if(status===401) return true;
- if(data && data.success===false && (data.status_code===7 || /invalid api key/i.test(data.status_message||""))) return true;
- return false;
-}
-
 async function fetchJson(url,timeoutMs=12000){
- for(let attempt=0; attempt<TMDB_KEYS.length; attempt++){
-   const controller=new AbortController();
-   const t=setTimeout(()=>controller.abort(),timeoutMs);
-   try{
-     const r=await fetch(url,{signal:controller.signal});
-     const data=await r.json();
-     if(isTmdbKeyError(r.status,data) && attempt<TMDB_KEYS.length-1){
-       const oldKey=TMDB_KEY;
-       tmdbKeyIndex=(tmdbKeyIndex+1)%TMDB_KEYS.length;
-       TMDB_KEY=TMDB_KEYS[tmdbKeyIndex];
-       url=url.split(oldKey).join(TMDB_KEY);
-       continue;
-     }
-     return data;
-   }catch(e){
-     if(attempt<TMDB_KEYS.length-1){
-       const oldKey=TMDB_KEY;
-       tmdbKeyIndex=(tmdbKeyIndex+1)%TMDB_KEYS.length;
-       TMDB_KEY=TMDB_KEYS[tmdbKeyIndex];
-       url=url.split(oldKey).join(TMDB_KEY);
-       continue;
-     }
-     throw e;
-   }finally{
-     clearTimeout(t);
-   }
+ const controller=new AbortController();
+ const t=setTimeout(()=>controller.abort(),timeoutMs);
+ try{
+   const r=await fetch(url,{signal:controller.signal});
+   return await r.json();
+ }finally{
+   clearTimeout(t);
  }
 }
 
@@ -472,12 +439,14 @@ function movieExists(imdbId){
 
 function searchPerson(name,role,type,myGen){
  if(myGen===undefined){searchGen[type]++;myGen=searchGen[type];}
- fetchJson(`https://api.themoviedb.org/3/search/person?api_key=${TMDB_KEY}&query=${encodeURIComponent(name)}&language=tr-TR`)
+ fetch(`https://api.themoviedb.org/3/search/person?api_key=${TMDB_KEY}&query=${encodeURIComponent(name)}&language=tr-TR`)
+ .then(r=>r.json())
  .then(d=>{
    if(searchGen[type]!==myGen) return;
    const person=d?.results?.[0];
    if(!person)return;
-   fetchJson(`https://api.themoviedb.org/3/person/${person.id}/movie_credits?api_key=${TMDB_KEY}&language=tr-TR`)
+   fetch(`https://api.themoviedb.org/3/person/${person.id}/movie_credits?api_key=${TMDB_KEY}&language=tr-TR`)
+   .then(r=>r.json())
    .then(credits=>{
      if(searchGen[type]!==myGen) return;
      const list=type==="watched"?watchedList:watchList;
@@ -490,7 +459,8 @@ function searchPerson(name,role,type,myGen){
      let shown=0;
      movies.slice(0,20).forEach(m=>{
        if(!m.id || shown>=10)return;
-       fetchJson(`https://api.themoviedb.org/3/movie/${m.id}?api_key=${TMDB_KEY}&append_to_response=external_ids`)
+       fetch(`https://api.themoviedb.org/3/movie/${m.id}?api_key=${TMDB_KEY}&append_to_response=external_ids`)
+       .then(r=>r.json())
        .then(detail=>{
          if(searchGen[type]!==myGen) return;
          const imdbId=detail.external_ids?.imdb_id;
@@ -523,11 +493,11 @@ function addSearchResultCard(m,type,myGen){
  const hasOmdbPoster=!!(m.Poster&&m.Poster!=="N/A");
  const initialPoster=hasOmdbPoster?m.Poster:"https://via.placeholder.com/90x135";
  div.innerHTML=`
- <img id="poster-${m.imdbID}" src="${initialPoster}">
+ <img id="poster-${m.imdbID}" class="add-poster" src="${initialPoster}" onclick="addMovie('${m.imdbID}','${type}')" title="Eklemek için afişe tıkla">
  <div>
  <b>${m.Title}</b> (${m.Year})
  <div class="tr-title" id="tr-${m.imdbID}"></div>
- <button class="btn" onclick="addMovie('${m.imdbID}','${type}')">➕ Ekle</button>
+ <div class="add-hint">＋ eklemek için afişe dokun</div>
  </div>`;
  list.appendChild(div);
 
@@ -577,6 +547,7 @@ function card(m,i,isWatch){
    // o yüzden TMDB'yi doğrudan deniyoruz.
    fetchPoster(m.imdbID,imgEl,m.Title,m.Year);
  }
+ attachDragHandlers(d,m.imdbID,isWatch?"watchlist":"watched");
  return d;
 }
 
@@ -597,38 +568,210 @@ function fetchPoster(imdbID,imgEl,title,year){
  });
 }
 
+/* ===================== SÜRÜKLE-BIRAK (kart taşıma) ===================== */
+// Fare (PC tarayıcısı) ve dokunmatik (telefon) ile aynı kod. Dokunmatikte
+// kaydırma (scroll) ile karışmasın diye önce kısa bir "basılı tutma"
+// (~300ms) bekleniyor; fare ile anında başlıyor.
+const LONG_PRESS_MS=300;
+const DRAG_MOVE_THRESHOLD=8;
+
+function attachDragHandlers(cardEl,id,type){
+ let dragging=false, longPressTimer=null, ghost=null, startX=0, startY=0;
+
+ function positionGhost(x,y){
+   if(!ghost) return;
+   ghost.style.left=(x-ghost.offsetWidth/2)+"px";
+   ghost.style.top=(y-ghost.offsetHeight/2)+"px";
+ }
+
+ function getColumnAt(x,y){
+   const el=document.elementFromPoint(x,y);
+   const col=el&&el.closest(".column");
+   return col?col.dataset.type:null;
+ }
+
+ function startDrag(e){
+   dragging=true;
+   ghost=cardEl.cloneNode(true);
+   ghost.className="movie drag-ghost";
+   ghost.style.width=cardEl.offsetWidth+"px";
+   document.body.appendChild(ghost);
+   positionGhost(e.clientX,e.clientY);
+   cardEl.classList.add("dragging-source");
+   document.querySelectorAll(".column").forEach(c=>{
+     if(c.dataset.type!==type) c.classList.add("drop-ready");
+   });
+ }
+
+ function onMove(e){
+   if(!dragging){
+     if(Math.abs(e.clientX-startX)>DRAG_MOVE_THRESHOLD||Math.abs(e.clientY-startY)>DRAG_MOVE_THRESHOLD){
+       clearTimeout(longPressTimer);
+     }
+     return;
+   }
+   e.preventDefault();
+   positionGhost(e.clientX,e.clientY);
+   const target=getColumnAt(e.clientX,e.clientY);
+   document.querySelectorAll(".column").forEach(c=>{
+     c.classList.toggle("drop-target", c.dataset.type===target && target!==type);
+   });
+ }
+
+ function cleanup(){
+   clearTimeout(longPressTimer);
+   cardEl.removeEventListener("pointermove",onMove);
+   cardEl.removeEventListener("pointerup",onUp);
+   cardEl.removeEventListener("pointercancel",onUp);
+   document.querySelectorAll(".column").forEach(c=>c.classList.remove("drop-ready","drop-target"));
+   cardEl.classList.remove("dragging-source");
+   if(ghost){ ghost.remove(); ghost=null; }
+ }
+
+ function onUp(e){
+   const wasDragging=dragging;
+   const target=wasDragging?getColumnAt(e.clientX,e.clientY):null;
+   dragging=false;
+   cleanup();
+   if(wasDragging && target && target!==type){
+     if(target==="watched") move(id);
+     else moveToWatchlist(id);
+   }
+ }
+
+ cardEl.addEventListener("pointerdown",e=>{
+   if(e.button!==undefined && e.button!==0) return; // sadece sol tık
+   if(e.target.closest(".delete-btn,.tick-btn,.poster-link,.person-link")) return;
+   startX=e.clientX; startY=e.clientY;
+   cardEl.addEventListener("pointermove",onMove);
+   cardEl.addEventListener("pointerup",onUp);
+   cardEl.addEventListener("pointercancel",onUp);
+   if(e.pointerType==="mouse"){
+     startDrag(e);
+   }else{
+     longPressTimer=setTimeout(()=>startDrag(e),LONG_PRESS_MS);
+   }
+ });
+}
+
 /* ===================== LİSTE İŞLEMLERİ ===================== */
 
 async function addMovie(id,type){
- await authReady;
  if(movieExists(id)) return;
- const movie=await fetchOmdbById(id);
- if(movie.Response==="True"){
-   movie._addedAt=Date.now();
-   await db.collection(type).doc(id).set(movie);
- }
  const input=document.getElementById(type==="watchlist"?"searchWatch":"searchWatched");
  if(input) input.value="";
  searchActive[type]=false;
- reload();
-}
 
-async function move(id){
- await authReady;
- const snap=await db.collection("watchlist").doc(id).get();
- if(snap.exists){
-   const movie=snap.data();
-   await db.collection("watched").doc(id).set(movie);
-   await db.collection("watchlist").doc(id).delete();
+ const movie=await fetchOmdbById(id);
+ if(movie.Response!=="True") return;
+
+ const now=Date.now();
+ movie._addedAt=now;
+ movie._updatedAt=now;
+
+ // Optimistic: hemen listeye ekle.
+ allData[type]=[...allData[type],movie];
+ render();
+ saveToCache();
+
+ try{
+   await db.collection(type).doc(id).set(movie);
+ }catch(e){
+   console.error(e);
+   allData[type]=allData[type].filter(m=>m.imdbID!==id);
+   render();
+   saveToCache();
  }
- reload();
 }
 
 async function deleteMovie(id,type){
- await authReady;
- await db.collection(type).doc(id).delete();
- await db.collection("deleted").doc(id).set({deletedAt: Date.now()});
- reload();
+ const idx=allData[type].findIndex(m=>m.imdbID===id);
+ const movie = idx!==-1 ? allData[type][idx] : null;
+
+ // Optimistic: hemen listeden kaldır.
+ if(movie){
+   allData[type]=allData[type].filter(m=>m.imdbID!==id);
+   render();
+   saveToCache();
+ }
+
+ try{
+   await db.collection(type).doc(id).delete();
+   await db.collection("deleted").doc(id).set({deletedAt: Date.now()});
+ }catch(e){
+   console.error(e);
+   if(movie){
+     allData[type]=[...allData[type],movie];
+     render();
+     saveToCache();
+   }
+ }
+}
+
+async function move(id){
+ const idx=allData.watchlist.findIndex(m=>m.imdbID===id);
+ const movie = idx!==-1 ? allData.watchlist[idx] : null;
+ const now=Date.now();
+
+ // Optimistic: hemen izlenene taşı, tarihi tazele (en üste çıksın).
+ if(movie){
+   allData.watchlist=allData.watchlist.filter(m=>m.imdbID!==id);
+   allData.watched=[...allData.watched,{...movie,_addedAt:now,_updatedAt:now}];
+   render();
+   saveToCache();
+ }
+
+ try{
+   const snap=await db.collection("watchlist").doc(id).get();
+   if(snap.exists){
+     const data=snap.data();
+     data._addedAt=now;
+     data._updatedAt=now;
+     await db.collection("watched").doc(id).set(data);
+     await db.collection("watchlist").doc(id).delete();
+   }
+ }catch(e){
+   console.error(e);
+   if(movie){
+     allData.watched=allData.watched.filter(m=>m.imdbID!==id);
+     allData.watchlist=[...allData.watchlist,movie];
+     render();
+     saveToCache();
+   }
+ }
+}
+
+async function moveToWatchlist(id){
+ const idx=allData.watched.findIndex(m=>m.imdbID===id);
+ const movie = idx!==-1 ? allData.watched[idx] : null;
+ const now=Date.now();
+
+ // Optimistic: hemen izleneceklere taşı, tarihi tazele.
+ if(movie){
+   allData.watched=allData.watched.filter(m=>m.imdbID!==id);
+   allData.watchlist=[...allData.watchlist,{...movie,_addedAt:now,_updatedAt:now}];
+   render();
+   saveToCache();
+ }
+
+ try{
+   const snap=await db.collection("watched").doc(id).get();
+   if(snap.exists){
+     const data=snap.data();
+     data._addedAt=now;
+     data._updatedAt=now;
+     await db.collection("watchlist").doc(id).set(data);
+     await db.collection("watched").doc(id).delete();
+   }
+ }catch(e){
+   console.error(e);
+   if(movie){
+     allData.watchlist=allData.watchlist.filter(m=>m.imdbID!==id);
+     allData.watched=[...allData.watched,movie];
+     render();
+     saveToCache();
+   }
+ }
 }
 
 /* ===================== SIRALAMA / KATEGORİ / YÖNETMEN / OYUNCU ===================== */
@@ -836,9 +979,32 @@ async function searchOmdb(query){
  }catch(e){console.error("OMDb arama hatası:",e);return {Response:"False"};}
 }
 
+const LOCAL_CACHE_KEY="filmarsivi_cache";
+
+function saveToCache(){
+ try{
+   localStorage.setItem(LOCAL_CACHE_KEY, JSON.stringify({watched:allData.watched,watchlist:allData.watchlist}));
+ }catch(e){}
+}
+
+function loadFromCache(){
+ try{
+   const raw=localStorage.getItem(LOCAL_CACHE_KEY);
+   if(raw){
+     const cached=JSON.parse(raw);
+     if(cached && Array.isArray(cached.watched) && Array.isArray(cached.watchlist)){
+       allData=cached;
+       render();
+       preloadInfo().then(()=>{ refreshCardsInPlace(); });
+       return true;
+     }
+   }
+ }catch(e){}
+ return false;
+}
+
 let isReloading=false;
 async function reload(){
- await authReady;
  if(isReloading) return;
  isReloading=true;
  const statusEl=document.getElementById("syncStatus");
@@ -857,6 +1023,7 @@ async function reload(){
    };
    render();
    if(statusEl) statusEl.textContent="";
+   saveToCache();
    preloadInfo().then(()=>{ refreshCardsInPlace(); });
    backfillGenres();
  }catch(e){
@@ -890,13 +1057,12 @@ async function backfillGenres(){
      }
    }
  }
- if(changed) render();
+ if(changed){ render(); saveToCache(); }
 }
 
 /* ===================== İÇE / DIŞA AKTAR ===================== */
 
 async function handleImportFile(file){
- await authReady;
  if(!file) return;
  const statusEl=document.getElementById("syncStatus");
  try{
@@ -955,16 +1121,16 @@ function toggleView(type){
  listEl.classList.toggle("grid-view",viewState[type]==="grid");
 }
 
-reload();
-
-// Ana ekrandan açılan uygulama modunda (standalone) tarayıcı arayüzü olmadığı için
-// "yenile" imkanı yok; uygulamayı arka plandan öne getirince otomatik yenile.
-document.addEventListener("visibilitychange", ()=>{
- if(document.visibilityState === "visible") reload();
-});
-window.addEventListener("pageshow", (e)=>{
- if(e.persisted) reload();
-});
+// Açılışta önce önbellekten (localStorage) ANINDA göster - buluta hiç
+// dokunmadan. Firestore okuma kotasını boşuna tüketmemek için otomatik
+// yenileme tamamen kaldırıldı; buluta sadece 🔄'ye basınca dokunuluyor.
+// (Hiç önbellek yoksa - ilk açılış - bir kereliğine buluttan çekiyoruz.)
+if(!loadFromCache()){
+ reload();
+}else{
+ const statusEl=document.getElementById("syncStatus");
+ if(statusEl) statusEl.textContent="";
+}
 </script>
 
 </body>
