@@ -1239,7 +1239,7 @@ async function reload(){
    backfillGenres();
  }catch(e){
    console.error(e);
-   if(statusEl) statusEl.textContent="Bağlantı hatası — firebaseConfig'i kontrol et (REHBER.md)";
+   if(statusEl) statusEl.textContent="";
  }finally{
    isReloading=false;
    btns.forEach(b=>{b.style.pointerEvents="";b.style.opacity="";});
