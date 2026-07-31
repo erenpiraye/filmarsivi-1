@@ -753,10 +753,6 @@ function attachDragHandlers(cardEl,id,type){
 
  function startDrag(e){
    dragging=true;
-   capturedPointerId=e.pointerId;
-   if(cardEl.setPointerCapture){
-     try{ cardEl.setPointerCapture(capturedPointerId); }catch(err){}
-   }
    ghost=cardEl.cloneNode(true);
    ghost.className="movie drag-ghost";
    ghost.style.width=cardEl.offsetWidth+"px";
@@ -768,10 +764,16 @@ function attachDragHandlers(cardEl,id,type){
 
  function onMove(e){
    if(!dragging){
-     if(Math.abs(e.clientX-startX)>DRAG_MOVE_THRESHOLD||Math.abs(e.clientY-startY)>DRAG_MOVE_THRESHOLD){
+     const moved=Math.abs(e.clientX-startX)>DRAG_MOVE_THRESHOLD||Math.abs(e.clientY-startY)>DRAG_MOVE_THRESHOLD;
+     if(!moved) return;
+     if(e.pointerType==="mouse"){
+       // Fare: gerçekten birkaç piksel hareket etmeden sürükleme başlamasın -
+       // yoksa düz bir TIK bile "sürükleme" sayılıp kartı yanlış yere taşıyordu.
+       startDrag(e);
+     }else{
        clearTimeout(longPressTimer);
+       return;
      }
-     return;
    }
    e.preventDefault();
    positionGhost(e.clientX,e.clientY);
@@ -817,14 +819,18 @@ function attachDragHandlers(cardEl,id,type){
    startX=e.clientX; startY=e.clientY;
    lastTargetType=null;
    lastInsertIndex=0;
+   capturedPointerId=e.pointerId;
+   if(cardEl.setPointerCapture){
+     try{ cardEl.setPointerCapture(capturedPointerId); }catch(err){}
+   }
    cardEl.addEventListener("pointermove",onMove);
    cardEl.addEventListener("pointerup",onUp);
    cardEl.addEventListener("pointercancel",onUp);
-   if(e.pointerType==="mouse"){
-     startDrag(e);
-   }else{
+   if(e.pointerType!=="mouse"){
      longPressTimer=setTimeout(()=>startDrag(e),LONG_PRESS_MS);
    }
+   // Fare: sürükleme burada başlamıyor artık, sadece pointer kilitleniyor;
+   // gerçek sürükleme onMove()'da eşik aşılınca başlar - düz tık artık taşımaz.
  });
 }
 
