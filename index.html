@@ -38,11 +38,14 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 .btn{margin-top:6px;padding:6px 12px;background:#555;color:#fff;border:none;border-radius:4px;cursor:pointer}
 .add-poster{cursor:pointer}
 .add-hint{font-size:11px;color:#888;margin-top:4px}
-.movie{touch-action:pan-y}
+.movie{touch-action:pan-y;user-select:none;-webkit-user-select:none}
+.movie img{-webkit-user-drag:none;-khtml-user-drag:none;-moz-user-drag:none;user-drag:none;-webkit-touch-callout:none}
 .dragging-source{opacity:0.35}
 .drag-ghost{position:fixed;pointer-events:none;z-index:9999;opacity:0.9;box-shadow:0 6px 18px rgba(0,0,0,0.6);margin:0 !important}
-.column.drop-ready{background:rgba(217,164,65,0.04)}
-.column.drop-target{outline:3px dashed #d9a441;outline-offset:-3px;background:rgba(217,164,65,0.1)}
+.drop-indicator{width:95%;height:3px;margin:6px auto;border-radius:2px;pointer-events:none;background:linear-gradient(90deg,transparent,rgba(217,164,65,0.25),#d9a441,#fff,#d9a441,rgba(217,164,65,0.25),transparent);background-size:200% 100%;animation:drop-shimmer 1.2s linear infinite;box-shadow:0 0 8px rgba(217,164,65,0.45)}
+@keyframes drop-shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.movie.drop-gap-before{margin-top:28px !important;transition:margin-top 0.12s ease}
+.movie.drop-gap-after{margin-bottom:28px !important;transition:margin-bottom 0.12s ease}
 .tick-btn{position:absolute;top:38px;right:10px;background:#333;color:#0f0;border:none;width:24px;height:24px;border-radius:50%;cursor:pointer}
 .delete-btn{position:absolute;top:10px;right:10px;background:#333;color:#bbb;border:none;width:24px;height:24px;border-radius:50%;cursor:pointer}
 .meta{font-size:13px;color:#bbb;margin-top:3px}
@@ -493,11 +496,10 @@ function addSearchResultCard(m,type,myGen){
  const hasOmdbPoster=!!(m.Poster&&m.Poster!=="N/A");
  const initialPoster=hasOmdbPoster?m.Poster:"https://via.placeholder.com/90x135";
  div.innerHTML=`
- <img id="poster-${m.imdbID}" class="add-poster" src="${initialPoster}" onclick="addMovie('${m.imdbID}','${type}')" title="Eklemek için afişe tıkla">
+ <img id="poster-${m.imdbID}" class="add-poster" src="${initialPoster}" draggable="false" onclick="addMovie('${m.imdbID}','${type}')" title="Eklemek için afişe tıkla">
  <div>
  <b>${m.Title}</b> (${m.Year})
  <div class="tr-title" id="tr-${m.imdbID}"></div>
- <div class="add-hint">＋ eklemek için afişe dokun</div>
  </div>`;
  list.appendChild(div);
 
@@ -528,7 +530,7 @@ function card(m,i,isWatch){
  d.dataset.hasPoster=hasOmdbPoster?"1":"0";
  d.innerHTML=`
  <div class="number">${i+1}</div>
- <img class="poster-link" src="${poster}" onclick="openImdb('${m.imdbID}')">
+ <img class="poster-link" src="${poster}" draggable="false" ondragstart="return false" onclick="openImdb('${m.imdbID}')">
  <div>
  <b>${m.Title}</b> (${m.Year})
  <div class="tr-title">${trTitle}</div>
@@ -569,14 +571,152 @@ function fetchPoster(imdbID,imgEl,title,year){
 }
 
 /* ===================== SÜRÜKLE-BIRAK (kart taşıma) ===================== */
-// Fare (PC tarayıcısı) ve dokunmatik (telefon) ile aynı kod. Dokunmatikte
-// kaydırma (scroll) ile karışmasın diye önce kısa bir "basılı tutma"
-// (~300ms) bekleniyor; fare ile anında başlıyor.
+// Fare (PC tarayıcısı) ve dokunmatik (telefon) ile aynı kod. Eklenme tarihi
+// sıralamasında aynı liste içinde konum değiştirilebilir. Dokunmatikte kaydırma
+// (scroll) ile karışmasın diye önce kısa bir "basılı tutma" (~300ms) bekleniyor.
 const LONG_PRESS_MS=300;
 const DRAG_MOVE_THRESHOLD=8;
 
+function canReorderList(type){
+ if(sortState[type]!=="added-desc" && sortState[type]!=="added-asc") return false;
+ if(genreState[type]!=="all" || directorState[type]!=="all" || actorState[type]!=="all") return false;
+ if(searchActive[type]) return false;
+ return true;
+}
+
+function getSortedDisplayIds(type){
+ let indexed=allData[type].map((m,i)=>({m,i}));
+ indexed=sortIndexed(indexed,sortState[type]);
+ return indexed.map(x=>x.m.imdbID);
+}
+
+function applyDisplayOrder(type,displayIds){
+ const sort=sortState[type];
+ const map=new Map(allData[type].map(m=>[m.imdbID,m]));
+ let newArray;
+ if(sort==="added-desc"){
+   newArray=displayIds.slice().reverse().map(id=>map.get(id)).filter(Boolean);
+ }else{
+   newArray=displayIds.map(id=>map.get(id)).filter(Boolean);
+ }
+ const base=Date.now();
+ newArray.forEach((m,i)=>{
+   m._addedAt=base+i*1000;
+   m._updatedAt=Date.now();
+ });
+ allData[type]=newArray;
+}
+
+function getListEl(type){
+ return type==="watchlist"?watchList:watchedList;
+}
+
+function getInsertIndex(listEl,clientY){
+ const cards=Array.from(listEl.querySelectorAll(".movie:not(.dragging-source)"));
+ for(let i=0;i<cards.length;i++){
+   const rect=cards[i].getBoundingClientRect();
+   if(clientY<rect.top+rect.height/2) return i;
+ }
+ return cards.length;
+}
+
+let dropIndicatorEl=null;
+let dropGapEl=null;
+let dropGapMode=null;
+
+function clearDropVisuals(){
+ if(dropIndicatorEl && dropIndicatorEl.parentNode) dropIndicatorEl.remove();
+ dropIndicatorEl=null;
+ if(dropGapEl){
+   dropGapEl.classList.remove("drop-gap-before","drop-gap-after");
+   dropGapEl=null;
+   dropGapMode=null;
+ }
+}
+
+function showDropVisual(listEl,insertIndex){
+ clearDropVisuals();
+ const cards=Array.from(listEl.querySelectorAll(".movie:not(.dragging-source)"));
+ dropIndicatorEl=document.createElement("div");
+ dropIndicatorEl.className="drop-indicator";
+ if(insertIndex>=cards.length){
+   listEl.appendChild(dropIndicatorEl);
+   if(cards.length){
+     dropGapEl=cards[cards.length-1];
+     dropGapMode="after";
+     dropGapEl.classList.add("drop-gap-after");
+   }
+ }else{
+   listEl.insertBefore(dropIndicatorEl,cards[insertIndex]);
+   dropGapEl=cards[insertIndex];
+   dropGapMode="before";
+   dropGapEl.classList.add("drop-gap-before");
+ }
+}
+
+async function persistListOrder(type){
+ saveToCache();
+ try{
+   const batch=db.batch();
+   allData[type].forEach(m=>{
+     batch.update(db.collection(type).doc(m.imdbID),{
+       _addedAt:m._addedAt,_updatedAt:m._updatedAt
+     });
+   });
+   await batch.commit();
+ }catch(e){ console.error(e); }
+}
+
+function reorderInList(type,id,toDisplayIndex){
+ if(!canReorderList(type)) return;
+ const ids=getSortedDisplayIds(type);
+ const fromIdx=ids.indexOf(id);
+ if(fromIdx===-1) return;
+ const adjustedIndex=fromIdx<toDisplayIndex?toDisplayIndex-1:toDisplayIndex;
+ if(adjustedIndex===fromIdx) return;
+ ids.splice(fromIdx,1);
+ ids.splice(adjustedIndex,0,id);
+ applyDisplayOrder(type,ids);
+ render();
+ persistListOrder(type);
+}
+
+async function moveToListAt(id,fromType,toType,toDisplayIndex){
+ const idx=allData[fromType].findIndex(m=>m.imdbID===id);
+ if(idx===-1) return;
+ const movie=allData[fromType][idx];
+ allData[fromType]=allData[fromType].filter(m=>m.imdbID!==id);
+ allData[toType]=[...allData[toType],movie];
+ const ids=getSortedDisplayIds(toType).filter(x=>x!==id);
+ const insertAt=Math.max(0,Math.min(toDisplayIndex,ids.length));
+ ids.splice(insertAt,0,id);
+ applyDisplayOrder(toType,ids);
+ render();
+ saveToCache();
+
+ try{
+   const srcSnap=await db.collection(fromType).doc(id).get();
+   if(!srcSnap.exists) return;
+   const data=srcSnap.data();
+   data._addedAt=movie._addedAt;
+   data._updatedAt=movie._updatedAt;
+   await db.collection(toType).doc(id).set(data);
+   await db.collection(fromType).doc(id).delete();
+   await persistListOrder(toType);
+ }catch(e){
+   console.error(e);
+   allData[toType]=allData[toType].filter(m=>m.imdbID!==id);
+   allData[fromType]=[...allData[fromType],movie];
+   render();
+   saveToCache();
+ }
+}
+
+document.addEventListener("dragstart",e=>{ if(e.target.closest(".movie")) e.preventDefault(); });
+
 function attachDragHandlers(cardEl,id,type){
- let dragging=false, longPressTimer=null, ghost=null, startX=0, startY=0;
+ let dragging=false, longPressTimer=null, ghost=null, startX=0, startY=0, capturedPointerId=null;
+ let lastTargetType=null, lastInsertIndex=0;
 
  function positionGhost(x,y){
    if(!ghost) return;
@@ -585,22 +725,45 @@ function attachDragHandlers(cardEl,id,type){
  }
 
  function getColumnAt(x,y){
+   if(ghost) ghost.style.visibility="hidden";
    const el=document.elementFromPoint(x,y);
+   if(ghost) ghost.style.visibility="";
    const col=el&&el.closest(".column");
    return col?col.dataset.type:null;
  }
 
+ function updateDropTarget(clientX,clientY){
+   const targetType=getColumnAt(clientX,clientY);
+   lastTargetType=targetType;
+   if(!targetType){
+     clearDropVisuals();
+     return;
+   }
+   const sameColumn=targetType===type;
+   const canPlace=sameColumn?canReorderList(type):canReorderList(targetType);
+   if(!canPlace){
+     clearDropVisuals();
+     lastInsertIndex=0;
+     return;
+   }
+   const listEl=getListEl(targetType);
+   lastInsertIndex=getInsertIndex(listEl,clientY);
+   showDropVisual(listEl,lastInsertIndex);
+ }
+
  function startDrag(e){
    dragging=true;
+   capturedPointerId=e.pointerId;
+   if(cardEl.setPointerCapture){
+     try{ cardEl.setPointerCapture(capturedPointerId); }catch(err){}
+   }
    ghost=cardEl.cloneNode(true);
    ghost.className="movie drag-ghost";
    ghost.style.width=cardEl.offsetWidth+"px";
    document.body.appendChild(ghost);
    positionGhost(e.clientX,e.clientY);
    cardEl.classList.add("dragging-source");
-   document.querySelectorAll(".column").forEach(c=>{
-     if(c.dataset.type!==type) c.classList.add("drop-ready");
-   });
+   updateDropTarget(e.clientX,e.clientY);
  }
 
  function onMove(e){
@@ -612,10 +775,7 @@ function attachDragHandlers(cardEl,id,type){
    }
    e.preventDefault();
    positionGhost(e.clientX,e.clientY);
-   const target=getColumnAt(e.clientX,e.clientY);
-   document.querySelectorAll(".column").forEach(c=>{
-     c.classList.toggle("drop-target", c.dataset.type===target && target!==type);
-   });
+   updateDropTarget(e.clientX,e.clientY);
  }
 
  function cleanup(){
@@ -623,26 +783,40 @@ function attachDragHandlers(cardEl,id,type){
    cardEl.removeEventListener("pointermove",onMove);
    cardEl.removeEventListener("pointerup",onUp);
    cardEl.removeEventListener("pointercancel",onUp);
-   document.querySelectorAll(".column").forEach(c=>c.classList.remove("drop-ready","drop-target"));
+   if(capturedPointerId!==null && cardEl.releasePointerCapture){
+     try{ cardEl.releasePointerCapture(capturedPointerId); }catch(err){}
+   }
+   capturedPointerId=null;
+   clearDropVisuals();
    cardEl.classList.remove("dragging-source");
    if(ghost){ ghost.remove(); ghost=null; }
  }
 
  function onUp(e){
    const wasDragging=dragging;
-   const target=wasDragging?getColumnAt(e.clientX,e.clientY):null;
+   const targetType=wasDragging?lastTargetType:null;
+   const insertIndex=lastInsertIndex;
    dragging=false;
    cleanup();
-   if(wasDragging && target && target!==type){
-     if(target==="watched") move(id);
-     else moveToWatchlist(id);
+   if(!wasDragging || !targetType) return;
+   if(targetType===type){
+     if(canReorderList(type)) reorderInList(type,id,insertIndex);
+   }else if(canReorderList(targetType)){
+     moveToListAt(id,type,targetType,insertIndex);
+   }else if(targetType==="watched"){
+     move(id);
+   }else{
+     moveToWatchlist(id);
    }
  }
 
  cardEl.addEventListener("pointerdown",e=>{
-   if(e.button!==undefined && e.button!==0) return; // sadece sol tık
+   if(e.button!==undefined && e.button!==0) return;
    if(e.target.closest(".delete-btn,.tick-btn,.poster-link,.person-link")) return;
+   if(e.pointerType==="mouse") e.preventDefault();
    startX=e.clientX; startY=e.clientY;
+   lastTargetType=null;
+   lastInsertIndex=0;
    cardEl.addEventListener("pointermove",onMove);
    cardEl.addEventListener("pointerup",onUp);
    cardEl.addEventListener("pointercancel",onUp);
