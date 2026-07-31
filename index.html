@@ -590,20 +590,21 @@ function getSortedDisplayIds(type){
  return indexed.map(x=>x.m.imdbID);
 }
 
-function applyDisplayOrder(type,displayIds){
+// displayIds (o listede GÖRÜNECEK yeni sıra) dizisine göre allData[type]'ı
+// fiilen o sıraya sokar (added-desc ise ters çevirip saklıyoruz, added-asc
+// ise doğrudan - dizinin kendi konumu = sıralama anahtarı). movedId verilirse
+// SADECE o filmin _addedAt/_updatedAt alanı newAddedAt ile güncellenir; diğer
+// hiçbir filme dokunulmaz.
+function applyDisplayOrder(type,displayIds,movedId,newAddedAt){
  const sort=sortState[type];
  const map=new Map(allData[type].map(m=>[m.imdbID,m]));
- let newArray;
- if(sort==="added-desc"){
-   newArray=displayIds.slice().reverse().map(id=>map.get(id)).filter(Boolean);
- }else{
-   newArray=displayIds.map(id=>map.get(id)).filter(Boolean);
+ let newArray=(sort==="added-desc")
+   ?displayIds.slice().reverse().map(id=>map.get(id)).filter(Boolean)
+   :displayIds.map(id=>map.get(id)).filter(Boolean);
+ if(movedId!=null){
+   const now=Date.now();
+   newArray=newArray.map(m=>m.imdbID===movedId?{...m,_addedAt:newAddedAt,_updatedAt:now}:m);
  }
- const base=Date.now();
- newArray.forEach((m,i)=>{
-   m._addedAt=base+i*1000;
-   m._updatedAt=Date.now();
- });
  allData[type]=newArray;
 }
 
@@ -654,17 +655,33 @@ function showDropVisual(listEl,insertIndex){
  }
 }
 
-async function persistListOrder(type){
+// Bırakılan yerdeki iki komşu arasına denk gelecek TEK bir _addedAt değeri
+// hesaplar (idsExcludingMoved: sürüklenen film çıkarılmış hedef sıradaki id
+// listesi, k: o listede bırakılacağı konum). Gerçek "şu an"ı ASLA geçmez -
+// eskiden burada tüm listenin zaman damgası yeniden yazılıyordu ve üst
+// sıradaki filmler dakikalarca "gelecek" bir tarihe sahip oluyordu; az sonra
+// eklenen yeni bir film o yüzden en üste değil, onların altına düşüyordu.
+function computeNeighborAddedAt(type,idsExcludingMoved,k){
+ const mode=sortState[type];
+ const map=new Map(allData[type].map(m=>[m.imdbID,m]));
+ const getAt=m=>(m&&typeof m._addedAt==="number")?m._addedAt:0;
+ const beforeM=k>0?map.get(idsExcludingMoved[k-1]):null;
+ const afterM=k<idsExcludingMoved.length?map.get(idsExcludingMoved[k]):null;
+
+ if(beforeM && afterM) return Math.round((getAt(beforeM)+getAt(afterM))/2);
+
+ // "en yeni" ucu: added-desc'te üst uç (after var, before yok);
+ // added-asc'te alt uç (before var, after yok).
+ const becomesNewest=(mode==="added-desc"&&afterM&&!beforeM)||(mode==="added-asc"&&beforeM&&!afterM);
+ if(becomesNewest) return Math.max(Date.now(),getAt(afterM||beforeM)+1);
+ if(afterM) return getAt(afterM)-1000;
+ if(beforeM) return getAt(beforeM)-1000;
+ return Date.now();
+}
+
+function persistMovedItem(type,id,newAddedAt){
  saveToCache();
- try{
-   const batch=db.batch();
-   allData[type].forEach(m=>{
-     batch.update(db.collection(type).doc(m.imdbID),{
-       _addedAt:m._addedAt,_updatedAt:m._updatedAt
-     });
-   });
-   await batch.commit();
- }catch(e){ console.error(e); }
+ db.collection(type).doc(id).update({_addedAt:newAddedAt,_updatedAt:Date.now()}).catch(e=>console.error(e));
 }
 
 function reorderInList(type,id,toDisplayIndex){
@@ -674,23 +691,37 @@ function reorderInList(type,id,toDisplayIndex){
  if(fromIdx===-1) return;
  const adjustedIndex=fromIdx<toDisplayIndex?toDisplayIndex-1:toDisplayIndex;
  if(adjustedIndex===fromIdx) return;
+
+ const others=ids.filter(x=>x!==id);
+ const k=Math.max(0,Math.min(adjustedIndex,others.length));
+ const newAddedAt=computeNeighborAddedAt(type,others,k);
+
  ids.splice(fromIdx,1);
  ids.splice(adjustedIndex,0,id);
- applyDisplayOrder(type,ids);
+ applyDisplayOrder(type,ids,id,newAddedAt);
  render();
- persistListOrder(type);
+ persistMovedItem(type,id,newAddedAt);
 }
 
 async function moveToListAt(id,fromType,toType,toDisplayIndex){
  const idx=allData[fromType].findIndex(m=>m.imdbID===id);
  if(idx===-1) return;
  const movie=allData[fromType][idx];
+
+ let newAddedAt=Date.now();
+ let targetIds=null;
+ if(canReorderList(toType)){
+   targetIds=getSortedDisplayIds(toType); // hedefte henüz "id" yok
+   const k=Math.max(0,Math.min(toDisplayIndex,targetIds.length));
+   newAddedAt=computeNeighborAddedAt(toType,targetIds,k);
+   targetIds=targetIds.slice();
+   targetIds.splice(k,0,id); // yeni film, bırakıldığı tam konuma ekleniyor
+ }
+
  allData[fromType]=allData[fromType].filter(m=>m.imdbID!==id);
- allData[toType]=[...allData[toType],movie];
- const ids=getSortedDisplayIds(toType).filter(x=>x!==id);
- const insertAt=Math.max(0,Math.min(toDisplayIndex,ids.length));
- ids.splice(insertAt,0,id);
- applyDisplayOrder(toType,ids);
+ const now=Date.now();
+ allData[toType]=[...allData[toType],{...movie,_addedAt:newAddedAt,_updatedAt:now}];
+ if(targetIds) applyDisplayOrder(toType,targetIds,null,null);
  render();
  saveToCache();
 
@@ -698,11 +729,10 @@ async function moveToListAt(id,fromType,toType,toDisplayIndex){
    const srcSnap=await db.collection(fromType).doc(id).get();
    if(!srcSnap.exists) return;
    const data=srcSnap.data();
-   data._addedAt=movie._addedAt;
-   data._updatedAt=movie._updatedAt;
+   data._addedAt=newAddedAt;
+   data._updatedAt=now;
    await db.collection(toType).doc(id).set(data);
    await db.collection(fromType).doc(id).delete();
-   await persistListOrder(toType);
  }catch(e){
    console.error(e);
    allData[toType]=allData[toType].filter(m=>m.imdbID!==id);
@@ -711,6 +741,7 @@ async function moveToListAt(id,fromType,toType,toDisplayIndex){
    saveToCache();
  }
 }
+
 
 document.addEventListener("dragstart",e=>{ if(e.target.closest(".movie")) e.preventDefault(); });
 
