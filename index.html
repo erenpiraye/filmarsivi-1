@@ -575,7 +575,8 @@ function fetchPoster(imdbID,imgEl,title,year){
 // sıralamasında aynı liste içinde konum değiştirilebilir. Dokunmatikte kaydırma
 // (scroll) ile karışmasın diye önce kısa bir "basılı tutma" (~300ms) bekleniyor.
 const LONG_PRESS_MS=300;
-const DRAG_MOVE_THRESHOLD=8;
+const DRAG_MOVE_THRESHOLD=8; // fare: düz tıkla sürüklemeyi ayırt etmek için (fare titremez, dar tutulabilir)
+const TOUCH_CANCEL_THRESHOLD=20; // dokunmatik: basılı tutarken parmağın doğal ufak titremesi uzun-basmayı iptal etmesin
 
 function canReorderList(type){
  if(sortState[type]!=="added-desc" && sortState[type]!=="added-asc") return false;
@@ -747,7 +748,7 @@ document.addEventListener("dragstart",e=>{ if(e.target.closest(".movie")) e.prev
 
 function attachDragHandlers(cardEl,id,type){
  let dragging=false, longPressTimer=null, ghost=null, startX=0, startY=0, capturedPointerId=null;
- let lastTargetType=null, lastInsertIndex=0;
+ let lastTargetType=null, lastInsertIndex=0, lastClientX=0, lastClientY=0;
 
  function positionGhost(x,y){
    if(!ghost) return;
@@ -794,8 +795,10 @@ function attachDragHandlers(cardEl,id,type){
  }
 
  function onMove(e){
+   lastClientX=e.clientX; lastClientY=e.clientY;
    if(!dragging){
-     const moved=Math.abs(e.clientX-startX)>DRAG_MOVE_THRESHOLD||Math.abs(e.clientY-startY)>DRAG_MOVE_THRESHOLD;
+     const threshold=e.pointerType==="mouse"?DRAG_MOVE_THRESHOLD:TOUCH_CANCEL_THRESHOLD;
+     const moved=Math.abs(e.clientX-startX)>threshold||Math.abs(e.clientY-startY)>threshold;
      if(!moved) return;
      if(e.pointerType==="mouse"){
        // Fare: gerçekten birkaç piksel hareket etmeden sürükleme başlamasın -
@@ -848,6 +851,7 @@ function attachDragHandlers(cardEl,id,type){
    if(e.target.closest(".delete-btn,.tick-btn,.poster-link,.person-link")) return;
    if(e.pointerType==="mouse") e.preventDefault();
    startX=e.clientX; startY=e.clientY;
+   lastClientX=e.clientX; lastClientY=e.clientY;
    lastTargetType=null;
    lastInsertIndex=0;
    capturedPointerId=e.pointerId;
@@ -858,7 +862,10 @@ function attachDragHandlers(cardEl,id,type){
    cardEl.addEventListener("pointerup",onUp);
    cardEl.addEventListener("pointercancel",onUp);
    if(e.pointerType!=="mouse"){
-     longPressTimer=setTimeout(()=>startDrag(e),LONG_PRESS_MS);
+     longPressTimer=setTimeout(()=>{
+       if(dragging) return;
+       startDrag({clientX:lastClientX,clientY:lastClientY});
+     },LONG_PRESS_MS);
    }
    // Fare: sürükleme burada başlamıyor artık, sadece pointer kilitleniyor;
    // gerçek sürükleme onMove()'da eşik aşılınca başlar - düz tık artık taşımaz.
