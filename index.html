@@ -11,11 +11,17 @@
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <script>
-// Ana ekrandan farklı isimle eklenen ikinci kısayıt için: ?buyuk=izlenen linkiyle
-// açılırsa, sadece İzlenenler görünsün ve yazılar büyük olsun.
-if(new URLSearchParams(location.search).get("buyuk")==="izlenen"){
- document.documentElement.classList.add("big-watched-only");
-}
+// Telefonda HER ZAMAN sadece "İzlenen" ya da sadece "İzlenecek" listesi tam
+// ekran gösterilir (ikisi birden dar telefon ekranında çok küçük kalıyordu).
+// "İkisi birden" diye bir ara durum YOK - üstteki ⇄ butonu direkt diğerine geçirir.
+// Seçim localStorage'da saklanır, bir dahaki açılışta hatırlanır.
+(function(){
+ var params=new URLSearchParams(location.search);
+ var focus=localStorage.getItem("filmarsivi_focus");
+ if(params.get("buyuk")==="izlenen") focus="watched"; // eski kısayol - hâlâ çalışır
+ if(focus!=="watched" && focus!=="watchlist") focus="watched"; // varsayılan
+ document.documentElement.classList.add("single-focus","focus-"+focus);
+})();
 </script>
 <title>Film Arşivi</title>
 <style>
@@ -95,20 +101,21 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
  .findbox{padding:3px 6px;font-size:11px}
  .sync-bar{padding:3px 12px 0 12px!important}
 }
-/* ===================== BÜYÜK / SADECE İZLENEN MODU (ikinci ana ekran kısayolu için) ===================== */
-/* Bu link ile açıldığında aktif olur: ?buyuk=izlenen */
-html.big-watched-only .column:last-child{display:none}
-html.big-watched-only .column:first-child{width:100%}
-html.big-watched-only h2{font-size:22px}
-html.big-watched-only .search{font-size:20px;padding:12px}
-html.big-watched-only .findbox{font-size:18px;padding:10px}
-html.big-watched-only .controls .sort-select{font-size:16px;padding:8px 10px}
-html.big-watched-only .movie{padding:16px 14px}
-html.big-watched-only .movie .number{font-size:2em;width:60px}
-html.big-watched-only .movie img{width:85px;height:127px}
-html.big-watched-only .movie b{font-size:19px}
-html.big-watched-only .movie .meta{font-size:16px}
-html.big-watched-only .movie .tr-title{font-size:16px}
+/* ===================== TEK LİSTE ODAK MODU (mobilde ikisi birden küçük kaldığında) ===================== */
+/* header'daki ⇄ butonuna basınca ya da eski ?buyuk=izlenen linkiyle aktif olur */
+html.focus-watched .column[data-type="watchlist"]{display:none}
+html.focus-watchlist .column[data-type="watched"]{display:none}
+html.single-focus .column{width:100%}
+html.single-focus h2{font-size:22px}
+html.single-focus .search{font-size:20px;padding:12px}
+html.single-focus .findbox{font-size:18px;padding:10px}
+html.single-focus .controls .sort-select{font-size:16px;padding:8px 10px}
+html.single-focus .movie{padding:16px 14px}
+html.single-focus .movie .number{font-size:2em;width:60px}
+html.single-focus .movie img{width:85px;height:127px}
+html.single-focus .movie b{font-size:19px}
+html.single-focus .movie .meta{font-size:16px}
+html.single-focus .movie .tr-title{font-size:16px}
 </style>
 </head>
 <body>
@@ -125,7 +132,7 @@ html.big-watched-only .movie .tr-title{font-size:16px}
 
 <div class="column" data-type="watched">
 <div class="sticky-header">
-<h2><span class="top-btn refresh-btn" onclick="reload()" title="Yenile">🔄</span><span class="top-btn" onclick="scrollToTop('watched')" title="Başa dön">🎬</span> İzlenen • <span id="watchedCount">0</span> • <span id="watchedTime">0 dk</span></h2>
+<h2><span class="top-btn refresh-btn" onclick="reload()" title="Yenile">🔄</span><span class="top-btn" onclick="scrollToTop('watched')" title="Başa dön">🎬</span> <span class="top-btn list-title" onclick="toggleFocus()" title="İzlenecek'e geç">İzlenen</span> • <span id="watchedCount">0</span> • <span id="watchedTime">0 dk</span></h2>
 <input id="searchWatched" class="search" placeholder="Film ara" oninput="searchMain(this,'watched')">
 <div class="controls">
  <select id="sortWatched" class="sort-select" onchange="onSortChange('watched')">
@@ -156,7 +163,7 @@ html.big-watched-only .movie .tr-title{font-size:16px}
 
 <div class="column" data-type="watchlist">
 <div class="sticky-header">
-<h2><span class="top-btn refresh-btn" onclick="reload()" title="Yenile">🔄</span><span class="top-btn" onclick="scrollToTop('watchlist')" title="Başa dön">🎬</span> İzlenecek • <span id="watchCount">0</span> • <span id="watchTime">0 dk</span></h2>
+<h2><span class="top-btn refresh-btn" onclick="reload()" title="Yenile">🔄</span><span class="top-btn" onclick="scrollToTop('watchlist')" title="Başa dön">🎬</span> <span class="top-btn list-title" onclick="toggleFocus()" title="İzlenen'e geç">İzlenecek</span> • <span id="watchCount">0</span> • <span id="watchTime">0 dk</span></h2>
 <input id="searchWatch" class="search" placeholder="Film ara" oninput="searchMain(this,'watchlist')">
 <div class="controls">
  <select id="sortWatch" class="sort-select" onchange="onSortChange('watchlist')">
@@ -1324,6 +1331,22 @@ function scrollToTop(type){
  } else {
    container.scrollIntoView({behavior:"smooth",block:"start"});
  }
+}
+
+// Tek liste odak modu: her zaman ya İzlenen ya da İzlenecek gösterilir,
+// "ikisi birden" diye bir ara durum yok. Buton tek tıkla direkt diğerine geçirir.
+function currentFocus(){
+ const html=document.documentElement;
+ if(html.classList.contains("focus-watchlist")) return "watchlist";
+ return "watched"; // varsayılan / bilinmeyen durum
+}
+
+function toggleFocus(){
+ const html=document.documentElement;
+ const next=currentFocus()==="watched"?"watchlist":"watched";
+ html.classList.remove("focus-watched","focus-watchlist");
+ html.classList.add("single-focus","focus-"+next);
+ localStorage.setItem("filmarsivi_focus",next);
 }
 
 function toggleView(type){
