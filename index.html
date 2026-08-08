@@ -571,12 +571,16 @@ function fetchPoster(imdbID,imgEl,title,year){
 }
 
 /* ===================== SÜRÜKLE-BIRAK (kart taşıma) ===================== */
-// Fare (PC tarayıcısı) ve dokunmatik (telefon) ile aynı kod. Eklenme tarihi
-// sıralamasında aynı liste içinde konum değiştirilebilir. Dokunmatikte kaydırma
-// (scroll) ile karışmasın diye önce kısa bir "basılı tutma" (~300ms) bekleniyor.
+// SADECE FARE (masaüstü tarayıcı) ile çalışır. Telefonda/dokunmatikte kart
+// sürükleme KAPATILDI: parmakla basılı tutup sürüklemeye çalışırken sayfanın
+// aynı anda kayması (scroll ile çakışması) yüzünden verimsiz/kontrolsüz
+// çalışıyordu, bu yüzden dokunmatik sürükleme tamamen devre dışı bırakıldı.
+// Telefonda kartlar artık normal şekilde kaydırılabilir (scroll), taşıma
+// işlemi yapılamaz; taşımak için "izlendi" (✔) veya "sil" (✕) butonları,
+// ya da PC'den (fare ile) sürükleme kullanılabilir.
 const LONG_PRESS_MS=300;
 const DRAG_MOVE_THRESHOLD=8; // fare: düz tıkla sürüklemeyi ayırt etmek için (fare titremez, dar tutulabilir)
-const TOUCH_CANCEL_THRESHOLD=20; // dokunmatik: basılı tutarken parmağın doğal ufak titremesi uzun-basmayı iptal etmesin
+const TOUCH_CANCEL_THRESHOLD=20; // (artık kullanılmıyor, dokunmatik sürükleme kapalı)
 
 function canReorderList(type){
  if(sortState[type]!=="added-desc" && sortState[type]!=="added-asc") return false;
@@ -797,17 +801,11 @@ function attachDragHandlers(cardEl,id,type){
  function onMove(e){
    lastClientX=e.clientX; lastClientY=e.clientY;
    if(!dragging){
-     const threshold=e.pointerType==="mouse"?DRAG_MOVE_THRESHOLD:TOUCH_CANCEL_THRESHOLD;
-     const moved=Math.abs(e.clientX-startX)>threshold||Math.abs(e.clientY-startY)>threshold;
+     const moved=Math.abs(e.clientX-startX)>DRAG_MOVE_THRESHOLD||Math.abs(e.clientY-startY)>DRAG_MOVE_THRESHOLD;
      if(!moved) return;
-     if(e.pointerType==="mouse"){
-       // Fare: gerçekten birkaç piksel hareket etmeden sürükleme başlamasın -
-       // yoksa düz bir TIK bile "sürükleme" sayılıp kartı yanlış yere taşıyordu.
-       startDrag(e);
-     }else{
-       clearTimeout(longPressTimer);
-       return;
-     }
+     // Fare: gerçekten birkaç piksel hareket etmeden sürükleme başlamasın -
+     // yoksa düz bir TIK bile "sürükleme" sayılıp kartı yanlış yere taşıyordu.
+     startDrag(e);
    }
    e.preventDefault();
    positionGhost(e.clientX,e.clientY);
@@ -847,9 +845,10 @@ function attachDragHandlers(cardEl,id,type){
  }
 
  cardEl.addEventListener("pointerdown",e=>{
+   if(e.pointerType && e.pointerType!=="mouse") return; // dokunmatikte sürükleme kapalı - sayfa normal kayar
    if(e.button!==undefined && e.button!==0) return;
    if(e.target.closest(".delete-btn,.tick-btn,.poster-link,.person-link")) return;
-   if(e.pointerType==="mouse") e.preventDefault();
+   e.preventDefault();
    startX=e.clientX; startY=e.clientY;
    lastClientX=e.clientX; lastClientY=e.clientY;
    lastTargetType=null;
@@ -861,12 +860,6 @@ function attachDragHandlers(cardEl,id,type){
    cardEl.addEventListener("pointermove",onMove);
    cardEl.addEventListener("pointerup",onUp);
    cardEl.addEventListener("pointercancel",onUp);
-   if(e.pointerType!=="mouse"){
-     longPressTimer=setTimeout(()=>{
-       if(dragging) return;
-       startDrag({clientX:lastClientX,clientY:lastClientY});
-     },LONG_PRESS_MS);
-   }
    // Fare: sürükleme burada başlamıyor artık, sadece pointer kilitleniyor;
    // gerçek sürükleme onMove()'da eşik aşılınca başlar - düz tık artık taşımaz.
  });
