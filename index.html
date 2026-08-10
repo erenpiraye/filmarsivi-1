@@ -55,6 +55,8 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 .tick-btn{position:absolute;top:38px;right:10px;background:#333;color:#0f0;border:none;width:24px;height:24px;border-radius:50%;cursor:pointer}
 .delete-btn{position:absolute;top:10px;right:10px;background:#333;color:#bbb;border:none;width:24px;height:24px;border-radius:50%;cursor:pointer}
 .meta{font-size:13px;color:#bbb;margin-top:3px}
+.money-info{color:#8fbf6f}
+.money-info:empty{display:none}
 .tr-title{color:#888;font-size:13px;margin-top:2px}
 .controls{width:95%;margin:0 auto 10px auto;display:flex;flex-wrap:wrap;gap:8px}
 .controls .sort-select{flex:1 1 130px;min-width:110px}
@@ -307,9 +309,36 @@ async function fetchJson(url,timeoutMs=12000){
  }
 }
 
+// Sayıyı TMDB'deki gibi tam rakamlı para birimi metnine çevirir: 150000000 -> "$150,000,000". 0/boş ise null döner.
+function formatMoney(n){
+ n=Number(n);
+ if(!n||n<=0) return null;
+ return "$"+Math.round(n).toLocaleString("en-US");
+}
+
+// OMDb'nin "BoxOffice" alanı ("$325,873,309" gibi) ham metnini sayıya çevirir.
+function parseOmdbMoney(s){
+ if(!s||s==="N/A") return null;
+ const n=Number(String(s).replace(/[^0-9]/g,""));
+ return n>0?n:null;
+}
+
+// Kart üzerinde gösterilecek bütçe/hasılat satırını üretir. Bütçe SADECE
+// TMDB'den gelir (OMDb bütçe bilgisi vermez). Hasılat için önce TMDB'nin
+// (dünya geneli) revenue'su denenir, o yoksa OMDb'nin BoxOffice'i (genelde
+// sadece ABD gişesi) yedek olarak kullanılır.
+function moneyLineText(omdbBoxOffice,info){
+ const parts=[];
+ const budget=formatMoney(info&&info.budget);
+ const revenue=formatMoney(info&&info.revenue)||formatMoney(parseOmdbMoney(omdbBoxOffice));
+ if(budget) parts.push(`💰 Bütçe: ${budget}`);
+ if(revenue) parts.push(`💵 Hasılat: ${revenue}`);
+ return parts.join(" · ");
+}
+
 async function getTurkishInfo(imdbID,title,year){
  if(turkishCache[imdbID]) return turkishCache[imdbID];
- const info={title:null,poster:null,genres:[]};
+ const info={title:null,poster:null,genres:[],budget:null,revenue:null};
  try{
    const data=await fetchJson(`https://api.themoviedb.org/3/find/${imdbID}?api_key=${TMDB_KEY}&external_source=imdb_id&language=tr-TR`);
    let movie=data.movie_results?.[0]||null;
@@ -334,11 +363,19 @@ async function getTurkishInfo(imdbID,title,year){
      if(movie.genre_ids && movie.genre_ids.length){
        info.genres=movie.genre_ids.map(id=>genreMap[id]).filter(Boolean);
      }
+     // Bütçe/hasılat arama sonucunda gelmiyor, ayrı bir detay isteği gerekiyor.
+     try{
+       const det=await fetchJson(`https://api.themoviedb.org/3/movie/${movie.id}?api_key=${TMDB_KEY}`);
+       if(det){
+         if(det.budget) info.budget=det.budget;
+         if(det.revenue) info.revenue=det.revenue;
+       }
+     }catch(e){}
    }
  }catch(e){}
  // sadece gerçekten bir sonuç bulduysak kalıcı olarak önbelleğe al;
  // boş/başarısız sonucu kalıcı hale getirmeyelim ki bir sonraki reload'ta tekrar denensin
- if(info.title || info.poster || info.genres.length){
+ if(info.title || info.poster || info.genres.length || info.budget || info.revenue){
    turkishCache[imdbID]=info;
  }
  return info;
@@ -543,6 +580,7 @@ function card(m,i,isWatch){
  <div class="tr-title">${trTitle}</div>
  <div class="meta">⭐ ${m.imdbRating}</div>
  <div class="meta">⏱ ${m.Runtime}</div>
+ <div class="meta money-info" data-boxoffice="${(m.BoxOffice&&m.BoxOffice!=='N/A')?m.BoxOffice:''}">${moneyLineText(m.BoxOffice,info)}</div>
  <div class="meta">🎬 ${personLinksHtml(m.Director,"director")}</div>
  <div class="meta">🎭 ${personLinksHtml(m.Actors,"actor")}</div>
  </div>
@@ -1172,6 +1210,11 @@ function refreshCardsInPlace(){
    if(info.title){
      const trEl=el.querySelector(".tr-title");
      if(trEl && !trEl.textContent) trEl.textContent=info.title;
+   }
+   const moneyEl=el.querySelector(".money-info");
+   if(moneyEl){
+     const txt=moneyLineText(moneyEl.dataset.boxoffice,info);
+     if(txt) moneyEl.textContent=txt;
    }
  });
  populateGenreSelect("watched");
