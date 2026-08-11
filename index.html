@@ -481,8 +481,10 @@ function moneyLines(omdbBoxOffice,info){
 }
 
 async function getTurkishInfo(imdbID,title,year){
- if(turkishCache[imdbID]) return turkishCache[imdbID];
- const info={title:null,poster:null,genres:[],budget:null,revenue:null};
+ const cached=turkishCache[imdbID];
+ if(cached && cached._checked) return cached;
+ const info={title:null,poster:null,genres:[],budget:null,revenue:null,overview:null,backdrop:null};
+ if(cached) Object.assign(info,cached); // eski önbellekte olan (başlık/poster/tür) alanları koru, eksikleri tamamlayacağız
  try{
    const data=await fetchJson(`https://api.themoviedb.org/3/find/${imdbID}?api_key=${TMDB_KEY}&external_source=imdb_id&language=tr-TR`);
    let movie=data.movie_results?.[0]||null;
@@ -504,22 +506,28 @@ async function getTurkishInfo(imdbID,title,year){
    if(movie){
      if(movie.title) info.title=movie.title;
      if(movie.poster_path) info.poster=`https://image.tmdb.org/t/p/w200${movie.poster_path}`;
+     if(movie.overview) info.overview=movie.overview;
+     if(movie.backdrop_path) info.backdrop=`https://image.tmdb.org/t/p/w780${movie.backdrop_path}`;
      if(movie.genre_ids && movie.genre_ids.length){
        info.genres=movie.genre_ids.map(id=>genreMap[id]).filter(Boolean);
      }
-     // Bütçe/hasılat arama sonucunda gelmiyor, ayrı bir detay isteği gerekiyor.
+     // Bütçe/hasılat (ve overview/backdrop find sonucunda gelmediyse onlar da) ayrı bir detay isteği gerektirir.
      try{
-       const det=await fetchJson(`https://api.themoviedb.org/3/movie/${movie.id}?api_key=${TMDB_KEY}`);
+       const det=await fetchJson(`https://api.themoviedb.org/3/movie/${movie.id}?api_key=${TMDB_KEY}&language=tr-TR`);
        if(det){
          if(det.budget) info.budget=det.budget;
          if(det.revenue) info.revenue=det.revenue;
+         if(!info.overview && det.overview) info.overview=det.overview;
+         if(!info.backdrop && det.backdrop_path) info.backdrop=`https://image.tmdb.org/t/p/w780${det.backdrop_path}`;
        }
      }catch(e){}
    }
  }catch(e){}
- // sadece gerçekten bir sonuç bulduysak kalıcı olarak önbelleğe al;
- // boş/başarısız sonucu kalıcı hale getirmeyelim ki bir sonraki reload'ta tekrar denensin
- if(info.title || info.poster || info.genres.length || info.budget || info.revenue){
+ // sadece gerçekten bir sonuç bulduysak kalıcı olarak önbelleğe al (_checked=true) -
+ // ki bir daha bu film için hiç istek atılmasın. Toptan başarısızlıkta (ağ hatası vb.)
+ // _checked eklenmez, bir sonraki denemede tekrar denenir.
+ if(info.title || info.poster || info.genres.length || info.overview || info.backdrop){
+   info._checked=true;
    turkishCache[imdbID]=info;
  }
  return info;
@@ -527,7 +535,10 @@ async function getTurkishInfo(imdbID,title,year){
 
 async function preloadInfo(){
  await loadGenreMap();
- const all=[...allData.watched,...allData.watchlist].filter(m=>!turkishCache[m.imdbID]);
+ const all=[...allData.watched,...allData.watchlist].filter(m=>{
+   const c=turkishCache[m.imdbID];
+   return !c || !c._checked;
+ });
  const batchSize=5;
  for(let i=0;i<all.length;i+=batchSize){
    const batch=all.slice(i,i+batchSize);
