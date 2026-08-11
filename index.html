@@ -1297,21 +1297,7 @@ async function reload(){
 }
 
 function openImdb(id){
- const webUrl=`https://www.imdb.com/title/${id}/`;
- const appUrl=`imdb:///title/${id}/`;
- let switched=false;
- const onHide=()=>{ switched=true; };
- document.addEventListener("visibilitychange",onHide,{once:true});
- window.addEventListener("pagehide",onHide,{once:true});
- // Önce telefonda kurulu IMDb uygulamasını açmayı dene - kuruluysa tarayıcı hiç
- // devreye girmez (çerez/"uygulamayı indir" isteği çıkmaz). Kısa sürede
- // uygulamaya geçiş olmazsa (kurulu değilse) siteyi AYNI sekmede aç - yeni
- // sekme açıp sonra yönlendirmek "sürekli yenileniyormuş" gibi görünen o
- // çift adımlı, titrek açılışa sebep oluyordu.
- const fallback=setTimeout(()=>{
-   if(!switched) window.location.href=webUrl;
- },900);
- try{ window.location.href=appUrl; }catch(e){ clearTimeout(fallback); window.location.href=webUrl; }
+ window.open(`https://www.imdb.com/title/${id}/`, "_blank");
 }
 
 /* ===================== VERİ TAMAMLAMA (eksik tür bilgisi) ===================== */
