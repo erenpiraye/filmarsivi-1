@@ -123,7 +123,7 @@ html.single-focus .movie .tr-title{font-size:16px}
 /* ===================== DETAY MODALI (afişe/karta tıklayınca açılır) ===================== */
 .detail-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:200;align-items:flex-start;justify-content:center;overflow-y:auto;padding:30px 16px}
 .detail-overlay.open{display:flex}
-.detail-modal{position:relative;width:100%;max-width:820px;background:#181818;border:1px solid #3a3222;border-radius:12px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.6);touch-action:pan-y}
+.detail-modal{position:relative;width:100%;max-width:820px;background:#181818;border:1px solid #3a3222;border-radius:12px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.6)}
 .detail-backdrop{position:absolute;top:0;left:0;right:0;height:260px;background-size:cover;background-position:center;filter:blur(2px) brightness(0.5);z-index:0}
 .detail-backdrop::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(24,24,24,0.2) 0%,#181818 95%)}
 .detail-close{position:absolute;top:14px;right:16px;z-index:3;width:34px;height:34px;border-radius:50%;background:rgba(0,0,0,0.55);color:#eee;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px}
@@ -132,17 +132,15 @@ html.single-focus .movie .tr-title{font-size:16px}
 .detail-poster{width:130px;height:195px;object-fit:cover;border-radius:6px;box-shadow:0 8px 20px rgba(0,0,0,0.5);flex-shrink:0}
 .detail-top-info{flex:1;min-width:0}
 .detail-badges{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
-.detail-badge{display:inline-flex;align-items:center;justify-content:center;line-height:1;background:rgba(217,164,65,0.14);border:1px solid rgba(217,164,65,0.4);color:#e8c877;padding:6px 10px;border-radius:5px;font-size:12px;font-weight:bold}
+.detail-badge{background:rgba(217,164,65,0.14);border:1px solid rgba(217,164,65,0.4);color:#e8c877;padding:4px 10px;border-radius:5px;font-size:12px;font-weight:bold}
 .detail-imdb-link{background:#d9a441;color:#181818;text-decoration:none;cursor:pointer}
 .detail-imdb-link:hover{background:#e8b955}
-.detail-tmdb-link{background:#01394d;border:1px solid #0f7cb0;color:#7fd0f5;text-decoration:none;cursor:pointer}
-.detail-tmdb-link:hover{background:#04516d}
 .detail-title{margin:4px 0 2px 0;font-size:26px;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,0.6)}
-.detail-tr-title{color:#bbb;font-size:14px;min-height:18px}
+.detail-tr-title{color:#bbb;font-size:14px}
 .detail-body{position:relative;z-index:1;padding:0 24px 24px 24px}
-.detail-ratings-row{display:flex;flex-direction:column;gap:10px;margin-bottom:16px}
-.detail-rating-box{display:flex;align-items:center;gap:10px;background:#222;border:1px solid #3a3222;border-radius:8px;padding:10px 14px}
-.detail-rating-icon{font-size:20px;width:36px;height:36px;flex-shrink:0;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(217,164,65,0.14);color:#d9a441}
+.detail-ratings-row{display:flex;gap:14px;margin-bottom:16px}
+.detail-rating-box{flex:1;display:flex;align-items:center;gap:10px;background:#222;border:1px solid #3a3222;border-radius:8px;padding:10px 14px}
+.detail-rating-icon{font-size:20px;width:36px;height:36px;flex-shrink:0;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(217,164,65,0.14);color:#e8c877}
 .detail-rating-label{font-size:12px;color:#999}
 .detail-rating-value{font-size:19px;font-weight:bold;color:#e8c877}
 .detail-my-rating-col{flex:1;min-width:0}
@@ -157,22 +155,14 @@ html.single-focus .movie .tr-title{font-size:16px}
 .detail-section-title{font-size:13px;color:#d9a441;font-weight:bold;margin-bottom:6px}
 .detail-plot{background:#202020;border:1px solid #333;border-radius:8px;padding:12px 14px;color:#ddd;line-height:1.5;font-size:14px}
 .detail-money-row{display:flex;gap:14px;margin-bottom:16px}
-.detail-money-box{flex:1;min-width:0;background:#202020;border:1px solid #333;border-radius:8px;padding:10px 14px}
+.detail-money-box{flex:1;background:#202020;border:1px solid #333;border-radius:8px;padding:10px 14px}
 .detail-money-box:empty,.detail-money-row:has(#detailBudget:empty):has(#detailRevenue:empty){display:none}
 .detail-people-row{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:14px}
 .detail-people-box{flex:1;min-width:180px;background:#202020;border:1px solid #333;border-radius:8px;padding:10px 14px;color:#ddd;font-size:13px}
-.detail-people-box a.person-link{color:#ddd;text-decoration:none;cursor:pointer}
-.detail-people-box a.person-link:hover{color:#d9a441;text-decoration:underline}
+.detail-people-box a.person-link:hover{color:#d9a441}
 .detail-genres{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
 .detail-genre-tag{background:rgba(217,164,65,0.14);border:1px solid rgba(217,164,65,0.35);color:#e8c877;padding:4px 10px;border-radius:5px;font-size:12px}
-.detail-cast-wrap{margin-bottom:16px}
-.cast-scroll{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch}
-.cast-card{flex:0 0 104px;background:#202020;border:1px solid #333;border-radius:8px;overflow:hidden;cursor:pointer}
-.cast-card:hover{border-color:#d9a441}
-.cast-card img{width:100%;height:104px;object-fit:cover;display:block;background:#000}
-.cast-card .cast-info{padding:6px 7px}
-.cast-card .cast-name{font-size:11.5px;font-weight:bold;color:#eee;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.cast-card .cast-role{font-size:11px;color:#999;margin-top:2px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.detail-notes{width:100%;min-height:90px;background:#202020;border:1px solid #333;border-radius:8px;padding:10px 12px;color:#eee;font-size:14px;resize:vertical;font-family:inherit}
 .detail-footer{position:relative;z-index:1;display:flex;justify-content:space-between;align-items:center;padding:16px 24px;border-top:1px solid #2a2a2a;background:#151515}
 .detail-cancel{color:#999;cursor:pointer;font-size:14px}
 .detail-cancel:hover{color:#ccc}
@@ -181,26 +171,15 @@ html.single-focus .movie .tr-title{font-size:16px}
 @media (max-width:600px){
  .detail-overlay{padding:0}
  .detail-modal{max-width:none;border-radius:0;min-height:100vh}
- .detail-backdrop{height:150px}
- .detail-top{align-items:center;gap:12px;padding:14px}
- .detail-poster{width:78px;height:117px}
- .detail-title{font-size:20px}
- .detail-body{padding:0 16px 16px 16px}
- .detail-people-row{flex-direction:column}
- .detail-section,.detail-money-row,.detail-people-row,.detail-cast-wrap,.detail-genres,.detail-ratings-row{margin-bottom:10px}
- .detail-rating-box{padding:8px 10px}
- .detail-plot{padding:9px 11px;font-size:13px;max-height:110px;overflow-y:auto}
- .detail-money-box{padding:7px 10px}
- .cast-card{flex:0 0 82px}
- .cast-card img{height:82px}
- .detail-footer{padding:10px 16px}
+ .detail-top{flex-direction:column;align-items:flex-start}
+ .detail-money-row,.detail-people-row,.detail-ratings-row{flex-direction:column}
 }
 </style>
 </head>
 <body>
 
 <div class="detail-overlay" id="detailOverlay" onclick="if(event.target===this)closeDetail()">
- <div class="detail-modal" id="detailModal">
+ <div class="detail-modal">
   <div class="detail-backdrop" id="detailBackdrop"></div>
   <span class="detail-close" onclick="closeDetail()">✕</span>
   <div class="detail-top">
@@ -209,8 +188,7 @@ html.single-focus .movie .tr-title{font-size:16px}
     <div class="detail-badges">
      <span class="detail-badge" id="detailYear"></span>
      <span class="detail-badge" id="detailRuntime"></span>
-     <a class="detail-badge detail-imdb-link" id="detailImdbLink" href="#" onclick="return false;">IMDb</a>
-     <a class="detail-badge detail-tmdb-link" id="detailTmdbLink" href="#" onclick="return false;" style="display:none">TMDb</a>
+     <a class="detail-badge detail-imdb-link" id="detailImdbLink" href="#" onclick="return false;">↗ IMDb Sayfası</a>
     </div>
     <h2 class="detail-title" id="detailTitle"></h2>
     <div class="detail-tr-title" id="detailTrTitle"></div>
@@ -227,7 +205,7 @@ html.single-focus .movie .tr-title{font-size:16px}
      </div>
     </div>
     <div class="detail-rating-box my-box">
-     <span class="detail-rating-icon my-rating-icon"></span>
+     <span class="detail-rating-icon my-rating-icon">★</span>
      <div class="detail-my-rating-col">
       <div class="detail-rating-label">Kendi Puanım</div>
       <div class="detail-my-rating-wrap">
@@ -265,13 +243,6 @@ html.single-focus .movie .tr-title{font-size:16px}
      <div class="detail-section-title">✍️ Senaristler</div>
      <div id="detailWriter"></div>
     </div>
-   </div>
-
-   <div class="detail-cast-wrap" id="detailCastWrap" style="display:none">
-    <div class="detail-section-title">🎭 Oyuncular</div>
-    <div class="cast-scroll" id="detailCastScroll"></div>
-   </div>
-   <div class="detail-people-row" id="detailActorsFallbackRow">
     <div class="detail-people-box">
      <div class="detail-section-title">🎭 Oyuncular</div>
      <div id="detailActors"></div>
@@ -279,6 +250,11 @@ html.single-focus .movie .tr-title{font-size:16px}
    </div>
 
    <div class="detail-genres" id="detailGenres"></div>
+
+   <div class="detail-section">
+    <div class="detail-section-title">Notlar</div>
+    <textarea class="detail-notes" id="detailNotes"></textarea>
+   </div>
   </div>
 
   <div class="detail-footer">
@@ -286,6 +262,15 @@ html.single-focus .movie .tr-title{font-size:16px}
    <button class="detail-save-btn" onclick="saveDetailChanges()">Değişiklikleri Kaydet</button>
   </div>
  </div>
+</div>
+
+
+<!-- Firebase (Firestore) - senkron veri deposu -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+<div class="sync-bar" style="padding:10px 20px 0 20px;">
+ <span class="sync-status" id="syncStatus">Bağlanıyor…</span>
 </div>
 
 <div class="container">
@@ -303,10 +288,8 @@ html.single-focus .movie .tr-title{font-size:16px}
   <option value="year-asc">Yıl: Eski → Yeni</option>
   <option value="added-desc" selected>Eklenme: Yeni → Eski</option>
   <option value="added-asc">Eklenme: Eski → Yeni</option>
-  <option value="rating-desc">IMDb Puan ↓</option>
-  <option value="rating-asc">IMDb Puan ↑</option>
-  <option value="myrating-desc">Kendi Puanım ↓</option>
-  <option value="myrating-asc">Kendi Puanım ↑</option>
+  <option value="rating-desc">Puan ↓</option>
+  <option value="rating-asc">Puan ↑</option>
  </select>
  <select id="genreWatched" class="sort-select" onchange="onGenreChange('watched')">
   <option value="all">Kategori</option>
@@ -336,10 +319,8 @@ html.single-focus .movie .tr-title{font-size:16px}
   <option value="year-asc">Yıl: Eski → Yeni</option>
   <option value="added-desc" selected>Eklenme: Yeni → Eski</option>
   <option value="added-asc">Eklenme: Eski → Yeni</option>
-  <option value="rating-desc">IMDb Puan ↓</option>
-  <option value="rating-asc">IMDb Puan ↑</option>
-  <option value="myrating-desc">Kendi Puanım ↓</option>
-  <option value="myrating-asc">Kendi Puanım ↑</option>
+  <option value="rating-desc">Puan ↓</option>
+  <option value="rating-asc">Puan ↑</option>
  </select>
  <select id="genreWatch" class="sort-select" onchange="onGenreChange('watchlist')">
   <option value="all">Kategori</option>
@@ -523,7 +504,6 @@ async function getTurkishInfo(imdbID,title,year){
    }
 
    if(movie){
-     if(movie.id) info.tmdbId=movie.id;
      if(movie.title) info.title=movie.title;
      if(movie.poster_path) info.poster=`https://image.tmdb.org/t/p/w200${movie.poster_path}`;
      if(movie.overview) info.overview=movie.overview;
@@ -756,7 +736,7 @@ function card(m,i,isWatch){
  <div class="tr-title">${trTitle}</div>
  <div class="meta">⭐ ${m.imdbRating}</div>
  <div class="meta">⏱ ${m.Runtime}</div>
- <div class="meta my-rating-line">${(m.myRating!=null&&m.myRating!=="")?`${MY_RATING_STAR_SVG_SMALL} ${Number(m.myRating).toFixed(1)}`:""}</div>
+ <div class="meta my-rating-line">${(m.myRating!=null&&m.myRating!=="")?`👤 ${Number(m.myRating).toFixed(1)}`:""}</div>
  <div class="meta money-budget" data-boxoffice="${(m.BoxOffice&&m.BoxOffice!=='N/A')?m.BoxOffice:''}">${moneyLines(m.BoxOffice,info).budget}</div>
  <div class="meta money-revenue">${moneyLines(m.BoxOffice,info).revenue}</div>
  <div class="meta">🎬 ${personLinksHtml(m.Director,"director")}</div>
@@ -1226,14 +1206,6 @@ function sortIndexed(indexed,mode){
      const rb=parseFloat(b.m.imdbRating); const ra=parseFloat(a.m.imdbRating);
      return (isNaN(ra)?999:ra)-(isNaN(rb)?999:rb);
    }); break;
-   case "myrating-desc": arr.sort((a,b)=>{
-     const rb=parseFloat(b.m.myRating); const ra=parseFloat(a.m.myRating);
-     return (isNaN(rb)?-1:rb)-(isNaN(ra)?-1:ra);
-   }); break;
-   case "myrating-asc": arr.sort((a,b)=>{
-     const rb=parseFloat(b.m.myRating); const ra=parseFloat(a.m.myRating);
-     return (isNaN(ra)?999:ra)-(isNaN(rb)?999:rb);
-   }); break;
    case "added-desc":
    default: arr.sort((a,b)=>b.i-a.i); break;
  }
@@ -1493,9 +1465,6 @@ function formatTrDate(ms){
 
 let detailState={id:null,type:null};
 
-const MY_RATING_STAR_SVG='<svg viewBox="0 0 24 24" width="20" height="20" fill="#d9a441"><path d="M12 2.5l2.9 6.24 6.87.86-5.06 4.76 1.4 6.79L12 17.9l-6.11 3.25 1.4-6.79-5.06-4.76 6.87-.86z"/></svg>';
-const MY_RATING_STAR_SVG_SMALL='<svg viewBox="0 0 24 24" width="14" height="14" fill="#d9a441" style="vertical-align:-2px"><path d="M12 2.5l2.9 6.24 6.87.86-5.06 4.76 1.4 6.79L12 17.9l-6.11 3.25 1.4-6.79-5.06-4.76 6.87-.86z"/></svg>';
-
 function fillDetailMoney(movie,info){
  const lines=moneyLines(movie.BoxOffice,info);
  const budgetTxt=lines.budget.replace("💰 Bütçe: ","");
@@ -1505,52 +1474,6 @@ function fillDetailMoney(movie,info){
  document.getElementById("detailMoneyRow").style.display=(budgetTxt||revenueTxt)?"":"none";
  if(!budgetTxt) document.getElementById("detailBudgetBox").style.display="none";
  if(!revenueTxt) document.getElementById("detailRevenueBox").style.display="none";
-}
-
-function openPersonImdb(name){
- window.open(`https://www.imdb.com/find/?q=${encodeURIComponent(name)}&s=nm`, "_blank");
-}
-function openTmdbPerson(personId){
- window.open(`https://www.themoviedb.org/person/${personId}`, "_blank");
-}
-function openTmdbMovie(tmdbId){
- window.open(`https://www.themoviedb.org/movie/${tmdbId}`, "_blank");
-}
-
-function peopleLinksImdb(str){
- return (str||"").split(",").map(s=>s.trim()).filter(s=>s&&s!=="N/A")
-   .map(name=>`<a class="person-link" onclick="openPersonImdb('${escapeHtml(name).replace(/'/g,"\\'")}')">${escapeHtml(name)}</a>`)
-   .join(", ");
-}
-
-function renderCast(cast){
- const wrap=document.getElementById("detailCastWrap");
- const fallback=document.getElementById("detailActorsFallbackRow");
- if(cast && cast.length){
-   document.getElementById("detailCastScroll").innerHTML=cast.slice(0,15).map(p=>{
-     const img=p.profile_path?`https://image.tmdb.org/t/p/w185${p.profile_path}`:"https://via.placeholder.com/104x104?text=%20";
-     return `<div class="cast-card" onclick="openTmdbPerson(${p.id})">
-       <img src="${img}" loading="lazy">
-       <div class="cast-info">
-        <div class="cast-name">${escapeHtml(p.name)}</div>
-        <div class="cast-role">${escapeHtml(p.character||"")}</div>
-       </div>
-      </div>`;
-   }).join("");
-   wrap.style.display="";
-   fallback.style.display="none";
- }else{
-   wrap.style.display="none";
-   fallback.style.display="";
- }
-}
-
-async function fetchCast(tmdbId){
- if(!tmdbId) return null;
- try{
-   const d=await fetchJson(`https://api.themoviedb.org/3/movie/${tmdbId}/credits?api_key=${TMDB_KEY}&language=tr-TR`);
-   return (d.cast||[]).filter(p=>p.profile_path||p.character);
- }catch(e){ return null; }
 }
 
 function openDetail(id,type){
@@ -1565,17 +1488,9 @@ function openDetail(id,type){
  document.getElementById("detailYear").textContent=movie.Year||"";
  document.getElementById("detailRuntime").textContent=(movie.Runtime&&movie.Runtime!=="N/A")?movie.Runtime:"";
  document.getElementById("detailImdbLink").onclick=()=>{openImdb(id);return false;};
- const tmdbLinkEl=document.getElementById("detailTmdbLink");
- if(info.tmdbId){
-   tmdbLinkEl.style.display="";
-   tmdbLinkEl.onclick=()=>{openTmdbMovie(info.tmdbId);return false;};
- }else{
-   tmdbLinkEl.style.display="none";
- }
  document.getElementById("detailTitle").textContent=movie.Title||"";
- document.getElementById("detailTrTitle").textContent=(info.title&&info.title!==movie.Title)?info.title:"";
+ document.getElementById("detailTrTitle").textContent=info.title||"";
  document.getElementById("detailImdbRating").textContent=(movie.imdbRating&&movie.imdbRating!=="N/A")?`${movie.imdbRating} / 10`:"—";
- document.querySelector(".my-rating-icon").innerHTML=MY_RATING_STAR_SVG;
  document.getElementById("detailMyRating").value=(movie.myRating!=null&&movie.myRating!=="")?Number(movie.myRating).toFixed(1):"";
  document.getElementById("detailAddedDate").textContent=formatTrDate(movie._addedAt);
 
@@ -1583,37 +1498,27 @@ function openDetail(id,type){
 
  fillDetailMoney(movie,info);
 
- document.getElementById("detailDirector").innerHTML=(movie.Director&&movie.Director!=="N/A")?peopleLinksImdb(movie.Director):"—";
- document.getElementById("detailWriter").innerHTML=(movie.Writer&&movie.Writer!=="N/A")?peopleLinksImdb(movie.Writer):"—";
- document.getElementById("detailActors").innerHTML=(movie.Actors&&movie.Actors!=="N/A")?peopleLinksImdb(movie.Actors):"—";
- renderCast(null); // TMDB cast gelene kadar düz metin listesi göster
+ document.getElementById("detailDirector").textContent=(movie.Director&&movie.Director!=="N/A")?movie.Director:"—";
+ document.getElementById("detailWriter").textContent=(movie.Writer&&movie.Writer!=="N/A")?movie.Writer:"—";
+ document.getElementById("detailActors").textContent=(movie.Actors&&movie.Actors!=="N/A")?movie.Actors:"—";
 
  const genres=movieGenresTr(movie);
  document.getElementById("detailGenres").innerHTML=genres.length?genres.map(g=>`<span class="detail-genre-tag">${escapeHtml(g)}</span>`).join(""):"";
 
- document.getElementById("detailOverlay").classList.add("open");
- document.getElementById("detailModal").scrollTop=0;
+ document.getElementById("detailNotes").value=movie.notes||"";
 
- // TMDB bilgisi (Türkçe özet/backdrop/bütçe/tmdbId) önbellekte yoksa açılışta bir kere çek.
- const needsFetch=!turkishCache[id] || !turkishCache[id]._checked;
- const infoPromise=needsFetch?getTurkishInfo(id,movie.Title,movie.Year):Promise.resolve(info);
- infoPromise.then(freshInfo=>{
-   if(detailState.id!==id) return; // kullanıcı bu arada kapattı/başka filme geçti
-   if(freshInfo.backdrop) document.getElementById("detailBackdrop").style.backgroundImage=`url('${freshInfo.backdrop}')`;
-   if(freshInfo.overview) document.getElementById("detailPlot").textContent=freshInfo.overview;
-   if(freshInfo.title && freshInfo.title!==movie.Title) document.getElementById("detailTrTitle").textContent=freshInfo.title;
-   if(freshInfo.tmdbId){
-     tmdbLinkEl.style.display="";
-     tmdbLinkEl.onclick=()=>{openTmdbMovie(freshInfo.tmdbId);return false;};
-   }
-   fillDetailMoney(movie,freshInfo);
-   if(freshInfo.tmdbId){
-     fetchCast(freshInfo.tmdbId).then(cast=>{
-       if(detailState.id!==id) return;
-       renderCast(cast);
-     });
-   }
- }).catch(()=>{});
+ document.getElementById("detailOverlay").classList.add("open");
+
+ // TMDB bilgisi (Türkçe özet/backdrop/bütçe) önbellekte yoksa açılışta bir kere çek.
+ if(!turkishCache[id] || !turkishCache[id]._checked){
+   getTurkishInfo(id,movie.Title,movie.Year).then(freshInfo=>{
+     if(detailState.id!==id) return; // kullanıcı bu arada kapattı/başka filme geçti
+     if(freshInfo.backdrop) document.getElementById("detailBackdrop").style.backgroundImage=`url('${freshInfo.backdrop}')`;
+     if(freshInfo.overview) document.getElementById("detailPlot").textContent=freshInfo.overview;
+     if(freshInfo.title) document.getElementById("detailTrTitle").textContent=freshInfo.title;
+     fillDetailMoney(movie,freshInfo);
+   }).catch(()=>{});
+ }
 }
 
 function closeDetail(){
@@ -1625,6 +1530,7 @@ function saveDetailChanges(){
  const {id,type}=detailState;
  if(!id) return;
  const rawRating=document.getElementById("detailMyRating").value.trim();
+ const notes=document.getElementById("detailNotes").value;
 
  let myRating=null;
  if(rawRating){
@@ -1636,44 +1542,18 @@ function saveDetailChanges(){
  const movie=(allData[type]||[]).find(m=>m.imdbID===id);
  if(movie){
    movie.myRating=myRating;
+   movie.notes=notes;
  }
  render();
  saveToCache();
  closeDetail();
 
- db.collection(type).doc(id).update({myRating}).catch(e=>console.error(e));
+ db.collection(type).doc(id).update({myRating,notes}).catch(e=>console.error(e));
 }
 
 document.addEventListener("keydown",e=>{
  if(e.key==="Escape" && document.getElementById("detailOverlay").classList.contains("open")) closeDetail();
 });
-
-// iOS benzeri: detay ekranında sağa kaydırarak kapatma
-(function(){
- let startX=null,startY=null,dragging=false;
- const modal=document.getElementById("detailModal");
- if(!modal) return;
- modal.addEventListener("touchstart",e=>{
-   if(e.touches.length!==1) return;
-   startX=e.touches[0].clientX; startY=e.touches[0].clientY; dragging=true;
- },{passive:true});
- modal.addEventListener("touchmove",e=>{
-   if(!dragging||startX===null) return;
-   const dx=e.touches[0].clientX-startX, dy=e.touches[0].clientY-startY;
-   if(dx>10 && Math.abs(dy)<Math.abs(dx)){
-     modal.style.transform=`translateX(${Math.min(dx,200)}px)`;
-     modal.style.opacity=String(Math.max(1-dx/400,0.4));
-   }
- },{passive:true});
- modal.addEventListener("touchend",e=>{
-   if(!dragging||startX===null) return;
-   const dx=(e.changedTouches[0].clientX-startX);
-   const dy=(e.changedTouches[0].clientY-startY);
-   modal.style.transform=""; modal.style.opacity="";
-   if(dx>90 && Math.abs(dy)<80) closeDetail();
-   dragging=false; startX=null; startY=null;
- },{passive:true});
-})();
 
 function openImdb(id){
  window.open(`https://www.imdb.com/title/${id}/`, "_blank");
