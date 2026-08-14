@@ -1524,12 +1524,13 @@ const castCache={};              // tmdbMovieId -> {cast, director, writers}
 const personExternalIdCache={};  // tmdb kişi id -> imdb kişi id ("nm...") ya da null
 
 function fillDetailMoney(movie,info){
- const lines=moneyLines(movie.BoxOffice,info);
- if(lines.budget){document.getElementById("detailBudget").textContent=lines.budget.replace("💰 Bütçe: ","");document.getElementById("detailBudgetBox").style.display="";}
+ const budget=formatMoney(info&&info.budget);
+ const revenue=formatMoney(info&&info.revenue)||formatMoney(parseOmdbMoney(movie.BoxOffice));
+ if(budget){document.getElementById("detailBudget").textContent=budget;document.getElementById("detailBudgetBox").style.display="";}
  else document.getElementById("detailBudgetBox").style.display="none";
- if(lines.revenue){document.getElementById("detailRevenue").textContent=lines.revenue.replace("💵 Hasılat: ","");document.getElementById("detailRevenueBox").style.display="";}
+ if(revenue){document.getElementById("detailRevenue").textContent=revenue;document.getElementById("detailRevenueBox").style.display="";}
  else document.getElementById("detailRevenueBox").style.display="none";
- document.getElementById("detailMoneyRow").style.display=(lines.budget||lines.revenue)?"":"none";
+ document.getElementById("detailMoneyRow").style.display=(budget||revenue)?"":"none";
 }
 
 async function getPersonImdbId(personId){
@@ -1542,9 +1543,17 @@ async function getPersonImdbId(personId){
 }
 
 async function openPersonPage(personId){
+ // ÖNEMLİ: window.open() bir "await"ten SONRA çağrılırsa Safari (özellikle
+ // ana ekrana eklenmiş PWA'da) bunu artık kullanıcı etkileşimiyle senkron
+ // sayılan bir açılış olarak görmüyor - sekmeyi güvenilir açamıyor, bazen
+ // uygulamanın kendi sayfasını tekrar tekrar yenilemeye çalışıyormuş gibi
+ // takılıyor. Çözüm: sekmeyi HEMEN (senkron) boş olarak aç, adres bilgisini
+ // async sorgu bitince yerleştir.
+ const win=window.open("about:blank","_blank");
  const imdbId=await getPersonImdbId(personId);
- if(imdbId) window.open(`https://www.imdb.com/name/${imdbId}/`,"_blank");
- else window.open(`https://www.themoviedb.org/person/${personId}`,"_blank");
+ const url=imdbId?`https://www.imdb.com/name/${imdbId}/`:`https://www.themoviedb.org/person/${personId}`;
+ if(win) win.location.href=url;
+ else window.open(url,"_blank");
 }
 
 // Filmin oyuncu kadrosunu/yönetmen-senarist listesini TMDB'den çeker
