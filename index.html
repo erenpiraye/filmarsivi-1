@@ -142,7 +142,7 @@ html.single-focus .movie .tr-title{font-size:16px}
 .detail-tmdb-link:hover{background:rgba(1,180,228,0.22)}
 .detail-trailer-link{border-color:#e85d4f;color:#ffb3a8;background:rgba(232,93,79,0.12)}
 .detail-trailer-link:hover{background:rgba(232,93,79,0.22)}
-.detail-title{margin:4px 0 2px 0;font-size:26px;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,0.6)}
+.detail-title{margin:4px 0 2px 0;font-size:26px;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,0.6);text-align:left}
 .detail-tr-title{color:#ccc;font-size:17px;margin-top:2px;min-height:21px;line-height:1.3}
 .detail-body{position:relative;z-index:1;padding:0 24px 24px 24px}
 .detail-ratings-row{display:flex;gap:14px;margin-bottom:16px}
@@ -177,7 +177,6 @@ html.single-focus .movie .tr-title{font-size:16px}
 .person-photo-card:hover{border-color:#d9a441}
 .person-photo-wrap{position:relative;width:140px;height:180px;overflow:hidden;background:#2a2a2a}
 .person-photo{width:100%;height:100%;object-fit:cover;display:block}
-.person-tmdb-badge{position:absolute;bottom:6px;right:6px;width:22px;height:22px;border-radius:50%;background:#01b4e4;color:#0b1e24;font-size:10px;font-weight:bold;display:flex;align-items:center;justify-content:center;cursor:pointer;border:2px solid #181818}
 .person-photo-info{padding:8px 10px}
 .person-photo-name{font-size:13px;color:#eee;font-weight:bold;line-height:1.25}
 .person-photo-character{font-size:12px;color:#999;margin-top:2px;line-height:1.2}
@@ -1429,9 +1428,9 @@ function refreshCardsInPlace(){
    const budgetEl=el.querySelector(".money-budget");
    if(budgetEl){
      const lines=moneyLines(budgetEl.dataset.boxoffice,info);
-     if(lines.budget) budgetEl.textContent=lines.budget;
+     if(lines.budget) budgetEl.innerHTML=lines.budget;
      const revEl=el.querySelector(".money-revenue");
-     if(revEl && lines.revenue) revEl.textContent=lines.revenue;
+     if(revEl && lines.revenue) revEl.innerHTML=lines.revenue;
    }
  });
  populateGenreSelect("watched");
@@ -1578,7 +1577,6 @@ function renderCastRow(cast){
    return `<div class="person-photo-card" data-person-id="${p.id}">
      <div class="person-photo-wrap">
        <img class="person-photo" src="${photo}" loading="lazy">
-       <span class="person-tmdb-badge" data-tmdb-person="${p.id}" title="TMDB sayfası">T</span>
      </div>
      <div class="person-photo-info">
        <div class="person-photo-name">${escapeHtml(p.name)}</div>
@@ -1589,11 +1587,6 @@ function renderCastRow(cast){
 }
 
 document.querySelector(".detail-body").addEventListener("click",e=>{
- const tmdbBadge=e.target.closest(".person-tmdb-badge");
- if(tmdbBadge){
-   window.open(`https://www.themoviedb.org/person/${tmdbBadge.dataset.tmdbPerson}`,"_blank");
-   return;
- }
  const personCard=e.target.closest(".person-photo-card");
  if(personCard){ openPersonPage(personCard.dataset.personId); return; }
  const personLink=e.target.closest(".detail-person-link");
