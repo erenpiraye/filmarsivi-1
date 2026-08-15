@@ -33,8 +33,15 @@ body{font-family:Arial;background:#111;color:#eee;margin:0}
 .list-wrap{padding:0 20px 20px 20px}
 .column:first-child{border-right:2px solid #444}
 h2{text-align:center;margin-bottom:10px;font-size:20px}
-.top-btn,.view-btn{cursor:pointer;display:inline-block;margin:0 3px;user-select:none}
-.top-btn:hover,.view-btn:hover{opacity:0.7}
+.list-header{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:8px}
+.list-header-title{color:#e8c877;font-weight:700;cursor:pointer}
+.list-header-stats{color:#999;font-size:14px;font-weight:normal;margin-left:4px}
+.header-icons{display:inline-flex;align-items:center;gap:4px;margin-right:6px}
+.icon-btn{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:8px;background:rgba(217,164,65,0.08);border:1px solid rgba(217,164,65,0.25);color:#bbb;cursor:pointer;user-select:none;transition:background .15s ease,color .15s ease,border-color .15s ease}
+.icon-btn:hover,.icon-btn:active{background:rgba(217,164,65,0.22);color:#e8c877;border-color:rgba(217,164,65,0.5)}
+.icon-btn svg{width:16px;height:16px;pointer-events:none}
+.icon-btn.spinning svg{animation:icon-spin 0.8s linear infinite}
+@keyframes icon-spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
 .search{width:95%;padding:10px;margin:0 auto 8px auto;display:block;background:#333;color:#eee;border:1px solid #555;border-radius:4px;font-size:16px}
 .sort-select{padding:6px 8px;font-size:13px;background:#222;color:#ccc;border:1px solid #444;border-radius:4px}
 .movie{width:95%;display:flex;align-items:center;margin:0 auto 15px auto;background:#222;padding:12px 16px;border-radius:8px;position:relative}
@@ -318,7 +325,13 @@ html.single-focus .movie .tr-title{font-size:16px}
 
 <div class="column" data-type="watched">
 <div class="sticky-header">
-<h2><span class="top-btn refresh-btn" onclick="reload()" title="Yenile">🔄</span><span class="top-btn" onclick="scrollToTop('watched')" title="Başa dön">🎬</span> <span class="top-btn list-title" onclick="toggleFocus()" title="İzlenecek'e geç">İzlenen</span> • <span id="watchedCount">0</span> • <span id="watchedTime">0 dk</span></h2>
+<h2 class="list-header">
+ <span class="header-icons">
+  <span class="icon-btn refresh-btn" onclick="reload()" title="Yenile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg></span>
+  <span class="icon-btn" onclick="scrollToTop('watched')" title="Başa dön"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg></span>
+ </span>
+ <span class="list-header-title" onclick="toggleFocus()" title="İzlenecek'e geç">İzlenen</span><span class="list-header-stats">• <span id="watchedCount">0</span> • <span id="watchedTime">0 dk</span></span>
+</h2>
 <input id="searchWatched" class="search" placeholder="Film ara" oninput="searchMain(this,'watched')">
 <div class="controls">
  <select id="sortWatched" class="sort-select" onchange="onSortChange('watched')">
@@ -351,7 +364,13 @@ html.single-focus .movie .tr-title{font-size:16px}
 
 <div class="column" data-type="watchlist">
 <div class="sticky-header">
-<h2><span class="top-btn refresh-btn" onclick="reload()" title="Yenile">🔄</span><span class="top-btn" onclick="scrollToTop('watchlist')" title="Başa dön">🎬</span> <span class="top-btn list-title" onclick="toggleFocus()" title="İzlenen'e geç">İzlenecek</span> • <span id="watchCount">0</span> • <span id="watchTime">0 dk</span></h2>
+<h2 class="list-header">
+ <span class="header-icons">
+  <span class="icon-btn refresh-btn" onclick="reload()" title="Yenile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg></span>
+  <span class="icon-btn" onclick="scrollToTop('watchlist')" title="Başa dön"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg></span>
+ </span>
+ <span class="list-header-title" onclick="toggleFocus()" title="İzlenen'e geç">İzlenecek</span><span class="list-header-stats">• <span id="watchCount">0</span> • <span id="watchTime">0 dk</span></span>
+</h2>
 <input id="searchWatch" class="search" placeholder="Film ara" oninput="searchMain(this,'watchlist')">
 <div class="controls">
  <select id="sortWatch" class="sort-select" onchange="onSortChange('watchlist')">
@@ -400,7 +419,15 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
 const OMDB_API_KEY = "3fe09fcd";
-const TMDB_KEY="a5857b5312ef2f6ba36d4e5314c2b231";
+// Mobil sürüm config.json okuyamıyor (bağımsız statik sayfa), o yüzden PC ile
+// aynı iki anahtar burada sabit tutuluyor. TEK anahtar kullanmak asıl sorundu:
+// çok sayıda film olan hesaplarda (ön-yükleme + oyuncu/kişi istekleri) bu tek
+// anahtar TMDB'nin hız sınırına (429) çok kolay takılıyor, o andan sonra TMDB
+// bilgisi/oyuncular BAZI filmlerde hiç gelmiyordu. Artık PC'deki gibi anahtar
+// değiştirerek devam ediyor.
+let TMDB_KEYS=["a5857b5312ef2f6ba36d4e5314c2b231","740c0c0aacc8c5f292083b11e9dc3de2"];
+let tmdbKeyIndex=0;
+let TMDB_KEY=TMDB_KEYS[tmdbKeyIndex];
 const MY_STAR_SVG_SMALL='<svg viewBox="0 0 24 24" width="14" height="14" style="vertical-align:-2px"><path d="M12 2.5l2.9 6.24 6.87.86-5.06 4.76 1.4 6.79L12 17.9l-6.11 3.25 1.4-6.79-5.06-4.76 6.87-.86z" fill="none" stroke="#4fa8e8" stroke-width="1.6" stroke-linejoin="round"/></svg>';
 const MY_STAR_SVG_BIG='<svg viewBox="0 0 24 24" width="20" height="20"><path d="M12 2.5l2.9 6.24 6.87.86-5.06 4.76 1.4 6.79L12 17.9l-6.11 3.25 1.4-6.79-5.06-4.76 6.87-.86z" fill="none" stroke="#4fa8e8" stroke-width="1.6" stroke-linejoin="round"/></svg>';
 let turkishCache={};   // imdbID -> {title, poster, genres:[...]}
@@ -488,14 +515,40 @@ async function loadGenreMap(){
  genreMapLoaded=true;
 }
 
+function isTmdbKeyError(status,data){
+ if(status===401) return true;
+ if(status===429) return true; // TMDB hız sınırı - bu anahtarla devam etmenin anlamı yok, sıradakine geç
+ if(data && data.success===false && (data.status_code===7 || /invalid api key/i.test(data.status_message||""))) return true;
+ return false;
+}
+
 async function fetchJson(url,timeoutMs=12000){
- const controller=new AbortController();
- const t=setTimeout(()=>controller.abort(),timeoutMs);
- try{
-   const r=await fetch(url,{signal:controller.signal});
-   return await r.json();
- }finally{
-   clearTimeout(t);
+ for(let attempt=0; attempt<TMDB_KEYS.length; attempt++){
+   const controller=new AbortController();
+   const t=setTimeout(()=>controller.abort(),timeoutMs);
+   try{
+     const r=await fetch(url,{signal:controller.signal});
+     const data=await r.json();
+     if(isTmdbKeyError(r.status,data) && attempt<TMDB_KEYS.length-1){
+       const oldKey=TMDB_KEY;
+       tmdbKeyIndex=(tmdbKeyIndex+1)%TMDB_KEYS.length;
+       TMDB_KEY=TMDB_KEYS[tmdbKeyIndex];
+       url=url.split(oldKey).join(TMDB_KEY);
+       continue;
+     }
+     return data;
+   }catch(e){
+     if(attempt<TMDB_KEYS.length-1){
+       const oldKey=TMDB_KEY;
+       tmdbKeyIndex=(tmdbKeyIndex+1)%TMDB_KEYS.length;
+       TMDB_KEY=TMDB_KEYS[tmdbKeyIndex];
+       url=url.split(oldKey).join(TMDB_KEY);
+       continue;
+     }
+     throw e;
+   }finally{
+     clearTimeout(t);
+   }
  }
 }
 
@@ -1602,7 +1655,7 @@ document.querySelector(".detail-body").addEventListener("click",e=>{
  if(personLink){ openPersonPage(personLink.dataset.personId); return; }
 });
 
-function openDetail(id,type){
+function openDetail(id,type,fromHistory){
  const movie=(allData[type]||[]).find(m=>m.imdbID===id);
  if(!movie) return;
  detailState={id,type};
@@ -1639,6 +1692,15 @@ function openDetail(id,type){
  document.getElementById("detailModalBox").style.transform="";
  document.getElementById("detailOverlay").classList.add("open");
 
+ // Tarayıcı geçmişine bu kartın açık olduğunu kaydet - böylece kullanıcı
+ // oyuncu/IMDb/TMDB sayfasına gidip GERİ döndüğünde (telefonun geri tuşu/
+ // kaydırması ile) ana sayfaya değil, tam olarak bu açık karta dönsün.
+ // (fromHistory=true ise zaten bir popstate'e cevaben açıyoruzdur, tekrar
+ // pushState YAPMAYIZ - yoksa geçmiş sonsuz büyür.)
+ if(!fromHistory){
+   history.pushState({filmDetay:{id,type}}, "");
+ }
+
  // TMDB bilgisi (Türkçe özet/backdrop/bütçe) önbellekte yoksa açılışta bir kere çek.
  const infoPromise=(!turkishCache[id] || !turkishCache[id]._checked)
    ? getTurkishInfo(id,movie.Title,movie.Year)
@@ -1663,12 +1725,43 @@ function openDetail(id,type){
  }).catch(()=>{});
 }
 
+// Kullanıcı Kapat/X/kaydırma ile kapatıyor: SADECE bir geri gidiyoruz,
+// gerçek kapanma (arayüzü gizleme) popstate olayında, syncOverlaysToHistory
+// içinde tek bir yerden yapılıyor - böylece "X'e basarak kapatma" ile
+// "telefonun geri tuşuyla kapatma" arasında hiçbir fark kalmıyor, ikisi de
+// aynı kod yolundan geçiyor.
 function closeDetail(){
+ if(history.state && history.state.filmDetay && history.state.filmDetay.id===detailState.id){
+   history.back();
+ }else{
+   closeDetailUI();
+ }
+}
+
+function closeDetailUI(){
  document.getElementById("detailOverlay").classList.remove("open");
  detailState={id:null,type:null};
  const modal=document.getElementById("detailModalBox");
  if(modal){ modal.style.transition="none"; modal.style.transform=""; modal.style.opacity=""; }
 }
+
+// Tarayıcı geçmişi ile açık kart arayüzünü senkronize eder. Hem telefonun
+// geri tuşuna/kaydırmasına basıldığında hem de sayfa IMDb/TMDB ziyaretinden
+// SONRA sıfırdan yeniden yüklendiğinde (bfcache kaçırıldığında) çalışır.
+function syncOverlaysToHistory(){
+ const wanted=history.state && history.state.filmDetay;
+ if(wanted){
+   if(detailState.id!==wanted.id){
+     // Film verisi henüz gelmediyse (ör. Firestore/localStorage yüklenmeden
+     // önce geri tuşuna basıldıysa) veri gelince tekrar denenecek - bkz. init.
+     const exists=(allData[wanted.type]||[]).some(m=>m.imdbID===wanted.id);
+     if(exists) openDetail(wanted.id, wanted.type, true);
+   }
+ }else if(document.getElementById("detailOverlay").classList.contains("open")){
+   closeDetailUI();
+ }
+}
+window.addEventListener("popstate", syncOverlaysToHistory);
 
 function saveDetailChanges(){
  const {id,type}=detailState;
@@ -1865,10 +1958,14 @@ function toggleView(type){
 // yenileme tamamen kaldırıldı; buluta sadece 🔄'ye basınca dokunuluyor.
 // (Hiç önbellek yoksa - ilk açılış - bir kereliğine buluttan çekiyoruz.)
 if(!loadFromCache()){
- reload();
+ reload().then(()=>{ syncOverlaysToHistory(); });
 }else{
  const statusEl=document.getElementById("syncStatus");
  if(statusEl) statusEl.textContent="";
+ // Sayfa, açık bir film kartıyla history state'i varken (ör. IMDb/TMDB
+ // ziyaretinden dönüşte) sıfırdan yeniden yüklenmiş olabilir - veri artık
+ // hazır olduğuna göre ilgili kartı hemen geri aç.
+ syncOverlaysToHistory();
 }
 </script>
 
