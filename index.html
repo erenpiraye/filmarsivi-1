@@ -34,11 +34,19 @@ body{font-family:Arial;background:#111;color:#eee;margin:0}
 .column:first-child{border-right:2px solid #444}
 h2{text-align:center;margin-bottom:10px;font-size:20px}
 .list-header{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:8px}
-.list-header-title{color:#e8c877;font-weight:700;cursor:pointer}
-.list-header-stats{color:#999;font-size:14px;font-weight:normal;margin-left:4px}
-.header-icons{display:inline-flex;align-items:center;gap:4px;margin-right:6px}
-.icon-btn{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:8px;background:rgba(217,164,65,0.08);border:1px solid rgba(217,164,65,0.25);color:#bbb;cursor:pointer;user-select:none;transition:background .15s ease,color .15s ease,border-color .15s ease}
-.icon-btn:hover,.icon-btn:active{background:rgba(217,164,65,0.22);color:#e8c877;border-color:rgba(217,164,65,0.5)}
+.stat-card{display:flex;align-items:center;gap:9px;padding:6px 14px 6px 8px;border-radius:10px;background:var(--acc-bg);border:1px solid var(--acc-border);cursor:pointer}
+.stat-icon{width:28px;height:28px;border-radius:8px;background:var(--acc-solid);display:flex;align-items:center;justify-content:center;color:#161616;flex-shrink:0}
+.stat-icon svg{width:16px;height:16px}
+.stat-text{display:flex;flex-direction:column;line-height:1.15;text-align:left}
+.stat-label{font-size:12px;font-weight:700;color:var(--acc-text);letter-spacing:.2px}
+.stat-count{font-size:17px;font-weight:800;color:#fff}
+.time-pill{display:flex;align-items:center;gap:5px;padding:6px 11px;border-radius:9px;background:#1b1b1b;border:1px solid #333;color:#9d9d9d;font-size:12.5px;font-weight:600}
+.time-pill svg{width:13px;height:13px;flex-shrink:0}
+.list-header--watched{--acc-bg:rgba(217,164,65,0.14);--acc-border:rgba(217,164,65,0.4);--acc-solid:#e8c877;--acc-text:#f0d9a3}
+.list-header--watchlist{--acc-bg:rgba(79,168,232,0.14);--acc-border:rgba(79,168,232,0.4);--acc-solid:#7ec1f2;--acc-text:#bcdff8}
+.header-icons{display:inline-flex;align-items:center;gap:4px}
+.icon-btn{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:8px;background:#1b1b1b;border:1px solid #333;color:#999;cursor:pointer;user-select:none;transition:background .15s ease,color .15s ease,border-color .15s ease}
+.icon-btn:hover,.icon-btn:active{background:#262626;color:#e8c877;border-color:#4a4a4a}
 .icon-btn svg{width:16px;height:16px;pointer-events:none}
 .icon-btn.spinning svg{animation:icon-spin 0.8s linear infinite}
 @keyframes icon-spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
@@ -325,13 +333,18 @@ html.single-focus .movie .tr-title{font-size:16px}
 
 <div class="column" data-type="watched">
 <div class="sticky-header">
-<h2 class="list-header">
+<div class="list-header list-header--watched">
+ <div class="stat-card" onclick="toggleFocus()" title="İzlenecek'e geç">
+  <span class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></span>
+  <span class="stat-text"><span class="stat-label">İZLENEN</span><span class="stat-count" id="watchedCount">0</span></span>
+ </div>
+ <div class="time-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span id="watchedTime">0 dk</span></div>
  <span class="header-icons">
   <span class="icon-btn refresh-btn" onclick="reload()" title="Yenile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg></span>
   <span class="icon-btn" onclick="scrollToTop('watched')" title="Başa dön"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg></span>
+  <span class="icon-btn" onclick="toggleView('watched')" title="Görünümü değiştir"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span>
  </span>
- <span class="list-header-title" onclick="toggleFocus()" title="İzlenecek'e geç">İzlenen</span><span class="list-header-stats">• <span id="watchedCount">0</span> • <span id="watchedTime">0 dk</span></span>
-</h2>
+</div>
 <input id="searchWatched" class="search" placeholder="Film ara" oninput="searchMain(this,'watched')">
 <div class="controls">
  <select id="sortWatched" class="sort-select" onchange="onSortChange('watched')">
@@ -364,13 +377,18 @@ html.single-focus .movie .tr-title{font-size:16px}
 
 <div class="column" data-type="watchlist">
 <div class="sticky-header">
-<h2 class="list-header">
+<div class="list-header list-header--watchlist">
+ <div class="stat-card" onclick="toggleFocus()" title="İzlenen'e geç">
+  <span class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"/></svg></span>
+  <span class="stat-text"><span class="stat-label">İZLENECEK</span><span class="stat-count" id="watchCount">0</span></span>
+ </div>
+ <div class="time-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span id="watchTime">0 dk</span></div>
  <span class="header-icons">
   <span class="icon-btn refresh-btn" onclick="reload()" title="Yenile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg></span>
   <span class="icon-btn" onclick="scrollToTop('watchlist')" title="Başa dön"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg></span>
+  <span class="icon-btn" onclick="toggleView('watchlist')" title="Görünümü değiştir"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span>
  </span>
- <span class="list-header-title" onclick="toggleFocus()" title="İzlenen'e geç">İzlenecek</span><span class="list-header-stats">• <span id="watchCount">0</span> • <span id="watchTime">0 dk</span></span>
-</h2>
+</div>
 <input id="searchWatch" class="search" placeholder="Film ara" oninput="searchMain(this,'watchlist')">
 <div class="controls">
  <select id="sortWatch" class="sort-select" onchange="onSortChange('watchlist')">
@@ -582,10 +600,12 @@ function moneyLines(omdbBoxOffice,info){
 
 async function getTurkishInfo(imdbID,title,year){
  const cached=turkishCache[imdbID];
- // Not: eski (tmdbId alanı henüz yokken oluşturulmuş) önbellek kayıtları
- // _checked=true olsa bile burada YENİDEN çekiliyor; aksi halde o filmler
- // için TMDB butonu/oyuncu kadrosu asla gelmiyor.
- if(cached && cached._checked && ("tmdbId" in cached)) return cached;
+ // _v2: bu alanı SADECE tmdbId/oyuncu desteği eklenen yeni kod dolduruyor.
+ // Eski (bu özellikten önceki) önbellek kayıtlarında _checked=true olsa
+ // bile _v2 yok - bu yüzden TMDB butonu/oyuncular kalıcı olarak hiç
+ // gelmiyordu. _v2 kontrolü, eski kayıtlar için bir kereliğine sessiz bir
+ // yeniden-çekmeye (migrasyon) zorluyor; sonrasında normal şekilde önbellekten okunur.
+ if(cached && cached._checked && cached._v2) return cached;
  const info={title:null,poster:null,genres:[],budget:null,revenue:null,overview:null,backdrop:null,tmdbId:null};
  if(cached) Object.assign(info,cached); // eski önbellekte olan (başlık/poster/tür) alanları koru, eksikleri tamamlayacağız
  try{
@@ -626,6 +646,7 @@ async function getTurkishInfo(imdbID,title,year){
        }
      }catch(e){}
    }
+   info._v2=true; // bu deneme (find/search) ağ hatası almadan tamamlandı - eski/yeni ayrımı için işaretle
  }catch(e){}
  // sadece gerçekten bir sonuç bulduysak kalıcı olarak önbelleğe al (_checked=true) -
  // ki bir daha bu film için hiç istek atılmasın. Toptan başarısızlıkta (ağ hatası vb.)
@@ -641,7 +662,7 @@ async function preloadInfo(){
  await loadGenreMap();
  const all=[...allData.watched,...allData.watchlist].filter(m=>{
    const c=turkishCache[m.imdbID];
-   return !c || !c._checked;
+   return !c || !c._checked || !c._v2;
  });
  const batchSize=5;
  for(let i=0;i<all.length;i+=batchSize){
@@ -1609,7 +1630,7 @@ async function openPersonPage(personId){
  const imdbId=await getPersonImdbId(personId);
  const url=imdbId?`https://www.imdb.com/name/${imdbId}/`:`https://www.themoviedb.org/person/${personId}`;
  if(win) win.location.href=url;
- else openExternal(url);
+ else window.open(url,"_blank");
 }
 
 // Filmin oyuncu kadrosunu/yönetmen-senarist listesini TMDB'den çeker
@@ -1672,7 +1693,7 @@ function openDetail(id,type,fromHistory){
  document.getElementById("detailImdbLink").onclick=()=>{openImdb(id);return false;};
  const tmdbLinkEl=document.getElementById("detailTmdbLink");
  tmdbLinkEl.style.display=info.tmdbId?"":"none";
- tmdbLinkEl.onclick=()=>{if(info.tmdbId) openExternal(`https://www.themoviedb.org/movie/${info.tmdbId}`);return false;};
+ tmdbLinkEl.onclick=()=>{if(info.tmdbId) window.open(`https://www.themoviedb.org/movie/${info.tmdbId}`,"_blank");return false;};
  document.getElementById("detailTitle").textContent=movie.Title||"";
  document.getElementById("detailTrTitle").textContent=(info.title&&info.title!==movie.Title)?info.title:"";
  document.getElementById("detailMyRatingIcon").innerHTML=MY_STAR_SVG_BIG;
@@ -1716,7 +1737,7 @@ function openDetail(id,type,fromHistory){
    if(freshInfo.title && freshInfo.title!==movie.Title) document.getElementById("detailTrTitle").textContent=freshInfo.title;
    fillDetailMoney(movie,freshInfo);
    tmdbLinkEl.style.display=freshInfo.tmdbId?"":"none";
-   tmdbLinkEl.onclick=()=>{if(freshInfo.tmdbId) openExternal(`https://www.themoviedb.org/movie/${freshInfo.tmdbId}`);return false;};
+   tmdbLinkEl.onclick=()=>{if(freshInfo.tmdbId) window.open(`https://www.themoviedb.org/movie/${freshInfo.tmdbId}`,"_blank");return false;};
 
    if(!freshInfo.tmdbId) return;
    loadCastForDetail(freshInfo.tmdbId).then(castInfo=>{
@@ -1841,28 +1862,21 @@ document.addEventListener("keydown",e=>{
  },{passive:true});
 })();
 
-function openExternal(url){
- // iOS'ta ana ekrana eklenmiş (standalone) PWA içinden window.open() bazen
- // kendi mini tarayıcısında takılı kalıyor (sürekli dönen yükleme animasyonu,
- // sayfa hiç gelmiyor). Gerçek bir <a target="_blank"> tıklaması, Safari'nin
- // bağlantıyı asıl Safari'ye devretmesini çok daha güvenilir tetikliyor.
- const a=document.createElement("a");
- a.href=url; a.target="_blank"; a.rel="noopener noreferrer";
- document.body.appendChild(a);
- a.click();
- document.body.removeChild(a);
-}
-
 function openImdb(id){
- openExternal(`https://www.imdb.com/title/${id}/`);
+ window.open(`https://www.imdb.com/title/${id}/`, "_blank");
 }
 
 function openTrailer(id){
- // Web/mobil sürümde pywebview yok; yeni sekmede IMDb'nin video galerisini açıyoruz.
- // Farklı origin (imdb.com) olduğu için tam ekranı programatik zorlamak
- // tarayıcı güvenliği yüzünden mümkün değil - o yüzden artık denemiyoruz,
- // sadece güvenilir şekilde açıyoruz.
- openExternal(`https://www.imdb.com/title/${id}/videogallery/`);
+ // Web/mobil sürümde pywebview yok; yeni sekmede IMDb'nin video galerisini açıp
+ // tarayıcı destekliyorsa tam ekran istiyoruz (kısıtlı: farklı origin popup'ı
+ // programatik olarak tam ekrana zorlamak tarayıcı güvenliği yüzünden her zaman
+ // mümkün olmayabilir).
+ const win=window.open(`https://www.imdb.com/title/${id}/videogallery/`, "_blank");
+ try{
+   if(win && win.document && win.document.documentElement && win.document.documentElement.requestFullscreen){
+     win.document.documentElement.requestFullscreen().catch(()=>{});
+   }
+ }catch(e){}
 }
 
 /* ===================== VERİ TAMAMLAMA (eksik tür bilgisi) ===================== */
