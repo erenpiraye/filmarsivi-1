@@ -582,7 +582,10 @@ function moneyLines(omdbBoxOffice,info){
 
 async function getTurkishInfo(imdbID,title,year){
  const cached=turkishCache[imdbID];
- if(cached && cached._checked) return cached;
+ // Not: eski (tmdbId alanı henüz yokken oluşturulmuş) önbellek kayıtları
+ // _checked=true olsa bile burada YENİDEN çekiliyor; aksi halde o filmler
+ // için TMDB butonu/oyuncu kadrosu asla gelmiyor.
+ if(cached && cached._checked && ("tmdbId" in cached)) return cached;
  const info={title:null,poster:null,genres:[],budget:null,revenue:null,overview:null,backdrop:null,tmdbId:null};
  if(cached) Object.assign(info,cached); // eski önbellekte olan (başlık/poster/tür) alanları koru, eksikleri tamamlayacağız
  try{
@@ -1606,7 +1609,7 @@ async function openPersonPage(personId){
  const imdbId=await getPersonImdbId(personId);
  const url=imdbId?`https://www.imdb.com/name/${imdbId}/`:`https://www.themoviedb.org/person/${personId}`;
  if(win) win.location.href=url;
- else window.open(url,"_blank");
+ else openExternal(url);
 }
 
 // Filmin oyuncu kadrosunu/yönetmen-senarist listesini TMDB'den çeker
@@ -1669,7 +1672,7 @@ function openDetail(id,type,fromHistory){
  document.getElementById("detailImdbLink").onclick=()=>{openImdb(id);return false;};
  const tmdbLinkEl=document.getElementById("detailTmdbLink");
  tmdbLinkEl.style.display=info.tmdbId?"":"none";
- tmdbLinkEl.onclick=()=>{if(info.tmdbId) window.open(`https://www.themoviedb.org/movie/${info.tmdbId}`,"_blank");return false;};
+ tmdbLinkEl.onclick=()=>{if(info.tmdbId) openExternal(`https://www.themoviedb.org/movie/${info.tmdbId}`);return false;};
  document.getElementById("detailTitle").textContent=movie.Title||"";
  document.getElementById("detailTrTitle").textContent=(info.title&&info.title!==movie.Title)?info.title:"";
  document.getElementById("detailMyRatingIcon").innerHTML=MY_STAR_SVG_BIG;
@@ -1713,7 +1716,7 @@ function openDetail(id,type,fromHistory){
    if(freshInfo.title && freshInfo.title!==movie.Title) document.getElementById("detailTrTitle").textContent=freshInfo.title;
    fillDetailMoney(movie,freshInfo);
    tmdbLinkEl.style.display=freshInfo.tmdbId?"":"none";
-   tmdbLinkEl.onclick=()=>{if(freshInfo.tmdbId) window.open(`https://www.themoviedb.org/movie/${freshInfo.tmdbId}`,"_blank");return false;};
+   tmdbLinkEl.onclick=()=>{if(freshInfo.tmdbId) openExternal(`https://www.themoviedb.org/movie/${freshInfo.tmdbId}`);return false;};
 
    if(!freshInfo.tmdbId) return;
    loadCastForDetail(freshInfo.tmdbId).then(castInfo=>{
@@ -1838,21 +1841,28 @@ document.addEventListener("keydown",e=>{
  },{passive:true});
 })();
 
+function openExternal(url){
+ // iOS'ta ana ekrana eklenmiş (standalone) PWA içinden window.open() bazen
+ // kendi mini tarayıcısında takılı kalıyor (sürekli dönen yükleme animasyonu,
+ // sayfa hiç gelmiyor). Gerçek bir <a target="_blank"> tıklaması, Safari'nin
+ // bağlantıyı asıl Safari'ye devretmesini çok daha güvenilir tetikliyor.
+ const a=document.createElement("a");
+ a.href=url; a.target="_blank"; a.rel="noopener noreferrer";
+ document.body.appendChild(a);
+ a.click();
+ document.body.removeChild(a);
+}
+
 function openImdb(id){
- window.open(`https://www.imdb.com/title/${id}/`, "_blank");
+ openExternal(`https://www.imdb.com/title/${id}/`);
 }
 
 function openTrailer(id){
- // Web/mobil sürümde pywebview yok; yeni sekmede IMDb'nin video galerisini açıp
- // tarayıcı destekliyorsa tam ekran istiyoruz (kısıtlı: farklı origin popup'ı
- // programatik olarak tam ekrana zorlamak tarayıcı güvenliği yüzünden her zaman
- // mümkün olmayabilir).
- const win=window.open(`https://www.imdb.com/title/${id}/videogallery/`, "_blank");
- try{
-   if(win && win.document && win.document.documentElement && win.document.documentElement.requestFullscreen){
-     win.document.documentElement.requestFullscreen().catch(()=>{});
-   }
- }catch(e){}
+ // Web/mobil sürümde pywebview yok; yeni sekmede IMDb'nin video galerisini açıyoruz.
+ // Farklı origin (imdb.com) olduğu için tam ekranı programatik zorlamak
+ // tarayıcı güvenliği yüzünden mümkün değil - o yüzden artık denemiyoruz,
+ // sadece güvenilir şekilde açıyoruz.
+ openExternal(`https://www.imdb.com/title/${id}/videogallery/`);
 }
 
 /* ===================== VERİ TAMAMLAMA (eksik tür bilgisi) ===================== */
