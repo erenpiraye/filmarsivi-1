@@ -222,7 +222,8 @@ html.single-focus .movie .tr-title{font-size:16px}
 .detail-save-btn:hover{filter:brightness(1.08)}
 @media (max-width:600px){
  .detail-top{flex-direction:column;align-items:flex-start}
- .detail-people-row,.detail-ratings-row{flex-direction:column}
+ .detail-ratings-row{flex-direction:column}
+ .detail-people-box{min-width:130px}
  .person-photo-card{width:112px}
  .person-photo-wrap{width:112px;height:148px}
  /* Poster üstte, başlık altta - dikey diziliş yüzünden bu alan uzuyor;
@@ -601,6 +602,21 @@ function renderStats(){
    statsSectionPeople(movies,"actor")+
    statsSectionPeople(movies,"director");
  lazyLoadStatsPhotos();
+ lazyLoadStatsPosterImgs(body);
+}
+
+/* ---- İstatistiklerdeki afişler de ana sayfadakiyle AYNI kaynaktan gelsin:
+   OMDb'de afiş yoksa ya da yüklenemezse (kırık URL) ana sayfadaki gibi
+   TMDB fallback'i (fetchPoster) devreye giriyor. ---- */
+function lazyLoadStatsPosterImgs(container){
+ container.querySelectorAll('.stats-movie-poster[data-imdb-id]').forEach(imgEl=>{
+   const imdbID=imgEl.dataset.imdbId;
+   const hasPoster=imgEl.dataset.hasPoster==="1";
+   const title=imgEl.dataset.title||"";
+   const year=imgEl.dataset.year||"";
+   imgEl.onerror=()=>fetchPoster(imdbID,imgEl,title,year);
+   if(!hasPoster) fetchPoster(imdbID,imgEl,title,year);
+ });
 }
 
 /* ---- Yıllara göre ---- */
@@ -681,9 +697,10 @@ function statsSectionDecades(movies){
  const selItems=(statsDecadeMoviesMap[statsDecadeSelected]||[]).slice().sort((a,b)=>a.m.Title.localeCompare(b.m.Title,"tr"));
  const grid = selItems.length
    ? `<div class="stats-movie-grid">`+selItems.map(({m,r})=>{
-       const poster=(m.Poster&&m.Poster!=="N/A")?m.Poster:POSTER_PLACEHOLDER;
+       const hasPoster=!!(m.Poster&&m.Poster!=="N/A");
+       const poster=hasPoster?m.Poster:POSTER_PLACEHOLDER;
        return `<div class="stats-movie-card" onclick="openDetail('${m.imdbID}','watched')">
-        <img class="stats-movie-poster" src="${poster}" loading="lazy" onerror="this.src='${POSTER_PLACEHOLDER}'">
+        <img class="stats-movie-poster" data-imdb-id="${m.imdbID}" data-has-poster="${hasPoster?1:0}" data-title="${escapeHtml(m.Title)}" data-year="${escapeHtml(m.Year||"")}" src="${poster}" loading="lazy">
         <div class="stats-movie-title">${escapeHtml(m.Title)}</div>
         <div class="stats-movie-year">${escapeHtml(m.Year||"")}${r!=null?` · ★ ${r.toFixed(1)}`:""}</div>
        </div>`;
@@ -891,14 +908,16 @@ function openStatsList(title,movies){
  const body=document.getElementById("statsListBody");
  body.innerHTML = sorted.length
    ? `<div class="stats-movie-grid">`+sorted.map(m=>{
-       const poster=(m.Poster&&m.Poster!=="N/A")?m.Poster:POSTER_PLACEHOLDER;
+       const hasPoster=!!(m.Poster&&m.Poster!=="N/A");
+       const poster=hasPoster?m.Poster:POSTER_PLACEHOLDER;
        return `<div class="stats-movie-card" data-imdb-id="${m.imdbID}">
-        <img class="stats-movie-poster" src="${poster}" loading="lazy" onerror="this.src='${POSTER_PLACEHOLDER}'">
+        <img class="stats-movie-poster" data-imdb-id="${m.imdbID}" data-has-poster="${hasPoster?1:0}" data-title="${escapeHtml(m.Title)}" data-year="${escapeHtml(m.Year||"")}" src="${poster}" loading="lazy">
         <div class="stats-movie-title">${escapeHtml(m.Title)}</div>
         <div class="stats-movie-year">${escapeHtml(m.Year||"")}</div>
        </div>`;
      }).join("")+`</div>`
    : '<div class="stats-empty">Film bulunamadı.</div>';
+ lazyLoadStatsPosterImgs(body);
  document.getElementById("statsListOverlay").classList.add("open");
 }
 function closeStatsList(){
@@ -1877,6 +1896,19 @@ function sortIndexed(indexed,mode){
 function movieGenres(m){
  return (m.Genre||"").split(",").map(g=>g.trim()).filter(g=>g&&g!=="N/A");
 }
+// OMDb'nin İngilizce tür isimleri için sabit çeviri tablosu - TMDB'den
+// tür eşleşmesi hiç bulunamazsa (film TMDB'de yoksa ya da ağ hatası kalıcıysa)
+// kategori sonsuza kadar İngilizce takılı kalmasın diye son çare olarak kullanılır.
+const GENRE_EN_TR={
+ "Action":"Aksiyon","Adventure":"Macera","Animation":"Animasyon","Comedy":"Komedi",
+ "Crime":"Suç","Documentary":"Belgesel","Drama":"Dram","Family":"Aile",
+ "Fantasy":"Fantastik","History":"Tarih","Horror":"Korku","Music":"Müzik",
+ "Musical":"Müzikal","Mystery":"Gizem","Romance":"Romantik","Sci-Fi":"Bilim Kurgu",
+ "Science Fiction":"Bilim Kurgu","TV Movie":"TV Filmi","Thriller":"Gerilim","War":"Savaş",
+ "Western":"Vahşi Batı","Biography":"Biyografi","Sport":"Spor","Film-Noir":"Kara Film",
+ "News":"Haber","Short":"Kısa Film","Adult":"Yetişkin","Reality-TV":"Gerçeklik TV",
+ "Talk-Show":"Talk Show","Game-Show":"Yarışma Programı"
+};
 function movieGenresTr(m){
  const info=turkishCache[m.imdbID];
  // Türkçe adları HER SEFERİNDE güncel genreMap'ten türet (genreIds'ten) -
@@ -1889,7 +1921,7 @@ function movieGenresTr(m){
    if(names.length) return names;
  }
  if(info && info.genres && info.genres.length) return info.genres; // eski önbellek (genreIds'siz) için yedek
- return movieGenres(m);
+ return movieGenres(m).map(g=>GENRE_EN_TR[g]||g);
 }
 function movieDirectors(m){
  return (m.Director||"").split(",").map(s=>s.trim()).filter(s=>s&&s!=="N/A");
