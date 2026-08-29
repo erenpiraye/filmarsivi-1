@@ -204,6 +204,9 @@ html.single-focus .movie .tr-title{font-size:16px}
 .detail-genres{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
 .detail-genre-tag{background:rgba(217,164,65,0.14);border:1px solid rgba(217,164,65,0.35);color:#e8c877;padding:4px 10px;border-radius:5px;font-size:12px}
 .detail-cast-row{display:flex;gap:12px;overflow-x:auto;padding-bottom:8px;margin-bottom:6px;-webkit-overflow-scrolling:touch}
+.detail-cast-row--compact{margin-bottom:0}
+.detail-cast-row--compact .person-photo-card{width:100px}
+.detail-cast-row--compact .person-photo-wrap{width:100px;height:130px}
 .person-photo-card{flex-shrink:0;width:140px;cursor:pointer;background:#202020;border:1px solid #333;border-radius:8px;overflow:hidden;transition:border-color .15s}
 .person-photo-card:hover{border-color:#d9a441}
 .person-photo-wrap{position:relative;width:140px;height:180px;overflow:hidden;background:#2a2a2a}
@@ -246,6 +249,8 @@ html.single-focus .movie .tr-title{font-size:16px}
  .person-photo-wrap{width:112px;height:148px}
  .person-photo-name{font-size:12px}
  .person-photo-character{font-size:11px}
+ .detail-cast-row--compact .person-photo-card{width:82px}
+ .detail-cast-row--compact .person-photo-wrap{width:82px;height:106px}
  .detail-footer{padding:10px 14px}
 }
 /* ===================== İSTATİSTİKLER ===================== */
@@ -382,11 +387,11 @@ html.single-focus .movie .tr-title{font-size:16px}
    <div class="detail-people-row">
     <div class="detail-people-box">
      <div class="detail-section-title">🎬 Yönetmen</div>
-     <div id="detailDirector">—</div>
+     <div class="detail-cast-row detail-cast-row--compact" id="detailDirector">—</div>
     </div>
     <div class="detail-people-box">
      <div class="detail-section-title">✍️ Senaristler</div>
-     <div id="detailWriter">—</div>
+     <div class="detail-cast-row detail-cast-row--compact" id="detailWriter">—</div>
     </div>
    </div>
 
@@ -1101,8 +1106,8 @@ async function getTurkishInfo(imdbID,title,year){
  // bile _v2 yok - bu yüzden TMDB butonu/oyuncular kalıcı olarak hiç
  // gelmiyordu. _v2 kontrolü, eski kayıtlar için bir kereliğine sessiz bir
  // yeniden-çekmeye (migrasyon) zorluyor; sonrasında normal şekilde önbellekten okunur.
- if(cached && cached._checked && cached._v2) return cached;
- const info={title:null,poster:null,genres:[],budget:null,revenue:null,overview:null,backdrop:null,tmdbId:null};
+ if(cached && cached._checked && cached._v3) return cached;
+ const info={title:null,poster:null,genres:[],genreIds:[],budget:null,revenue:null,overview:null,backdrop:null,tmdbId:null};
  if(cached) Object.assign(info,cached); // eski önbellekte olan (başlık/poster/tür) alanları koru, eksikleri tamamlayacağız
  try{
    const data=await fetchJson(`https://api.themoviedb.org/3/find/${imdbID}?api_key=${TMDB_KEY}&external_source=imdb_id&language=tr-TR`);
@@ -1129,6 +1134,7 @@ async function getTurkishInfo(imdbID,title,year){
      if(movie.overview) info.overview=movie.overview;
      if(movie.backdrop_path) info.backdrop=`https://image.tmdb.org/t/p/w780${movie.backdrop_path}`;
      if(movie.genre_ids && movie.genre_ids.length){
+       info.genreIds=movie.genre_ids;
        info.genres=movie.genre_ids.map(id=>genreMap[id]).filter(Boolean);
      }
      // Bütçe/hasılat (ve overview/backdrop find sonucunda gelmediyse onlar da) ayrı bir detay isteği gerektirir.
@@ -1142,7 +1148,7 @@ async function getTurkishInfo(imdbID,title,year){
        }
      }catch(e){}
    }
-   info._v2=true; // bu deneme (find/search) ağ hatası almadan tamamlandı - eski/yeni ayrımı için işaretle
+   info._v3=true; // bu deneme (find/search) ağ hatası almadan tamamlandı - eski/yeni ayrımı için işaretle
  }catch(e){}
  // sadece gerçekten bir sonuç bulduysak kalıcı olarak önbelleğe al (_checked=true) -
  // ki bir daha bu film için hiç istek atılmasın. Toptan başarısızlıkta (ağ hatası vb.)
@@ -1895,7 +1901,16 @@ function movieGenres(m){
 }
 function movieGenresTr(m){
  const info=turkishCache[m.imdbID];
- if(info && info.genres && info.genres.length) return info.genres;
+ // Türkçe adları HER SEFERİNDE güncel genreMap'ten türet (genreIds'ten) -
+ // böylece önbelleğe yazıldığı anda TMDB tür listesi (genreMap) henüz
+ // yüklenmemiş olsa bile (ör. ağ hatası/rate limit) film daha sonra doğru
+ // Türkçe kategoriye düşer; kalıcı olarak İngilizce (OMDb) isme takılıp
+ // kalmaz ve aynı tür iki farklı adla (örn. "Komedi" / "Comedy") bölünmez.
+ if(info && info.genreIds && info.genreIds.length){
+   const names=info.genreIds.map(id=>genreMap[id]).filter(Boolean);
+   if(names.length) return names;
+ }
+ if(info && info.genres && info.genres.length) return info.genres; // eski önbellek (genreIds'siz) için yedek
  return movieGenres(m);
 }
 function movieDirectors(m){
@@ -2260,26 +2275,30 @@ async function loadCastForDetail(tmdbId){
  }catch(e){ return null; }
 }
 
-function personListHtml(people){
- if(!people||!people.length) return "—";
- return people.map(p=>`<span class="detail-person-link" data-person-id="${p.id}">${escapeHtml(p.name)}</span>`).join(", ");
-}
-
-function renderCastRow(cast){
- const wrap=document.getElementById("detailCastRow");
- if(!cast||!cast.length){ wrap.innerHTML=""; return; }
- wrap.innerHTML=cast.map(p=>{
+// Yönetmen/senarist/oyuncu satırlarının hepsi aynı fotoğraflı-kart görünümünü
+// kullanır (masaüstü ile birebir aynı stil) - showCharacter=true iken karakter
+// adı, değilse (yönetmen/senarist için) TMDB'deki görev (job) alt yazı olarak gösterilir.
+function renderPersonPhotoRow(containerId,people,showCharacter){
+ const wrap=document.getElementById(containerId);
+ if(!wrap) return;
+ if(!people||!people.length){ wrap.innerHTML="—"; return; }
+ wrap.innerHTML=people.map(p=>{
    const photo=p.profile_path?`https://image.tmdb.org/t/p/w185${p.profile_path}`:POSTER_PLACEHOLDER;
+   const sub=showCharacter?(p.character||""):(p.job||"");
    return `<div class="person-photo-card" data-person-id="${p.id}">
      <div class="person-photo-wrap">
        <img class="person-photo" src="${photo}" loading="lazy">
      </div>
      <div class="person-photo-info">
        <div class="person-photo-name">${escapeHtml(p.name)}</div>
-       <div class="person-photo-character">${escapeHtml(p.character||"")}</div>
+       <div class="person-photo-character">${escapeHtml(sub)}</div>
      </div>
    </div>`;
  }).join("");
+}
+
+function renderCastRow(cast){
+ renderPersonPhotoRow("detailCastRow",cast,true);
 }
 
 document.querySelector(".detail-body").addEventListener("click",e=>{
@@ -2352,8 +2371,8 @@ function openDetail(id,type,fromHistory){
    if(!freshInfo.tmdbId) return;
    loadCastForDetail(freshInfo.tmdbId).then(castInfo=>{
      if(detailState.id!==id || !castInfo) return;
-     document.getElementById("detailDirector").innerHTML=personListHtml(castInfo.director);
-     document.getElementById("detailWriter").innerHTML=personListHtml(castInfo.writers);
+     renderPersonPhotoRow("detailDirector",castInfo.director,false);
+     renderPersonPhotoRow("detailWriter",castInfo.writers,false);
      renderCastRow(castInfo.cast);
      prefetchPersonImdbIds(castInfo);
    });
