@@ -56,6 +56,8 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 .movie img{width:90px;height:135px;object-fit:cover;margin-right:15px;border-radius:4px}
 .movie img.poster-link{cursor:pointer}
 .number{font-size:2.2em;color:#555;width:80px;display:flex;justify-content:center;align-items:center;margin-right:20px}
+.rank-input{width:100%;font-size:0.55em;text-align:center;background:#222;color:#eee;border:1px solid #d9a441;border-radius:4px;padding:2px 0}
+.rank-input::-webkit-inner-spin-button,.rank-input::-webkit-outer-spin-button{opacity:1}
 .btn{margin-top:6px;padding:6px 12px;background:#555;color:#fff;border:none;border-radius:4px;cursor:pointer}
 .add-poster{cursor:pointer}
 .add-hint{font-size:11px;color:#888;margin-top:4px}
@@ -246,6 +248,75 @@ html.single-focus .movie .tr-title{font-size:16px}
  .person-photo-character{font-size:11px}
  .detail-footer{padding:10px 14px}
 }
+/* ===================== İSTATİSTİKLER ===================== */
+.stats-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:200;align-items:flex-start;justify-content:center;overflow-y:auto;padding:30px 16px}
+.stats-overlay.open{display:flex}
+.stats-modal{position:relative;width:100%;max-width:1080px;background:#181818;border:1px solid #3a3222;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,0.6)}
+.stats-topbar{position:relative;display:flex;align-items:center;justify-content:space-between;padding:18px 24px;background:#181818;border-bottom:1px solid #2a2a2a;border-radius:12px 12px 0 0;z-index:2}
+.stats-topbar h2{margin:0;text-align:left;font-size:20px;color:#e8c877}
+.stats-body{padding:8px 24px 28px 24px}
+.stats-section{margin-top:30px;padding-top:22px;border-top:1px solid #2a2a2a}
+.stats-section:first-child{margin-top:10px;padding-top:0;border-top:none}
+.stats-section-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:18px}
+.stats-section-title{font-size:13px;font-weight:bold;letter-spacing:1px;color:#999;text-transform:uppercase}
+.stats-toggle{display:flex;gap:4px;background:#222;border-radius:6px;padding:3px}
+.stats-toggle-btn{padding:5px 12px;font-size:12px;border-radius:4px;color:#999;cursor:pointer;user-select:none;white-space:nowrap}
+.stats-toggle-btn.active{background:#3a3222;color:#e8c877}
+.stats-empty{color:#777;font-size:13px;padding:10px 0}
+
+.year-chart{display:flex;align-items:flex-end;gap:2px;height:160px;overflow-x:auto;padding-bottom:4px}
+.year-bar-wrap{flex:1 0 auto;min-width:4px;height:100%;display:flex;align-items:flex-end;cursor:pointer}
+.year-bar{width:100%;min-height:2px;background:linear-gradient(180deg,#f0d9a3,#d9a441);border-radius:2px 2px 0 0}
+.year-bar-wrap:hover .year-bar{background:linear-gradient(180deg,#fff0cc,#e8b955)}
+.year-range-labels{display:flex;justify-content:space-between;color:#888;font-size:12px;margin-top:6px}
+.stats-tooltip{position:fixed;pointer-events:none;background:#000;color:#fff;padding:4px 9px;border-radius:5px;font-size:12px;z-index:500;white-space:nowrap;transform:translate(-50%,-100%);opacity:0;transition:opacity .1s ease;box-shadow:0 4px 12px rgba(0,0,0,0.5)}
+.stats-tooltip.show{opacity:1}
+
+.decade-tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}
+.decade-tab{padding:8px 14px;border-radius:8px;background:#222;border:1px solid #333;color:#ccc;font-size:13px;font-weight:600;cursor:pointer;user-select:none;transition:background .15s ease,border-color .15s ease,color .15s ease}
+.decade-tab:hover{border-color:#555;color:#eee}
+.decade-tab.active{background:#3a3222;border-color:#d9a441;color:#e8c877}
+.decade-tab-rating{color:#999;font-weight:normal;font-size:12px}
+.decade-tab.active .decade-tab-rating{color:#e8c877}
+
+.stats-columns{display:flex;flex-wrap:wrap;margin-left:-28px}
+.stats-col{flex:1;min-width:220px;margin-left:28px}
+.stats-col--single{max-width:420px}
+.bar-row{margin-bottom:11px;cursor:pointer}
+.bar-row-top{display:flex;justify-content:space-between;font-size:13px;color:#ddd;margin-bottom:4px}
+.bar-row-top .bar-val{color:#999}
+.bar-row:hover .bar-row-top span:first-child{color:#e8c877}
+.bar-track{height:7px;border-radius:4px;background:#262626;overflow:hidden}
+.bar-fill{height:100%;border-radius:4px}
+.bar-fill.c-genre{background:#5ec86a}
+.bar-fill.c-country{background:#4fa8e8}
+.bar-fill.c-lang{background:#e8933f}
+
+.people-grid{display:flex;flex-wrap:wrap;gap:22px 16px}
+.people-item{width:96px;text-align:center;cursor:pointer}
+.people-item:hover .people-name{color:#e8c877}
+
+.stats-list-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:300;align-items:flex-start;justify-content:center;overflow-y:auto;padding:30px 16px}
+.stats-list-overlay.open{display:flex}
+.stats-list-modal{position:relative;width:100%;max-width:900px;background:#181818;border:1px solid #3a3222;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,0.6)}
+.stats-list-topbar{position:sticky;top:0;display:flex;align-items:center;justify-content:space-between;padding:16px 22px;background:#181818;border-bottom:1px solid #2a2a2a;border-radius:12px 12px 0 0;z-index:2}
+.stats-list-topbar h3{margin:0;font-size:17px;color:#e8c877;font-weight:bold}
+.stats-list-body{padding:18px 22px 26px 22px}
+.stats-movie-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:16px 14px}
+.stats-movie-card{cursor:pointer;text-align:center}
+.stats-movie-poster{width:100%;aspect-ratio:2/3;object-fit:cover;border-radius:6px;background:#2a2a2a;display:block;margin-bottom:6px;transition:transform .12s ease}
+.stats-movie-card:hover .stats-movie-poster{transform:scale(1.035)}
+.stats-movie-title{font-size:12.5px;color:#eee;font-weight:600;line-height:1.25}
+.stats-movie-card:hover .stats-movie-title{color:#e8c877}
+.stats-movie-year{font-size:11.5px;color:#888;margin-top:1px}
+.people-avatar{width:74px;height:100px;border-radius:6px;background:#2a2a2a;margin:0 auto 8px auto;overflow:hidden;display:flex;align-items:center;justify-content:center;color:#888;font-weight:bold;font-size:20px;border:1px solid #333}
+.people-avatar img{width:100%;height:100%;object-fit:cover}
+.people-name{font-size:12.5px;color:#eee;font-weight:600;line-height:1.25}
+.people-count{font-size:11.5px;color:#888;margin-top:1px}
+@media (max-width:700px){
+ .stats-body{padding:8px 14px 20px 14px}
+ .stats-topbar{padding:14px 16px}
+}
 </style>
 </head>
 <body>
@@ -354,8 +425,10 @@ html.single-focus .movie .tr-title{font-size:16px}
  </span>
  <span class="list-header-meta"><b id="watchedCount">0</b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg><span id="watchedTime">0 dk</span></span>
  <span class="header-icons">
+  <span class="icon-btn" onclick="openStats()" title="İstatistikler"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span>
   <span class="icon-btn refresh-btn" onclick="reload()" title="Yenile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg></span>
   <span class="icon-btn" onclick="scrollToTop('watched')" title="Başa dön"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg></span>
+  <span class="icon-btn" onclick="toggleView('watched')" title="Görünümü değiştir"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span>
  </span>
 </div>
 <input id="searchWatched" class="search" placeholder="Film ara" oninput="searchMain(this,'watched')">
@@ -404,6 +477,7 @@ html.single-focus .movie .tr-title{font-size:16px}
  <span class="header-icons">
   <span class="icon-btn refresh-btn" onclick="reload()" title="Yenile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg></span>
   <span class="icon-btn" onclick="scrollToTop('watchlist')" title="Başa dön"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg></span>
+  <span class="icon-btn" onclick="toggleView('watchlist')" title="Görünümü değiştir"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span>
  </span>
 </div>
 <input id="searchWatch" class="search" placeholder="Film ara" oninput="searchMain(this,'watchlist')">
@@ -443,6 +517,28 @@ html.single-focus .movie .tr-title{font-size:16px}
 
 </div>
 
+<div class="stats-overlay" id="statsOverlay" onclick="if(event.target===this)closeStats()">
+ <div class="stats-modal">
+  <div class="stats-topbar">
+   <h2>📊 İstatistikler</h2>
+   <span class="detail-close" style="position:static" onclick="closeStats()">✕</span>
+  </div>
+  <div class="stats-body" id="statsBody">
+   <!-- JS ile dolduruluyor: renderStats() -->
+  </div>
+ </div>
+</div>
+
+<div class="stats-list-overlay" id="statsListOverlay" onclick="if(event.target===this)closeStatsList()">
+ <div class="stats-list-modal">
+  <div class="stats-list-topbar">
+   <h3 id="statsListTitle"></h3>
+   <span class="detail-close" style="position:static" onclick="closeStatsList()">✕</span>
+  </div>
+  <div class="stats-list-body" id="statsListBody"></div>
+ </div>
+</div>
+
 <script>
 /* ===================== AYARLAR ===================== */
 // Kendi Firebase projenin bilgilerini buraya yapıştır (REHBER.md dosyasına bak)
@@ -457,6 +553,384 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
+
+// via.placeholder.com artık çalışmıyor (servis kapandı) - afiş/fotoğraf eksikse
+// yerel, ağa bağlı olmayan bir SVG kullanılıyor.
+const POSTER_PLACEHOLDER="data:image/svg+xml;utf8,"+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="200" height="300" viewBox="0 0 200 300"><rect width="200" height="300" fill="#2a2a2a"/><g fill="none" stroke="#555" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><rect x="55" y="90" width="90" height="115" rx="8"/><circle cx="100" cy="128" r="15"/><path d="M68 188 L92 158 L112 176 L132 152 L152 188"/></g></svg>');
+
+/* ===================== İSTATİSTİKLER (letterboxd.com/stats esinli) =====================
+   Not: Letterboxd'deki "Liste İlerlemesi" (IMDb Top 250, AFI 100 vb. küratörlü listelerdeki
+   ilerleme) kasıtlı olarak eklenmedi - bu, uygulamanın hiç sahip olmadığı, dışarıdan elle
+   girilmesi gereken referans liste verileri gerektiriyor. Diğer tüm bölümler doğrudan
+   "İzlenen" listenizdeki verilerden hesaplanıyor. */
+const statsPersonPhotoCache={}; // isim -> fotoğraf URL'si ya da null (bulunamadı)
+
+// On yıl etiketleri için Türkçe ünlü uyumuna göre doğru ek (-ler / -lar).
+// Örn: 1980'ler, 1990'lar, 2000'ler, 2010'lar. Bilinmeyen bir on yıl gelirse
+// (aralık dışı) varsayılan olarak "ler" kullanılır.
+const DECADE_SUFFIX={1800:"ler",1810:"lar",1820:"ler",1830:"lar",1840:"lar",1850:"ler",1860:"lar",1870:"ler",1880:"ler",1890:"lar",1900:"ler",1910:"lar",1920:"ler",1930:"lar",1940:"lar",1950:"ler",1960:"lar",1970:"ler",1980:"ler",1990:"lar",2000:"ler",2010:"lar",2020:"ler",2030:"lar"};
+function decadeLabel(d){ return d+"'"+(DECADE_SUFFIX[d]||"ler"); }
+
+// Bölümlerdeki bir çubuğa/isme tıklandığında hangi filmlerin listeleneceğini
+// bulmak için renderStats() her seferinde bu haritaları günceller.
+let statsYearMoviesMap={};                                  // yıl -> [film,...]
+let statsBreakdownMoviesMap={genre:{}};                     // tür -> [film,...]
+let statsPeopleMoviesMap={actor:{},director:{}};             // tür -> {isim: [film,...]}
+
+function openStats(){
+ renderStats();
+ document.getElementById("statsOverlay").classList.add("open");
+}
+function closeStats(){
+ document.getElementById("statsOverlay").classList.remove("open");
+}
+document.addEventListener("keydown",e=>{
+ if(e.key!=="Escape") return;
+ // Film listesi modalı açıksa Escape önce SADECE onu kapatsın (katman katman kapama).
+ if(document.getElementById("statsListOverlay").classList.contains("open")) return;
+ if(document.getElementById("statsOverlay").classList.contains("open")) closeStats();
+});
+
+function statsRatingOf(m){
+ if(m.myRating!=null && m.myRating!=="") return Number(m.myRating);
+ const r=parseFloat(m.imdbRating);
+ return isNaN(r)?null:r;
+}
+function statsYearOf(m){
+ const y=parseInt((m.Year||"").toString().slice(0,4));
+ return isNaN(y)?null:y;
+}
+function statsInitials(name){
+ return name.split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0]).join("").toUpperCase();
+}
+
+function renderStats(){
+ const movies=allData.watched||[];
+ const body=document.getElementById("statsBody");
+ if(!movies.length){
+   body.innerHTML='<div class="stats-empty">Henüz izlenen film yok - istatistikler burada görünecek.</div>';
+   return;
+ }
+ body.innerHTML =
+   statsSectionYears(movies)+
+   statsSectionDecades(movies)+
+   statsSectionBreakdown(movies)+
+   statsSectionPeople(movies,"actor")+
+   statsSectionPeople(movies,"director");
+ lazyLoadStatsPhotos();
+}
+
+/* ---- Yıllara göre ---- */
+function statsSectionYears(movies){
+ const counts={};
+ statsYearMoviesMap={};
+ movies.forEach(m=>{
+   const y=statsYearOf(m);
+   if(!y) return;
+   counts[y]=(counts[y]||0)+1;
+   (statsYearMoviesMap[y]=statsYearMoviesMap[y]||[]).push(m);
+ });
+ const years=Object.keys(counts).map(Number).sort((a,b)=>a-b);
+ if(!years.length) return "";
+ const minY=years[0], maxY=years[years.length-1];
+ const maxCount=Math.max(...Object.values(counts));
+ let bars="";
+ for(let y=minY;y<=maxY;y++){
+   const c=counts[y]||0;
+   const h=maxCount?(c?Math.max(c/maxCount*100,4):0):0;
+   // Not: native "title" tooltip'i BİLEREK kullanılmıyor - tarayıcı bunu
+   // farenin altına çiziyor ve okunamıyordu. Bunun yerine mouseover/mousemove
+   // ile üstte gösterilen özel .stats-tooltip kullanılıyor (bkz. aşağıdaki
+   // olay dinleyicileri) ve tıklanınca o yılın filmleri listeleniyor.
+   bars+=`<div class="year-bar-wrap" data-year="${y}" data-count="${c}"><div class="year-bar" style="height:${h}%"></div></div>`;
+ }
+ return `<div class="stats-section">
+  <div class="stats-section-head"><span class="stats-section-title">Yıllara Göre</span></div>
+  <div class="year-chart">${bars}</div>
+  <div class="year-range-labels"><span>${minY}</span><span>${maxY}</span></div>
+ </div>`;
+}
+
+/* ---- On yıllara göre derecelendirme: yan yana sekmeler + seçili on yılın TÜM filmleri altta ---- */
+let statsDecadeSelected=null;     // seçili on yıl (örn. 1990) - sekme durumu
+let statsDecadeMoviesMap={};      // on yıl -> [{m,r}, ...] (seçili sekmenin altında listelemek için)
+
+function selectDecadeTab(d){
+ statsDecadeSelected=d;
+ renderStats();
+}
+
+function statsSectionDecades(movies){
+ const byDecade={};
+ movies.forEach(m=>{
+   const y=statsYearOf(m);
+   if(!y) return;
+   const r=statsRatingOf(m);
+   const d=Math.floor(y/10)*10;
+   (byDecade[d]=byDecade[d]||[]).push({m,r});
+ });
+ const decades=Object.keys(byDecade).map(Number).map(d=>{
+   const items=byDecade[d];
+   return {d,count:items.length,items};
+ }).sort((a,b)=>a.d-b.d); // kronolojik: eskiden yeniye, tüm on yıllar
+
+ const head=`<div class="stats-section-head">
+   <span class="stats-section-title">On Yıllara Göre</span>
+  </div>`;
+
+ if(!decades.length){
+   statsDecadeMoviesMap={};
+   return `<div class="stats-section">${head}<div class="stats-empty">Yeterli veri yok</div></div>`;
+ }
+
+ statsDecadeMoviesMap={};
+ decades.forEach(({d,items})=>{ statsDecadeMoviesMap[d]=items; });
+
+ // seçili on yıl artık listede yoksa (veri değiştiyse) ya da hiç seçilmediyse ilkini seç
+ if(statsDecadeSelected==null || !decades.some(x=>x.d===statsDecadeSelected)){
+   statsDecadeSelected=decades[0].d;
+ }
+
+ const tabs=decades.map(({d,count})=>
+   `<span class="decade-tab ${d===statsDecadeSelected?"active":""}" onclick="selectDecadeTab(${d})">${decadeLabel(d)} <span class="decade-tab-rating">- ${count}</span></span>`
+ ).join("");
+
+ const selItems=(statsDecadeMoviesMap[statsDecadeSelected]||[]).slice().sort((a,b)=>a.m.Title.localeCompare(b.m.Title,"tr"));
+ const grid = selItems.length
+   ? `<div class="stats-movie-grid">`+selItems.map(({m,r})=>{
+       const poster=(m.Poster&&m.Poster!=="N/A")?m.Poster:POSTER_PLACEHOLDER;
+       return `<div class="stats-movie-card" onclick="openDetail('${m.imdbID}','watched')">
+        <img class="stats-movie-poster" src="${poster}" loading="lazy" onerror="this.src='${POSTER_PLACEHOLDER}'">
+        <div class="stats-movie-title">${escapeHtml(m.Title)}</div>
+        <div class="stats-movie-year">${escapeHtml(m.Year||"")}${r!=null?` · ★ ${r.toFixed(1)}`:""}</div>
+       </div>`;
+     }).join("")+`</div>`
+   : '<div class="stats-empty">Film yok</div>';
+
+ return `<div class="stats-section">
+  ${head}
+  <div class="decade-tabs">${tabs}</div>
+  ${grid}
+ </div>`;
+}
+
+/* ---- Türler ---- */
+function statsBreakdownData(movies,field){
+ const counts={}, ratingSums={}, moviesMap={};
+ movies.forEach(m=>{
+   const items = field==="genre" ? movieGenresTr(m) : [];
+   const r=statsRatingOf(m);
+   items.forEach(it=>{
+     counts[it]=(counts[it]||0)+1;
+     if(r!=null){ ratingSums[it]=ratingSums[it]||{sum:0,n:0}; ratingSums[it].sum+=r; ratingSums[it].n++; }
+     (moviesMap[it]=moviesMap[it]||[]).push(m);
+   });
+ });
+ return {counts,ratingSums,moviesMap};
+}
+function statsBreakdownList(data,mode){
+ const {counts,ratingSums}=data;
+ let items=Object.keys(counts).map(k=>({
+   name:k, count:counts[k],
+   avg: (ratingSums[k]&&ratingSums[k].n)?ratingSums[k].sum/ratingSums[k].n:null
+ }));
+ items = mode==="rating"
+   ? items.filter(x=>x.avg!=null && x.count>=2).sort((a,b)=>b.avg-a.avg || b.count-a.count)
+   : items.sort((a,b)=>b.count-a.count);
+ return items; // ana sayfadaki Kategori açılır menüsünde kaç tür varsa burada da hepsi listelensin - üst sınır yok
+}
+function statsBarListHtml(items,mode,colorClass,field){
+ if(!items.length) return '<div class="stats-empty">Yeterli veri yok</div>';
+ const maxVal = mode==="rating" ? 10 : Math.max(...items.map(x=>x.count));
+ return items.map(x=>{
+   const val = mode==="rating" ? x.avg : x.count;
+   const pct = Math.max((val/maxVal)*100,3);
+   const label = mode==="rating" ? `★ ${x.avg.toFixed(2)}` : `${x.count}`;
+   return `<div class="bar-row" data-field="${field}" data-name="${escapeHtml(x.name)}">
+    <div class="bar-row-top"><span>${escapeHtml(x.name)}</span><span class="bar-val">${label}</span></div>
+    <div class="bar-track"><div class="bar-fill ${colorClass}" style="width:${pct}%"></div></div>
+   </div>`;
+ }).join("");
+}
+function statsSectionBreakdown(movies){
+ const genreData=statsBreakdownData(movies,"genre");
+ statsBreakdownMoviesMap={genre:genreData.moviesMap};
+ const mode="count";
+ // Tür listesi uzun olabildiği için tek sütunda çok aşağı iniyor ve sağda
+ // boşluk kalıyordu - listeyi ikiye bölüp iki sütunda yan yana gösteriyoruz.
+ const list=statsBreakdownList(genreData,mode);
+ const half=Math.ceil(list.length/2);
+ const col1=list.slice(0,half), col2=list.slice(half);
+ return `<div class="stats-section">
+  <div class="stats-section-head">
+   <span class="stats-section-title">Türler</span>
+  </div>
+  <div class="stats-columns">
+   <div class="stats-col">${statsBarListHtml(col1,mode,"c-genre","genre")}</div>
+   ${col2.length?`<div class="stats-col">${statsBarListHtml(col2,mode,"c-genre","genre")}</div>`:""}
+  </div>
+ </div>`;
+}
+
+/* ---- Oyuncular / Yönetmenler ---- */
+function statsPeopleData(movies,kind){
+ const counts={}, ratingSums={}, moviesMap={};
+ movies.forEach(m=>{
+   const items = kind==="actor" ? movieActors(m) : movieDirectors(m);
+   const r=statsRatingOf(m);
+   items.forEach(name=>{
+     counts[name]=(counts[name]||0)+1;
+     if(r!=null){ ratingSums[name]=ratingSums[name]||{sum:0,n:0}; ratingSums[name].sum+=r; ratingSums[name].n++; }
+     (moviesMap[name]=moviesMap[name]||[]).push(m);
+   });
+ });
+ return {counts,ratingSums,moviesMap};
+}
+function statsPeopleList(data,mode){
+ const {counts,ratingSums}=data;
+ let items=Object.keys(counts).map(k=>({
+   name:k, count:counts[k],
+   avg: (ratingSums[k]&&ratingSums[k].n)?ratingSums[k].sum/ratingSums[k].n:null
+ }));
+ items = mode==="rating"
+   ? items.filter(x=>x.avg!=null && x.count>=3).sort((a,b)=>b.avg-a.avg || b.count-a.count)
+   : items.sort((a,b)=>b.count-a.count);
+ return items.slice(0,18);
+}
+function statsPeopleHtml(items,mode,kind){
+ if(!items.length) return '<div class="stats-empty">Yeterli veri yok (en yüksek derecelendirme için en az 3 film gerekir)</div>';
+ return `<div class="people-grid">`+items.map(x=>{
+   const label = mode==="rating" ? `★ ${x.avg.toFixed(2)}` : `${x.count} film`;
+   return `<div class="people-item" data-kind="${kind}" data-person-name="${escapeHtml(x.name)}">
+    <div class="people-avatar" data-person-name="${escapeHtml(x.name)}">${escapeHtml(statsInitials(x.name))}</div>
+    <div class="people-name">${escapeHtml(x.name)}</div>
+    <div class="people-count">${label}</div>
+   </div>`;
+ }).join("")+`</div>`;
+}
+function statsSectionPeople(movies,kind){
+ const data=statsPeopleData(movies,kind);
+ statsPeopleMoviesMap[kind]=data.moviesMap;
+ const mode="count";
+ const title=kind==="actor"?"Oyuncular":"Yönetmenler";
+ const items=statsPeopleList(data,mode);
+ return `<div class="stats-section">
+  <div class="stats-section-head">
+   <span class="stats-section-title">${title}</span>
+  </div>
+  ${statsPeopleHtml(items,mode,kind)}
+ </div>`;
+}
+
+/* ---- Görünen oyuncu/yönetmen avatarları için TMDB'den fotoğraf (arka planda, sırayla) ---- */
+async function lazyLoadStatsPhotos(){
+ const avatars=document.querySelectorAll('.people-avatar[data-person-name]');
+ for(const el of avatars){
+   const name=el.dataset.personName;
+   if(!name) continue;
+   if(statsPersonPhotoCache[name]!==undefined){
+     if(statsPersonPhotoCache[name]) el.innerHTML=`<img src="${statsPersonPhotoCache[name]}" loading="lazy">`;
+     continue;
+   }
+   try{
+     const d=await fetchJson(`https://api.themoviedb.org/3/search/person?api_key=${TMDB_KEY}&query=${encodeURIComponent(name)}`);
+     const p=d?.results?.[0];
+     const url=(p && p.profile_path) ? `https://image.tmdb.org/t/p/w185${p.profile_path}` : null;
+     statsPersonPhotoCache[name]=url;
+     if(url && el.isConnected) el.innerHTML=`<img src="${url}" loading="lazy">`;
+   }catch(e){
+     statsPersonPhotoCache[name]=null;
+   }
+   await new Promise(res=>setTimeout(res,50));
+ }
+}
+
+/* ---- Yıl çubuğu için özel tooltip (native "title" farenin ALTINDA ve okunaksız
+   çiziyordu - bunun yerine farenin ÜSTÜNDE duran kendi tooltip'imizi çiziyoruz) ---- */
+const statsTooltipEl=document.createElement("div");
+statsTooltipEl.className="stats-tooltip";
+document.body.appendChild(statsTooltipEl);
+
+function statsShowTooltip(text,x,y){
+ statsTooltipEl.textContent=text;
+ statsTooltipEl.style.left=x+"px";
+ statsTooltipEl.style.top=(y-10)+"px";
+ statsTooltipEl.classList.add("show");
+}
+function statsHideTooltip(){ statsTooltipEl.classList.remove("show"); }
+
+const statsBodyEl=document.getElementById("statsBody");
+statsBodyEl.addEventListener("mouseover",e=>{
+ const bar=e.target.closest(".year-bar-wrap");
+ if(bar) statsShowTooltip(`${bar.dataset.year}: ${bar.dataset.count} film`,e.clientX,e.clientY);
+});
+statsBodyEl.addEventListener("mousemove",e=>{
+ const bar=e.target.closest(".year-bar-wrap");
+ if(bar) statsShowTooltip(`${bar.dataset.year}: ${bar.dataset.count} film`,e.clientX,e.clientY);
+});
+statsBodyEl.addEventListener("mouseout",e=>{
+ if(e.target.closest(".year-bar-wrap")) statsHideTooltip();
+});
+
+/* ---- Bir yıla / türe / oyuncuya / yönetmene tıklandığında
+   o kritere uyan filmleri afişleriyle listeleyen genel tıklama dinleyicisi ---- */
+statsBodyEl.addEventListener("click",e=>{
+ const bar=e.target.closest(".year-bar-wrap");
+ if(bar){
+   const y=bar.dataset.year;
+   const movies=statsYearMoviesMap[y]||[];
+   if(movies.length) openStatsList(`${y} Filmleri`,movies);
+   return;
+ }
+ const barRow=e.target.closest(".bar-row");
+ if(barRow && barRow.dataset.field){
+   const field=barRow.dataset.field, name=barRow.dataset.name;
+   const movies=(statsBreakdownMoviesMap[field]&&statsBreakdownMoviesMap[field][name])||[];
+   if(movies.length) openStatsList(name,movies);
+   return;
+ }
+ const peopleItem=e.target.closest(".people-item");
+ if(peopleItem && peopleItem.dataset.personName){
+   const kind=peopleItem.dataset.kind;
+   const name=peopleItem.dataset.personName;
+   const movies=(statsPeopleMoviesMap[kind]&&statsPeopleMoviesMap[kind][name])||[];
+   if(movies.length) openStatsList(name,movies);
+   return;
+ }
+});
+
+/* ---- Yıl/tür/kişi tıklamasıyla açılan film listesi modalı ----
+   Başlığın yanına, hangi sekmeden açıldığına bakılmaksızın (yıl/tür/oyuncu/
+   yönetmen), kaç film bulunduğu her zaman ekleniyor. */
+function openStatsList(title,movies){
+ document.getElementById("statsListTitle").textContent=`${title} (${movies.length})`;
+ const sorted=movies.slice().sort((a,b)=>(statsYearOf(b)||0)-(statsYearOf(a)||0));
+ const body=document.getElementById("statsListBody");
+ body.innerHTML = sorted.length
+   ? `<div class="stats-movie-grid">`+sorted.map(m=>{
+       const poster=(m.Poster&&m.Poster!=="N/A")?m.Poster:POSTER_PLACEHOLDER;
+       return `<div class="stats-movie-card" data-imdb-id="${m.imdbID}">
+        <img class="stats-movie-poster" src="${poster}" loading="lazy" onerror="this.src='${POSTER_PLACEHOLDER}'">
+        <div class="stats-movie-title">${escapeHtml(m.Title)}</div>
+        <div class="stats-movie-year">${escapeHtml(m.Year||"")}</div>
+       </div>`;
+     }).join("")+`</div>`
+   : '<div class="stats-empty">Film bulunamadı.</div>';
+ document.getElementById("statsListOverlay").classList.add("open");
+}
+function closeStatsList(){
+ document.getElementById("statsListOverlay").classList.remove("open");
+}
+document.getElementById("statsListBody").addEventListener("click",e=>{
+ const card=e.target.closest(".stats-movie-card");
+ if(card && card.dataset.imdbId){
+   closeStatsList();
+   openDetail(card.dataset.imdbId,"watched");
+ }
+});
+document.addEventListener("keydown",e=>{
+ if(e.key==="Escape" && document.getElementById("statsListOverlay").classList.contains("open")) closeStatsList();
+});
 
 const OMDB_API_KEY = "3fe09fcd";
 // Mobil sürüm config.json okuyamıyor (bağımsız statik sayfa), o yüzden PC ile
@@ -841,7 +1315,7 @@ function addSearchResultCard(m,type,myGen){
  const div=document.createElement("div");
  div.className="movie";
  const hasOmdbPoster=!!(m.Poster&&m.Poster!=="N/A");
- const initialPoster=hasOmdbPoster?m.Poster:"https://via.placeholder.com/90x135";
+ const initialPoster=hasOmdbPoster?m.Poster:POSTER_PLACEHOLDER;
  div.innerHTML=`
  <img id="poster-${m.imdbID}" class="add-poster" src="${initialPoster}" draggable="false" onclick="addMovie('${m.imdbID}','${type}')" title="Eklemek için afişe tıkla">
  <div>
@@ -868,7 +1342,7 @@ function addSearchResultCard(m,type,myGen){
 function card(m,i,isWatch){
  const info=turkishCache[m.imdbID]||{};
  const hasOmdbPoster=!!(m.Poster&&m.Poster!=="N/A");
- const poster=hasOmdbPoster?m.Poster:"https://via.placeholder.com/90x135";
+ const poster=hasOmdbPoster?m.Poster:POSTER_PLACEHOLDER;
  const trTitle=info.title||"";
 
  const d=document.createElement("div");
@@ -876,7 +1350,7 @@ function card(m,i,isWatch){
  d.dataset.id=m.imdbID;
  d.dataset.hasPoster=hasOmdbPoster?"1":"0";
  d.innerHTML=`
- <div class="number">${i+1}</div>
+ <div class="number" title="Çift tıkla: sıra numarası gir" ondblclick="editRank(event,'${m.imdbID}','${isWatch?'watchlist':'watched'}')">${i+1}</div>
  <img class="poster-link" src="${poster}" draggable="false" ondragstart="return false" onclick="openDetail('${m.imdbID}','${isWatch?'watchlist':'watched'}')">
  <div>
  <b>${m.Title}</b> (${m.Year})
@@ -911,11 +1385,11 @@ function fetchPoster(imdbID,imgEl,title,year){
  imgEl.dataset.posterStage="done";
  getTurkishInfo(imdbID,title,year).then(info=>{
    if(info.poster){
-     imgEl.onerror=()=>{imgEl.onerror=null;imgEl.src="https://via.placeholder.com/90x135";};
+     imgEl.onerror=()=>{imgEl.onerror=null;imgEl.src=POSTER_PLACEHOLDER;};
      imgEl.src=info.poster;
    }else{
      imgEl.onerror=null;
-     imgEl.src="https://via.placeholder.com/90x135";
+     imgEl.src=POSTER_PLACEHOLDER;
    }
  });
 }
@@ -1056,6 +1530,55 @@ function reorderInList(type,id,toDisplayIndex){
  applyDisplayOrder(type,ids,id,newAddedAt);
  render();
  persistMovedItem(type,id,newAddedAt);
+}
+
+/* Sıra numarasına çift tıklayınca doğrudan bir pozisyon yazıp o sıraya
+   atlama (PC sürümündeki özelliğin mobil karşılığı). Mevcut sürükle-bırak
+   sıralama altyapısıyla aynı fonksiyonları (computeNeighborAddedAt,
+   applyDisplayOrder, persistMovedItem) kullanır - ayrı bir mekanizma
+   icat etmiyoruz, böylece ikisi asla çakışmaz. */
+function editRank(e,id,type){
+ if(!canReorderList(type)) return; // sadece Eklenme tarihine göre sıralıyken ve filtre yokken anlamlı
+ const numEl=e.currentTarget;
+ if(numEl.querySelector("input")) return; // zaten düzenleniyor
+ const currentText=numEl.textContent.trim();
+
+ const input=document.createElement("input");
+ input.type="number";
+ input.min="1";
+ input.className="rank-input";
+ input.value=currentText;
+ numEl.textContent="";
+ numEl.appendChild(input);
+ input.focus();
+ input.select();
+
+ let done=false;
+ function commit(){
+   if(done) return;
+   done=true;
+   const val=parseInt(input.value,10);
+   numEl.textContent=currentText; // gerçek sayı render()'da tazelenecek
+   if(isNaN(val) || val<1 || String(val)===currentText) return;
+   const ids=getSortedDisplayIds(type);
+   const fromIdx=ids.indexOf(id);
+   if(fromIdx===-1) return;
+   const others=ids.filter(x=>x!==id);
+   const k=Math.max(0,Math.min(val-1,others.length));
+   const newAddedAt=computeNeighborAddedAt(type,others,k);
+   ids.splice(fromIdx,1);
+   ids.splice(k,0,id);
+   applyDisplayOrder(type,ids,id,newAddedAt);
+   render();
+   persistMovedItem(type,id,newAddedAt);
+ }
+ input.addEventListener("keydown",ke=>{
+   if(ke.key==="Enter"){ ke.preventDefault(); input.blur(); }
+   else if(ke.key==="Escape"){ done=true; numEl.textContent=currentText; }
+ });
+ input.addEventListener("blur",commit);
+ input.addEventListener("pointerdown",ke=>ke.stopPropagation());
+ input.addEventListener("click",ke=>ke.stopPropagation());
 }
 
 async function moveToListAt(id,fromType,toType,toDisplayIndex){
@@ -1746,7 +2269,7 @@ function renderCastRow(cast){
  const wrap=document.getElementById("detailCastRow");
  if(!cast||!cast.length){ wrap.innerHTML=""; return; }
  wrap.innerHTML=cast.map(p=>{
-   const photo=p.profile_path?`https://image.tmdb.org/t/p/w185${p.profile_path}`:"https://via.placeholder.com/92x92?text=%20";
+   const photo=p.profile_path?`https://image.tmdb.org/t/p/w185${p.profile_path}`:POSTER_PLACEHOLDER;
    return `<div class="person-photo-card" data-person-id="${p.id}">
      <div class="person-photo-wrap">
        <img class="person-photo" src="${photo}" loading="lazy">
@@ -1774,7 +2297,7 @@ function openDetail(id,type,fromHistory){
 
  const backdropUrl=info.backdrop||(movie.Poster&&movie.Poster!=="N/A"?movie.Poster:null);
  document.getElementById("detailBackdrop").style.backgroundImage=backdropUrl?`url('${backdropUrl}')`:"none";
- document.getElementById("detailPoster").src=(movie.Poster&&movie.Poster!=="N/A")?movie.Poster:(info.poster||"https://via.placeholder.com/130x195");
+ document.getElementById("detailPoster").src=(movie.Poster&&movie.Poster!=="N/A")?movie.Poster:(info.poster||POSTER_PLACEHOLDER);
  document.getElementById("detailYear").textContent=movie.Year||"";
  document.getElementById("detailRuntime").textContent=(movie.Runtime&&movie.Runtime!=="N/A")?movie.Runtime:"";
  document.getElementById("detailImdbLink").onclick=()=>{openImdb(id);return false;};
