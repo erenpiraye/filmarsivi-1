@@ -683,9 +683,9 @@ function renderStats(){
    {id:"stats-sec-runtime",label:"Süre",html:statsSectionRuntime(movies)},
    {id:"stats-sec-genres",label:"Türler",html:statsSectionBreakdown(movies)},
    {id:"stats-sec-taste",label:"Zevk Analizi",html:statsSectionTasteInsights(movies)},
+   {id:"stats-sec-dna",label:"Film DNA",html:statsSectionDNA(movies)},
    {id:"stats-sec-actors",label:"Oyuncular",html:statsSectionPeople(movies,"actor")},
-   {id:"stats-sec-directors",label:"Yönetmenler",html:statsSectionPeople(movies,"director")},
-   {id:"stats-sec-dna",label:"Film DNA",html:statsSectionDNA(movies)}
+   {id:"stats-sec-directors",label:"Yönetmenler",html:statsSectionPeople(movies,"director")}
  ].filter(s=>s.html && s.html.trim());
  const nav = sections.length>1
    ? `<div class="stats-nav">`+sections.map(s=>`<span class="stats-nav-btn" onclick="statsScrollTo('${s.id}')">${escapeHtml(s.label)}</span>`).join("")+`</div>`
@@ -965,6 +965,34 @@ function statsSectionSuperlatives(movies){
    }
  }
 
+ // Bütçe/hasılat bilgisi TMDB önbelleğinden (turkishCache) gelir; hasılat için
+ // TMDB'de yoksa OMDb'nin BoxOffice'i yedek olarak denenir (moneyLines ile aynı mantık).
+ const withBudget=movies.map(m=>{
+   const c=turkishCache[m.imdbID];
+   return {m,b:(c&&c.budget)||null};
+ }).filter(x=>x.b>0);
+ if(withBudget.length){
+   const highestB=withBudget.slice().sort((a,b)=>b.b-a.b)[0];
+   const lowestB=withBudget.slice().sort((a,b)=>a.b-b.b)[0];
+   cards.push(statsHighlightMovieCard("💰","En Yüksek Bütçeli Film",highestB.m,formatMoney(highestB.b)));
+   if(lowestB.m.imdbID!==highestB.m.imdbID){
+     cards.push(statsHighlightMovieCard("💸","En Düşük Bütçeli Film",lowestB.m,formatMoney(lowestB.b)));
+   }
+ }
+ const withRevenue=movies.map(m=>{
+   const c=turkishCache[m.imdbID];
+   const r=(c&&c.revenue)||parseOmdbMoney(m.BoxOffice);
+   return {m,r};
+ }).filter(x=>x.r>0);
+ if(withRevenue.length){
+   const highestR=withRevenue.slice().sort((a,b)=>b.r-a.r)[0];
+   const lowestR=withRevenue.slice().sort((a,b)=>a.r-b.r)[0];
+   cards.push(statsHighlightMovieCard("🎟","En Çok Hasılat Yapan Film",highestR.m,formatMoney(highestR.r)));
+   if(lowestR.m.imdbID!==highestR.m.imdbID){
+     cards.push(statsHighlightMovieCard("📉","En Az Hasılat Yapan Film",lowestR.m,formatMoney(lowestR.r)));
+   }
+ }
+
  const dirData=statsPeopleData(movies,"director");
  const dirTop=Object.keys(dirData.counts).map(k=>({name:k,count:dirData.counts[k]})).sort((a,b)=>b.count-a.count)[0];
  if(dirTop && dirTop.count>=2){
@@ -1015,9 +1043,6 @@ function statsSectionRatingDistribution(movies){
  const vals=rated.map(x=>x.r).sort((a,b)=>a-b);
  const n=vals.length;
  const mean=vals.reduce((s,v)=>s+v,0)/n;
- const median=statsPercentile(vals,50);
- const p25=statsPercentile(vals,25);
- const p75=statsPercentile(vals,75);
 
  const bins={};
  rated.forEach(x=>{
@@ -1040,9 +1065,6 @@ function statsSectionRatingDistribution(movies){
   <div class="stats-section-head"><span class="stats-section-title">Puan Dağılımı</span></div>
   <div class="stat-pill-row">
    <div class="stat-pill"><div class="stat-pill-value">${mean.toFixed(2)}</div><div class="stat-pill-label">Ortalama</div></div>
-   <div class="stat-pill"><div class="stat-pill-value">${median.toFixed(2)}</div><div class="stat-pill-label">Medyan</div></div>
-   <div class="stat-pill"><div class="stat-pill-value">${p25.toFixed(2)}</div><div class="stat-pill-label">%25 Yüzdelik</div></div>
-   <div class="stat-pill"><div class="stat-pill-value">${p75.toFixed(2)}</div><div class="stat-pill-label">%75 Yüzdelik</div></div>
   </div>
   <div class="rating-hist">${bars}</div>
  </div>`;
@@ -1070,7 +1092,6 @@ function statsSectionRuntime(movies){
  const mins=withRuntime.map(x=>x.min);
  const total=mins.reduce((s,v)=>s+v,0);
  const avg=total/mins.length;
- const median=statsPercentile(mins.slice().sort((a,b)=>a-b),50);
 
  const catMoviesMap={}, catRatingSums={};
  withRuntime.forEach(x=>{
@@ -1101,7 +1122,6 @@ function statsSectionRuntime(movies){
   <div class="stat-pill-row">
    <div class="stat-pill"><div class="stat-pill-value">${formatTime(total)}</div><div class="stat-pill-label">Toplam Süre</div></div>
    <div class="stat-pill"><div class="stat-pill-value">${formatTime(Math.round(avg))}</div><div class="stat-pill-label">Ortalama</div></div>
-   <div class="stat-pill"><div class="stat-pill-value">${formatTime(Math.round(median))}</div><div class="stat-pill-label">Medyan</div></div>
   </div>
   <div class="stats-columns">
    <div class="stats-col">
@@ -1355,14 +1375,18 @@ function statsHideTooltip(){ statsTooltipEl.classList.remove("show"); }
 const statsBodyEl=document.getElementById("statsBody");
 statsBodyEl.addEventListener("mouseover",e=>{
  const bar=e.target.closest(".year-bar-wrap");
- if(bar) statsShowTooltip(`${bar.dataset.year}: ${bar.dataset.count} film`,e.clientX,e.clientY);
+ if(bar){ statsShowTooltip(`${bar.dataset.year}: ${bar.dataset.count} film`,e.clientX,e.clientY); return; }
+ const ratingBar=e.target.closest(".rating-hist-bar-wrap");
+ if(ratingBar) statsShowTooltip(`${ratingBar.dataset.bin} Yıldız: ${ratingBar.dataset.count} film`,e.clientX,e.clientY);
 });
 statsBodyEl.addEventListener("mousemove",e=>{
  const bar=e.target.closest(".year-bar-wrap");
- if(bar) statsShowTooltip(`${bar.dataset.year}: ${bar.dataset.count} film`,e.clientX,e.clientY);
+ if(bar){ statsShowTooltip(`${bar.dataset.year}: ${bar.dataset.count} film`,e.clientX,e.clientY); return; }
+ const ratingBar=e.target.closest(".rating-hist-bar-wrap");
+ if(ratingBar) statsShowTooltip(`${ratingBar.dataset.bin} Yıldız: ${ratingBar.dataset.count} film`,e.clientX,e.clientY);
 });
 statsBodyEl.addEventListener("mouseout",e=>{
- if(e.target.closest(".year-bar-wrap")) statsHideTooltip();
+ if(e.target.closest(".year-bar-wrap") || e.target.closest(".rating-hist-bar-wrap")) statsHideTooltip();
 });
 
 /* ---- Bir yıla / türe / oyuncuya / yönetmene tıklandığında
