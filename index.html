@@ -280,6 +280,55 @@ html.single-focus .movie .tr-title{font-size:16px}
 .people-item{width:96px;text-align:center;cursor:pointer}
 .people-item:hover .people-name{color:#e8c877}
 
+/* ---- Yeni istatistik bölümleri: En'ler, Puan Dağılımı, Süre, Zevk Analizi, Film DNA ---- */
+.stats-nav{display:flex;gap:8px;overflow-x:auto;padding:0 0 16px 0;margin-bottom:14px;border-bottom:1px solid #2a2a2a}
+.stats-nav-btn{flex-shrink:0;padding:6px 13px;border-radius:16px;background:#222;border:1px solid #333;color:#ccc;font-size:12px;font-weight:600;cursor:pointer;user-select:none;white-space:nowrap;transition:border-color .15s ease,color .15s ease}
+.stats-nav-btn:hover{border-color:#d9a441;color:#e8c877}
+
+.stat-highlight-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:14px}
+.stat-highlight-card{background:#1e1e1e;border:1px solid #303030;border-radius:10px;padding:12px;cursor:pointer;transition:border-color .15s ease,transform .12s ease}
+.stat-highlight-card:hover{border-color:#d9a441;transform:translateY(-2px)}
+.stat-highlight-label{font-size:11px;color:#999;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.stat-highlight-main{display:flex;align-items:center;gap:10px}
+.stat-highlight-poster{width:42px;height:63px;object-fit:cover;border-radius:4px;background:#2a2a2a;flex-shrink:0}
+.stat-highlight-body{min-width:0}
+.stat-highlight-title{font-size:13px;color:#eee;font-weight:600;line-height:1.25;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.stat-highlight-value{font-size:17px;color:#e8c877;font-weight:bold;line-height:1.2}
+.stat-highlight-sub{font-size:11.5px;color:#999;margin-top:2px}
+
+.stat-pill-row{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:20px}
+.stat-pill{background:#1e1e1e;border:1px solid #303030;border-radius:8px;padding:10px 16px;min-width:96px;text-align:center}
+.stat-pill-value{font-size:19px;color:#e8c877;font-weight:bold}
+.stat-pill-label{font-size:11px;color:#999;text-transform:uppercase;letter-spacing:.5px;margin-top:3px}
+
+.rating-hist{display:flex;align-items:flex-end;gap:6px;height:140px;padding-bottom:4px}
+.rating-hist-bar-wrap{flex:1;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;cursor:pointer}
+.rating-hist-bar{width:100%;min-height:2px;background:linear-gradient(180deg,#f0d9a3,#d9a441);border-radius:3px 3px 0 0}
+.rating-hist-bar-wrap:hover .rating-hist-bar{background:linear-gradient(180deg,#fff0cc,#e8b955)}
+.rating-hist-label{font-size:11px;color:#888;margin-top:6px}
+
+.bar-fill.c-runtime{background:#b98be0}
+.bar-fill.c-rating{background:#d9a441}
+
+.insight-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
+.insight-card{display:flex;gap:12px;background:#1e1e1e;border:1px solid #303030;border-radius:10px;padding:14px}
+.insight-icon{flex-shrink:0;width:34px;height:34px;border-radius:50%;background:#2a2416;color:#e8c877;display:flex;align-items:center;justify-content:center;font-size:16px}
+.insight-text{font-size:13px;color:#ddd;line-height:1.45}
+.insight-text b{color:#e8c877}
+
+.dna-wrap{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start}
+.dna-radar-box{flex-shrink:0;width:280px;max-width:100%}
+.dna-badges{flex:1;min-width:220px;display:flex;flex-direction:column;gap:10px}
+.dna-badge{background:#1e1e1e;border:1px solid #303030;border-radius:8px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.dna-badge-label{font-size:12px;color:#999}
+.dna-badge-value{font-size:13.5px;color:#e8c877;font-weight:bold;text-align:right}
+.dna-summary{margin-top:18px;background:#1e1e1e;border:1px solid #303030;border-left:3px solid #d9a441;border-radius:8px;padding:14px 16px;font-size:13.5px;color:#ddd;line-height:1.55}
+
+@media (max-width:700px){
+ .dna-wrap{flex-direction:column;align-items:stretch}
+ .dna-radar-box{width:100%;max-width:280px;margin:0 auto}
+}
+
 .stats-list-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:300;align-items:flex-start;justify-content:center;overflow-y:auto;padding:30px 16px}
 .stats-list-overlay.open{display:flex}
 .stats-list-modal{position:relative;width:100%;max-width:900px;background:#181818;border:1px solid #3a3222;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,0.6)}
@@ -587,6 +636,31 @@ function statsYearOf(m){
 function statsInitials(name){
  return name.split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0]).join("").toUpperCase();
 }
+// OMDb'nin "Country" alanı (varsa) tür/yönetmen alanlarıyla aynı formatta
+// (virgülle ayrılmış) geliyor - eski kayıtlarda bu alan hiç olmayabilir,
+// böyle filmler ülkeyle ilgili istatistiklerde sessizce atlanır.
+function movieCountries(m){
+ return (m.Country||"").split(",").map(s=>s.trim()).filter(s=>s&&s!=="N/A");
+}
+function imdbVotesNum(m){
+ if(!m.imdbVotes||m.imdbVotes==="N/A") return null;
+ const n=parseInt(String(m.imdbVotes).replace(/[^0-9]/g,""),10);
+ return isNaN(n)?null:n;
+}
+// Sıralı bir sayı dizisinde p. yüzdelik (lineer enterpolasyonlu) değeri.
+function statsPercentile(sortedVals,p){
+ const n=sortedVals.length;
+ if(!n) return null;
+ if(n===1) return sortedVals[0];
+ const idx=(p/100)*(n-1);
+ const lo=Math.floor(idx), hi=Math.ceil(idx);
+ if(lo===hi) return sortedVals[lo];
+ return sortedVals[lo]+(sortedVals[hi]-sortedVals[lo])*(idx-lo);
+}
+function statsScrollTo(id){
+ const el=document.getElementById(id);
+ if(el) el.scrollIntoView({behavior:"smooth",block:"start"});
+}
 
 function renderStats(){
  const movies=allData.watched||[];
@@ -595,12 +669,28 @@ function renderStats(){
    body.innerHTML='<div class="stats-empty">Henüz izlenen film yok - istatistikler burada görünecek.</div>';
    return;
  }
- body.innerHTML =
-   statsSectionYears(movies)+
-   statsSectionDecades(movies)+
-   statsSectionBreakdown(movies)+
-   statsSectionPeople(movies,"actor")+
-   statsSectionPeople(movies,"director");
+ // Bölümler arası tıklanabilir film listesi haritalarının önceki render'dan
+ // kalma veri taşımaması için her renderStats çağrısında sıfırlanır; ilgili
+ // bölüm fonksiyonları kendi anahtarlarını (genre/country/runtimeCategory)
+ // aşağıda TEK TEK atar (nesnenin tamamını DEĞİŞTİRMEZLER), böylece aynı
+ // render turunda birbirlerinin verisini silmezler.
+ statsBreakdownMoviesMap={};
+ const sections=[
+   {id:"stats-sec-super",label:"En'ler",html:statsSectionSuperlatives(movies)},
+   {id:"stats-sec-ratingdist",label:"Puan Dağılımı",html:statsSectionRatingDistribution(movies)},
+   {id:"stats-sec-years",label:"Yıllar",html:statsSectionYears(movies)},
+   {id:"stats-sec-decades",label:"On Yıllar",html:statsSectionDecades(movies)},
+   {id:"stats-sec-runtime",label:"Süre",html:statsSectionRuntime(movies)},
+   {id:"stats-sec-genres",label:"Türler",html:statsSectionBreakdown(movies)},
+   {id:"stats-sec-taste",label:"Zevk Analizi",html:statsSectionTasteInsights(movies)},
+   {id:"stats-sec-actors",label:"Oyuncular",html:statsSectionPeople(movies,"actor")},
+   {id:"stats-sec-directors",label:"Yönetmenler",html:statsSectionPeople(movies,"director")},
+   {id:"stats-sec-dna",label:"Film DNA",html:statsSectionDNA(movies)}
+ ].filter(s=>s.html && s.html.trim());
+ const nav = sections.length>1
+   ? `<div class="stats-nav">`+sections.map(s=>`<span class="stats-nav-btn" onclick="statsScrollTo('${s.id}')">${escapeHtml(s.label)}</span>`).join("")+`</div>`
+   : "";
+ body.innerHTML = nav + sections.map(s=>s.html).join("");
  lazyLoadStatsPhotos();
  lazyLoadStatsPosterImgs(body);
 }
@@ -609,7 +699,7 @@ function renderStats(){
    OMDb'de afiş yoksa ya da yüklenemezse (kırık URL) ana sayfadaki gibi
    TMDB fallback'i (fetchPoster) devreye giriyor. ---- */
 function lazyLoadStatsPosterImgs(container){
- container.querySelectorAll('.stats-movie-poster[data-imdb-id]').forEach(imgEl=>{
+ container.querySelectorAll('.stats-movie-poster[data-imdb-id],.stat-highlight-poster[data-imdb-id]').forEach(imgEl=>{
    const imdbID=imgEl.dataset.imdbId;
    const hasPoster=imgEl.dataset.hasPoster==="1";
    const title=imgEl.dataset.title||"";
@@ -643,7 +733,7 @@ function statsSectionYears(movies){
    // olay dinleyicileri) ve tıklanınca o yılın filmleri listeleniyor.
    bars+=`<div class="year-bar-wrap" data-year="${y}" data-count="${c}"><div class="year-bar" style="height:${h}%"></div></div>`;
  }
- return `<div class="stats-section">
+ return `<div class="stats-section" id="stats-sec-years">
   <div class="stats-section-head"><span class="stats-section-title">Yıllara Göre</span></div>
   <div class="year-chart">${bars}</div>
   <div class="year-range-labels"><span>${minY}</span><span>${maxY}</span></div>
@@ -679,7 +769,7 @@ function statsSectionDecades(movies){
 
  if(!decades.length){
    statsDecadeMoviesMap={};
-   return `<div class="stats-section">${head}<div class="stats-empty">Yeterli veri yok</div></div>`;
+   return `<div class="stats-section" id="stats-sec-decades">${head}<div class="stats-empty">Yeterli veri yok</div></div>`;
  }
 
  statsDecadeMoviesMap={};
@@ -707,7 +797,7 @@ function statsSectionDecades(movies){
      }).join("")+`</div>`
    : '<div class="stats-empty">Film yok</div>';
 
- return `<div class="stats-section">
+ return `<div class="stats-section" id="stats-sec-decades">
   ${head}
   <div class="decade-tabs">${tabs}</div>
   ${grid}
@@ -754,14 +844,14 @@ function statsBarListHtml(items,mode,colorClass,field){
 }
 function statsSectionBreakdown(movies){
  const genreData=statsBreakdownData(movies,"genre");
- statsBreakdownMoviesMap={genre:genreData.moviesMap};
+ statsBreakdownMoviesMap.genre=genreData.moviesMap;
  const mode="count";
  // Tür listesi uzun olabildiği için tek sütunda çok aşağı iniyor ve sağda
  // boşluk kalıyordu - listeyi ikiye bölüp iki sütunda yan yana gösteriyoruz.
  const list=statsBreakdownList(genreData,mode);
  const half=Math.ceil(list.length/2);
  const col1=list.slice(0,half), col2=list.slice(half);
- return `<div class="stats-section">
+ return `<div class="stats-section" id="stats-sec-genres">
   <div class="stats-section-head">
    <span class="stats-section-title">Türler</span>
   </div>
@@ -814,11 +904,401 @@ function statsSectionPeople(movies,kind){
  const mode="count";
  const title=kind==="actor"?"Oyuncular":"Yönetmenler";
  const items=statsPeopleList(data,mode);
- return `<div class="stats-section">
+ return `<div class="stats-section" id="stats-sec-${kind==="actor"?"actors":"directors"}">
   <div class="stats-section-head">
    <span class="stats-section-title">${title}</span>
   </div>
   ${statsPeopleHtml(items,mode,kind)}
+ </div>`;
+}
+
+/* ---- En'ler: uçlardaki filmler ve en çok tekrar eden kişi/tür/ülke ---- */
+function statsHighlightMovieCard(icon,label,m,valueText){
+ const hasPoster=!!(m.Poster&&m.Poster!=="N/A");
+ const poster=hasPoster?m.Poster:POSTER_PLACEHOLDER;
+ return `<div class="stat-highlight-card" onclick="openDetail('${m.imdbID}','watched')">
+  <div class="stat-highlight-label">${icon} ${label}</div>
+  <div class="stat-highlight-main">
+   <img class="stat-highlight-poster" data-imdb-id="${m.imdbID}" data-has-poster="${hasPoster?1:0}" data-title="${escapeHtml(m.Title)}" data-year="${escapeHtml(m.Year||"")}" src="${poster}" loading="lazy">
+   <div class="stat-highlight-body">
+    <div class="stat-highlight-title">${escapeHtml(m.Title)}</div>
+    <div class="stat-highlight-value">${escapeHtml(valueText)}</div>
+   </div>
+  </div>
+ </div>`;
+}
+function statsHighlightNameCard(icon,label,kind,name,sub){
+ return `<div class="stat-highlight-card" data-kind="${kind}" data-name="${escapeHtml(name)}">
+  <div class="stat-highlight-label">${icon} ${label}</div>
+  <div class="stat-highlight-value" style="margin-top:2px">${escapeHtml(name)}</div>
+  <div class="stat-highlight-sub">${escapeHtml(sub)}</div>
+ </div>`;
+}
+function statsSectionSuperlatives(movies){
+ const rated=movies.map(m=>({m,r:statsRatingOf(m)})).filter(x=>x.r!=null);
+ const withRuntime=movies.map(m=>({m,min:runtimeMin(m.Runtime)})).filter(x=>x.min>0);
+ const withYear=movies.map(m=>({m,y:statsYearOf(m)})).filter(x=>x.y!=null);
+ const cards=[];
+
+ if(rated.length){
+   const best=rated.slice().sort((a,b)=>b.r-a.r || a.m.Title.localeCompare(b.m.Title,"tr"))[0];
+   const worst=rated.slice().sort((a,b)=>a.r-b.r || a.m.Title.localeCompare(b.m.Title,"tr"))[0];
+   cards.push(statsHighlightMovieCard("⭐","En Yüksek Puanlı",best.m,`★ ${best.r.toFixed(1)}`));
+   if(worst.m.imdbID!==best.m.imdbID){
+     cards.push(statsHighlightMovieCard("💔","En Düşük Puanlı",worst.m,`★ ${worst.r.toFixed(1)}`));
+   }
+ }
+ if(withRuntime.length){
+   const longest=withRuntime.slice().sort((a,b)=>b.min-a.min)[0];
+   const shortest=withRuntime.slice().sort((a,b)=>a.min-b.min)[0];
+   cards.push(statsHighlightMovieCard("⏱","En Uzun Film",longest.m,formatTime(longest.min)));
+   if(shortest.m.imdbID!==longest.m.imdbID){
+     cards.push(statsHighlightMovieCard("⏳","En Kısa Film",shortest.m,formatTime(shortest.min)));
+   }
+ }
+ if(withYear.length){
+   const oldest=withYear.slice().sort((a,b)=>a.y-b.y)[0];
+   const newest=withYear.slice().sort((a,b)=>b.y-a.y)[0];
+   cards.push(statsHighlightMovieCard("🕰","En Eski Film",oldest.m,String(oldest.y)));
+   if(newest.m.imdbID!==oldest.m.imdbID){
+     cards.push(statsHighlightMovieCard("✨","En Yeni Film",newest.m,String(newest.y)));
+   }
+ }
+
+ const dirData=statsPeopleData(movies,"director");
+ const dirTop=Object.keys(dirData.counts).map(k=>({name:k,count:dirData.counts[k]})).sort((a,b)=>b.count-a.count)[0];
+ if(dirTop && dirTop.count>=2){
+   cards.push(statsHighlightNameCard("🎬","En Çok İzlenen Yönetmen","director",dirTop.name,`${dirTop.count} film`));
+ }
+ const actData=statsPeopleData(movies,"actor");
+ const actTop=Object.keys(actData.counts).map(k=>({name:k,count:actData.counts[k]})).sort((a,b)=>b.count-a.count)[0];
+ if(actTop && actTop.count>=2){
+   cards.push(statsHighlightNameCard("🎭","En Çok İzlenen Oyuncu","actor",actTop.name,`${actTop.count} film`));
+ }
+ const genreData=statsBreakdownData(movies,"genre");
+ const genreTop=Object.keys(genreData.counts).map(k=>({name:k,count:genreData.counts[k]})).sort((a,b)=>b.count-a.count)[0];
+ if(genreTop){
+   cards.push(statsHighlightNameCard("🎞","En Çok İzlenen Tür","genre",genreTop.name,`${genreTop.count} film`));
+ }
+ // Ülke bilgisi her filmde olmayabilir - varsa gösterilir, hiç yoksa bu kart hiç eklenmez.
+ const countryCounts={}, countryMoviesMap={};
+ movies.forEach(m=>{
+   movieCountries(m).forEach(c=>{
+     countryCounts[c]=(countryCounts[c]||0)+1;
+     (countryMoviesMap[c]=countryMoviesMap[c]||[]).push(m);
+   });
+ });
+ statsBreakdownMoviesMap.country=countryMoviesMap;
+ const countryTop=Object.keys(countryCounts).map(k=>({name:k,count:countryCounts[k]})).sort((a,b)=>b.count-a.count)[0];
+ if(countryTop){
+   cards.push(statsHighlightNameCard("🌍","En Çok İzlenen Ülke","country",countryTop.name,`${countryTop.count} film`));
+ }
+
+ if(!cards.length) return "";
+ return `<div class="stats-section" id="stats-sec-super">
+  <div class="stats-section-head"><span class="stats-section-title">En'ler</span></div>
+  <div class="stat-highlight-grid">${cards.join("")}</div>
+ </div>`;
+}
+
+/* ---- Puan Dağılımı: histogram + ortalama/medyan/yüzdelikler ---- */
+let statsRatingBinMoviesMap={};
+function statsSectionRatingDistribution(movies){
+ const rated=movies.map(m=>({m,r:statsRatingOf(m)})).filter(x=>x.r!=null);
+ statsRatingBinMoviesMap={};
+ if(rated.length<3){
+   return `<div class="stats-section" id="stats-sec-ratingdist">
+    <div class="stats-section-head"><span class="stats-section-title">Puan Dağılımı</span></div>
+    <div class="stats-empty">Yeterli veri yok (en az birkaç puanlı film gerekir)</div>
+   </div>`;
+ }
+ const vals=rated.map(x=>x.r).sort((a,b)=>a-b);
+ const n=vals.length;
+ const mean=vals.reduce((s,v)=>s+v,0)/n;
+ const median=statsPercentile(vals,50);
+ const p25=statsPercentile(vals,25);
+ const p75=statsPercentile(vals,75);
+
+ const bins={};
+ rated.forEach(x=>{
+   const b=Math.min(10,Math.max(1,Math.round(x.r)));
+   bins[b]=(bins[b]||0)+1;
+   (statsRatingBinMoviesMap[b]=statsRatingBinMoviesMap[b]||[]).push(x.m);
+ });
+ const maxCount=Math.max(...Object.values(bins));
+ let bars="";
+ for(let b=1;b<=10;b++){
+   const c=bins[b]||0;
+   const h=maxCount?(c?Math.max(c/maxCount*100,4):0):0;
+   bars+=`<div class="rating-hist-bar-wrap" data-bin="${b}" data-count="${c}">
+    <div class="rating-hist-bar" style="height:${h}%"></div>
+    <div class="rating-hist-label">${b}</div>
+   </div>`;
+ }
+
+ return `<div class="stats-section" id="stats-sec-ratingdist">
+  <div class="stats-section-head"><span class="stats-section-title">Puan Dağılımı</span></div>
+  <div class="stat-pill-row">
+   <div class="stat-pill"><div class="stat-pill-value">${mean.toFixed(2)}</div><div class="stat-pill-label">Ortalama</div></div>
+   <div class="stat-pill"><div class="stat-pill-value">${median.toFixed(2)}</div><div class="stat-pill-label">Medyan</div></div>
+   <div class="stat-pill"><div class="stat-pill-value">${p25.toFixed(2)}</div><div class="stat-pill-label">%25 Yüzdelik</div></div>
+   <div class="stat-pill"><div class="stat-pill-value">${p75.toFixed(2)}</div><div class="stat-pill-label">%75 Yüzdelik</div></div>
+  </div>
+  <div class="rating-hist">${bars}</div>
+ </div>`;
+}
+
+/* ---- Film Süresi: toplam/ortalama/medyan, süre kategorileri, süre-puan ilişkisi ---- */
+const STATS_RUNTIME_CATS=[
+ {label:"Kısa (<90dk)",test:m=>m<90},
+ {label:"Standart (90-120dk)",test:m=>m>=90&&m<120},
+ {label:"Uzun (120-150dk)",test:m=>m>=120&&m<150},
+ {label:"Epik (150dk+)",test:m=>m>=150}
+];
+function statsRuntimeCatOf(min){
+ const c=STATS_RUNTIME_CATS.find(c=>c.test(min));
+ return c?c.label:null;
+}
+function statsSectionRuntime(movies){
+ const withRuntime=movies.map(m=>({m,min:runtimeMin(m.Runtime),r:statsRatingOf(m)})).filter(x=>x.min>0);
+ if(!withRuntime.length){
+   return `<div class="stats-section" id="stats-sec-runtime">
+    <div class="stats-section-head"><span class="stats-section-title">Film Süresi</span></div>
+    <div class="stats-empty">Yeterli veri yok</div>
+   </div>`;
+ }
+ const mins=withRuntime.map(x=>x.min);
+ const total=mins.reduce((s,v)=>s+v,0);
+ const avg=total/mins.length;
+ const median=statsPercentile(mins.slice().sort((a,b)=>a-b),50);
+
+ const catMoviesMap={}, catRatingSums={};
+ withRuntime.forEach(x=>{
+   const cat=statsRuntimeCatOf(x.min);
+   if(!cat) return;
+   (catMoviesMap[cat]=catMoviesMap[cat]||[]).push(x.m);
+   if(x.r!=null){ catRatingSums[cat]=catRatingSums[cat]||{sum:0,n:0}; catRatingSums[cat].sum+=x.r; catRatingSums[cat].n++; }
+ });
+ statsBreakdownMoviesMap.runtimeCategory=catMoviesMap;
+ const catItems=STATS_RUNTIME_CATS.map(c=>({name:c.label,count:(catMoviesMap[c.label]||[]).length})).filter(x=>x.count>0);
+ const catBarsHtml = catItems.length ? statsBarListHtml(catItems,"count","c-runtime","runtimeCategory") : '<div class="stats-empty">Yeterli veri yok</div>';
+
+ // Süre - puan ilişkisi: yalnızca en az 2 filmi olan kategoriler için ortalama puan gösterilir.
+ const relRows=STATS_RUNTIME_CATS.map(c=>{
+   const rs=catRatingSums[c.label];
+   if(!rs || rs.n<2) return null;
+   return {name:c.label,avg:rs.sum/rs.n};
+ }).filter(Boolean);
+ const relHtml = relRows.length
+   ? relRows.map(x=>`<div class="bar-row" style="cursor:default">
+      <div class="bar-row-top"><span>${escapeHtml(x.name)}</span><span class="bar-val">★ ${x.avg.toFixed(2)}</span></div>
+      <div class="bar-track"><div class="bar-fill c-rating" style="width:${Math.max(x.avg/10*100,3)}%"></div></div>
+     </div>`).join("")
+   : '<div class="stats-empty">Yeterli veri yok</div>';
+
+ return `<div class="stats-section" id="stats-sec-runtime">
+  <div class="stats-section-head"><span class="stats-section-title">Film Süresi</span></div>
+  <div class="stat-pill-row">
+   <div class="stat-pill"><div class="stat-pill-value">${formatTime(total)}</div><div class="stat-pill-label">Toplam Süre</div></div>
+   <div class="stat-pill"><div class="stat-pill-value">${formatTime(Math.round(avg))}</div><div class="stat-pill-label">Ortalama</div></div>
+   <div class="stat-pill"><div class="stat-pill-value">${formatTime(Math.round(median))}</div><div class="stat-pill-label">Medyan</div></div>
+  </div>
+  <div class="stats-columns">
+   <div class="stats-col">
+    <div class="stats-section-title" style="margin-bottom:12px">Süre Kategorileri</div>
+    ${catBarsHtml}
+   </div>
+   <div class="stats-col">
+    <div class="stats-section-title" style="margin-bottom:12px">Süre - Puan İlişkisi</div>
+    ${relHtml}
+   </div>
+  </div>
+ </div>`;
+}
+
+/* ---- Film Zevki Analizi: veriden türetilen otomatik çıkarımlar (yeterli veri yoksa hiç üretilmez) ---- */
+function statsSectionTasteInsights(movies){
+ if(movies.length<3){
+   return `<div class="stats-section" id="stats-sec-taste">
+    <div class="stats-section-head"><span class="stats-section-title">Film Zevki Analizi</span></div>
+    <div class="stats-empty">Anlamlı bir analiz için yeterli film yok</div>
+   </div>`;
+ }
+ const insights=[];
+
+ const genreData=statsBreakdownData(movies,"genre");
+ const genreEntries=Object.keys(genreData.counts).map(k=>({name:k,count:genreData.counts[k]})).sort((a,b)=>b.count-a.count);
+ if(genreEntries.length){
+   const top=genreEntries[0];
+   const pct=Math.round(top.count/movies.length*100);
+   let text=`En çok izlediğiniz tür <b>${escapeHtml(top.name)}</b> (%${pct}).`;
+   if(genreEntries[1]){
+     const p2=Math.round(genreEntries[1].count/movies.length*100);
+     text+=` Onu <b>${escapeHtml(genreEntries[1].name)}</b> (%${p2}) izliyor.`;
+   }
+   insights.push({icon:"🎞",text});
+   insights.push({icon:"🎨",text:`Toplam <b>${genreEntries.length}</b> farklı tür izlediniz - ${genreEntries.length>=8?"oldukça geniş bir yelpazeniz var":"belirli türlere yoğunlaştınız"}.`});
+ }
+
+ const dirData=statsPeopleData(movies,"director");
+ const dirEntries=Object.keys(dirData.counts).map(k=>({name:k,count:dirData.counts[k]})).sort((a,b)=>b.count-a.count);
+ if(dirEntries.length && dirEntries[0].count>=3){
+   insights.push({icon:"🎬",text:`En sadık olduğunuz yönetmen <b>${escapeHtml(dirEntries[0].name)}</b> - filmlerinden <b>${dirEntries[0].count}</b> tanesini izlediniz.`});
+ }
+
+ const withYear=movies.map(m=>statsYearOf(m)).filter(y=>y!=null);
+ if(withYear.length>=3){
+   const decCounts={};
+   withYear.forEach(y=>{ const d=Math.floor(y/10)*10; decCounts[d]=(decCounts[d]||0)+1; });
+   const topDec=Object.keys(decCounts).map(Number).sort((a,b)=>decCounts[b]-decCounts[a])[0];
+   const pct=Math.round(decCounts[topDec]/withYear.length*100);
+   insights.push({icon:"🕰",text:`Filmlerinizin %${pct}'i <b>${decadeLabel(topDec)}</b> yapımı.`});
+   const recentCount=withYear.filter(y=>y>=new Date().getFullYear()-10).length;
+   const recentPct=Math.round(recentCount/withYear.length*100);
+   insights.push({icon:"📅",text:`Filmlerinizin %${recentPct}'i son 10 yıl içinde çekilmiş.`});
+ }
+
+ const bothRated=movies.filter(m=>m.myRating!=null && m.myRating!=="" && m.imdbRating && m.imdbRating!=="N/A");
+ if(bothRated.length>=5){
+   const diffs=bothRated.map(m=>Number(m.myRating)-parseFloat(m.imdbRating));
+   const avgDiff=diffs.reduce((s,v)=>s+v,0)/diffs.length;
+   let text;
+   if(avgDiff>=0.3) text=`IMDb ortalamasına göre daha <b>cömert</b> puanlıyorsunuz (ortalama <b>+${avgDiff.toFixed(1)}</b>).`;
+   else if(avgDiff<=-0.3) text=`IMDb ortalamasına göre daha <b>eleştirel</b> puanlıyorsunuz (ortalama <b>${avgDiff.toFixed(1)}</b>).`;
+   else text=`Puanlarınız IMDb ortalamasıyla <b>paralel</b> (ortalama fark ${avgDiff>=0?"+":""}${avgDiff.toFixed(1)}).`;
+   insights.push({icon:"⚖️",text});
+ }
+
+ const countryCounts={};
+ let countryTagged=0;
+ movies.forEach(m=>{ const cs=movieCountries(m); if(cs.length) countryTagged++; cs.forEach(c=>{countryCounts[c]=(countryCounts[c]||0)+1;}); });
+ if(countryTagged>=5){
+   const topCountry=Object.keys(countryCounts).sort((a,b)=>countryCounts[b]-countryCounts[a])[0];
+   const pct=Math.round(countryCounts[topCountry]/countryTagged*100);
+   insights.push({icon:"🌍",text:`Ülke bilgisi olan filmlerin %${pct}'i <b>${escapeHtml(topCountry)}</b> yapımı.`});
+ }
+
+ const withRuntime=movies.map(m=>runtimeMin(m.Runtime)).filter(m=>m>0);
+ if(withRuntime.length>=3){
+   const avgMin=withRuntime.reduce((s,v)=>s+v,0)/withRuntime.length;
+   let pref;
+   if(avgMin<90) pref="kısa";
+   else if(avgMin<120) pref="standart";
+   else if(avgMin<150) pref="uzun";
+   else pref="epik";
+   insights.push({icon:"⏱",text:`Ortalama film süreniz <b>${formatTime(Math.round(avgMin))}</b> - genelde ${pref} sürelileri tercih ediyorsunuz.`});
+ }
+
+ if(!insights.length){
+   return `<div class="stats-section" id="stats-sec-taste">
+    <div class="stats-section-head"><span class="stats-section-title">Film Zevki Analizi</span></div>
+    <div class="stats-empty">Anlamlı bir analiz için yeterli veri yok</div>
+   </div>`;
+ }
+
+ return `<div class="stats-section" id="stats-sec-taste">
+  <div class="stats-section-head"><span class="stats-section-title">Film Zevki Analizi</span></div>
+  <div class="insight-grid">${insights.map(x=>`<div class="insight-card"><div class="insight-icon">${x.icon}</div><div class="insight-text">${x.text}</div></div>`).join("")}</div>
+ </div>`;
+}
+
+/* ---- Film DNA: tür ağırlıklı radar profili + rozetler + otomatik özet ---- */
+function statsBuildRadarSvg(axes){
+ const n=axes.length;
+ const size=280, cx=size/2, cy=size/2, R=100;
+ const maxVal=Math.max(...axes.map(a=>a.value));
+ const angleFor=i=>(-Math.PI/2)+(i*2*Math.PI/n);
+ const pointFor=(i,val)=>{
+   const ang=angleFor(i);
+   const r=maxVal?(val/maxVal)*R:0;
+   return [cx+r*Math.cos(ang), cy+r*Math.sin(ang)];
+ };
+ let rings="";
+ [0.25,0.5,0.75,1].forEach(f=>{
+   const pts=axes.map((a,i)=>{ const ang=angleFor(i); return `${cx+R*f*Math.cos(ang)},${cy+R*f*Math.sin(ang)}`; }).join(" ");
+   rings+=`<polygon points="${pts}" fill="none" stroke="#333" stroke-width="1"/>`;
+ });
+ let axisLines="", labels="";
+ axes.forEach((a,i)=>{
+   const ang=angleFor(i);
+   const x2=cx+R*Math.cos(ang), y2=cy+R*Math.sin(ang);
+   axisLines+=`<line x1="${cx}" y1="${cy}" x2="${x2}" y2="${y2}" stroke="#333" stroke-width="1"/>`;
+   const lx=cx+(R+24)*Math.cos(ang), ly=cy+(R+24)*Math.sin(ang);
+   const anchor = Math.abs(Math.cos(ang))<0.25 ? "middle" : (Math.cos(ang)>0?"start":"end");
+   labels+=`<text x="${lx}" y="${ly}" fill="#bbb" font-size="11" text-anchor="${anchor}" dominant-baseline="middle">${escapeHtml(a.label)}</text>`;
+ });
+ const dataPts=axes.map((a,i)=>pointFor(i,a.value).join(",")).join(" ");
+ const dots=axes.map((a,i)=>{ const [x,y]=pointFor(i,a.value); return `<circle cx="${x}" cy="${y}" r="3" fill="#d9a441"/>`; }).join("");
+ return `<svg viewBox="0 0 ${size} ${size}" width="100%" height="auto">
+  ${rings}${axisLines}
+  <polygon points="${dataPts}" fill="rgba(217,164,65,0.28)" stroke="#d9a441" stroke-width="2"/>
+  ${dots}
+  ${labels}
+ </svg>`;
+}
+function statsSectionDNA(movies){
+ if(movies.length<5){
+   return `<div class="stats-section" id="stats-sec-dna">
+    <div class="stats-section-head"><span class="stats-section-title">Film DNA</span></div>
+    <div class="stats-empty">Profil oluşturmak için yeterli film yok (en az 5 film gerekir)</div>
+   </div>`;
+ }
+ const genreData=statsBreakdownData(movies,"genre");
+ const genreEntries=Object.keys(genreData.counts).map(k=>({name:k,count:genreData.counts[k]})).sort((a,b)=>b.count-a.count).slice(0,6);
+ const radarSvg = genreEntries.length>=3 ? statsBuildRadarSvg(genreEntries.map(g=>({label:g.name,value:g.count}))) : "";
+
+ const badges=[];
+ const withYear=movies.map(m=>statsYearOf(m)).filter(y=>y!=null);
+ let topDec=null;
+ if(withYear.length){
+   const decCounts={};
+   withYear.forEach(y=>{ const d=Math.floor(y/10)*10; decCounts[d]=(decCounts[d]||0)+1; });
+   topDec=Object.keys(decCounts).map(Number).sort((a,b)=>decCounts[b]-decCounts[a])[0];
+   const pct=Math.round(decCounts[topDec]/withYear.length*100);
+   badges.push({label:"Baskın Dönem",value:`${decadeLabel(topDec)} (%${pct})`});
+   const avgYear=Math.round(withYear.reduce((s,v)=>s+v,0)/withYear.length);
+   badges.push({label:"Ortalama Yapım Yılı",value:String(avgYear)});
+ }
+ const dirData=statsPeopleData(movies,"director");
+ const dirEntries=Object.keys(dirData.counts).map(k=>({name:k,count:dirData.counts[k]})).sort((a,b)=>b.count-a.count);
+ if(dirEntries.length && dirEntries[0].count>=2){
+   const pct=Math.round(dirEntries[0].count/movies.length*100);
+   badges.push({label:"Yönetmen Sadakati",value:`${escapeHtml(dirEntries[0].name)} (%${pct})`});
+ }
+ const withRuntime=movies.map(m=>runtimeMin(m.Runtime)).filter(m=>m>0);
+ let avgMin=null;
+ if(withRuntime.length){
+   avgMin=Math.round(withRuntime.reduce((s,v)=>s+v,0)/withRuntime.length);
+   badges.push({label:"Ortalama Film Süresi",value:formatTime(avgMin)});
+ }
+ const votesArr=movies.map(m=>imdbVotesNum(m)).filter(v=>v!=null).sort((a,b)=>a-b);
+ if(votesArr.length>=5){
+   const medVotes=Math.round(statsPercentile(votesArr,50));
+   badges.push({label:"Medyan IMDb Oy Sayısı",value:medVotes.toLocaleString("tr-TR")});
+ }
+
+ const parts=[`${movies.length} film izlediniz.`];
+ if(genreEntries.length){
+   const top2=genreEntries.slice(0,2).map(g=>`${g.name} (%${Math.round(g.count/movies.length*100)})`).join(" ve ");
+   parts.push(`En çok ${top2} türlerini tercih ediyorsunuz.`);
+ }
+ if(topDec!=null) parts.push(`Ağırlıklı olarak ${decadeLabel(topDec)} yapımı filmler izliyorsunuz.`);
+ if(avgMin!=null) parts.push(`Ortalama film süreniz ${formatTime(avgMin)}.`);
+ const bothRated=movies.filter(m=>m.myRating!=null && m.myRating!=="" && m.imdbRating && m.imdbRating!=="N/A");
+ if(bothRated.length>=5){
+   const diffs=bothRated.map(m=>Number(m.myRating)-parseFloat(m.imdbRating));
+   const avgDiff=diffs.reduce((s,v)=>s+v,0)/diffs.length;
+   if(avgDiff>=0.3) parts.push(`IMDb ortalamasına göre puanlarınız ortalama +${avgDiff.toFixed(1)} daha yüksek.`);
+   else if(avgDiff<=-0.3) parts.push(`IMDb ortalamasına göre puanlarınız ortalama ${avgDiff.toFixed(1)} daha düşük.`);
+ }
+
+ return `<div class="stats-section" id="stats-sec-dna">
+  <div class="stats-section-head"><span class="stats-section-title">Film DNA</span></div>
+  <div class="dna-wrap">
+   ${radarSvg?`<div class="dna-radar-box">${radarSvg}</div>`:""}
+   <div class="dna-badges">${badges.map(b=>`<div class="dna-badge"><span class="dna-badge-label">${escapeHtml(b.label)}</span><span class="dna-badge-value">${b.value}</span></div>`).join("")}</div>
+  </div>
+  <div class="dna-summary">${parts.join(" ")}</div>
  </div>`;
 }
 
@@ -880,6 +1360,23 @@ statsBodyEl.addEventListener("click",e=>{
    const y=bar.dataset.year;
    const movies=statsYearMoviesMap[y]||[];
    if(movies.length) openStatsList(`${y} Filmleri`,movies);
+   return;
+ }
+ const ratingBar=e.target.closest(".rating-hist-bar-wrap");
+ if(ratingBar){
+   const bin=ratingBar.dataset.bin;
+   const movies=statsRatingBinMoviesMap[bin]||[];
+   if(movies.length) openStatsList(`${bin} Yıldız`,movies);
+   return;
+ }
+ const hCard=e.target.closest(".stat-highlight-card[data-kind]");
+ if(hCard){
+   const kind=hCard.dataset.kind, name=hCard.dataset.name;
+   let movies=[];
+   if(kind==="genre") movies=(statsBreakdownMoviesMap.genre&&statsBreakdownMoviesMap.genre[name])||[];
+   else if(kind==="country") movies=(statsBreakdownMoviesMap.country&&statsBreakdownMoviesMap.country[name])||[];
+   else if(kind==="director"||kind==="actor") movies=(statsPeopleMoviesMap[kind]&&statsPeopleMoviesMap[kind][name])||[];
+   if(movies.length) openStatsList(name,movies);
    return;
  }
  const barRow=e.target.closest(".bar-row");
