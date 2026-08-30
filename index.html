@@ -317,7 +317,7 @@ html.single-focus .movie .tr-title{font-size:16px}
 .insight-text b{color:#e8c877}
 
 .dna-wrap{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start}
-.dna-radar-box{flex-shrink:0;width:280px;max-width:100%}
+.dna-radar-box{flex-shrink:0;width:300px;max-width:100%}
 .dna-badges{flex:1;min-width:220px;display:flex;flex-direction:column;gap:10px}
 .dna-badge{background:#1e1e1e;border:1px solid #303030;border-radius:8px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px}
 .dna-badge-label{font-size:12px;color:#999}
@@ -326,7 +326,7 @@ html.single-focus .movie .tr-title{font-size:16px}
 
 @media (max-width:700px){
  .dna-wrap{flex-direction:column;align-items:stretch}
- .dna-radar-box{width:100%;max-width:280px;margin:0 auto}
+ .dna-radar-box{width:100%;max-width:300px;margin:0 auto}
 }
 
 .stats-list-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:300;align-items:flex-start;justify-content:center;overflow-y:auto;padding:30px 16px}
@@ -1205,7 +1205,8 @@ function statsSectionTasteInsights(movies){
 /* ---- Film DNA: tür ağırlıklı radar profili + rozetler + otomatik özet ---- */
 function statsBuildRadarSvg(axes){
  const n=axes.length;
- const size=280, cx=size/2, cy=size/2, R=100;
+ const size=300, cx=size/2, cy=size/2, R=80;
+ const labelGap=14, labelR=R+labelGap;
  const maxVal=Math.max(...axes.map(a=>a.value));
  const angleFor=i=>(-Math.PI/2)+(i*2*Math.PI/n);
  const pointFor=(i,val)=>{
@@ -1223,9 +1224,26 @@ function statsBuildRadarSvg(axes){
    const ang=angleFor(i);
    const x2=cx+R*Math.cos(ang), y2=cy+R*Math.sin(ang);
    axisLines+=`<line x1="${cx}" y1="${cy}" x2="${x2}" y2="${y2}" stroke="#333" stroke-width="1"/>`;
-   const lx=cx+(R+24)*Math.cos(ang), ly=cy+(R+24)*Math.sin(ang);
-   const anchor = Math.abs(Math.cos(ang))<0.25 ? "middle" : (Math.cos(ang)>0?"start":"end");
-   labels+=`<text x="${lx}" y="${ly}" fill="#bbb" font-size="11" text-anchor="${anchor}" dominant-baseline="middle">${escapeHtml(a.label)}</text>`;
+   const lx=cx+labelR*Math.cos(ang), ly=cy+labelR*Math.sin(ang);
+   const cosA=Math.cos(ang);
+   const anchor = Math.abs(cosA)<0.25 ? "middle" : (cosA>0?"start":"end");
+   // Uzun/çift kelimeli etiketler taşmasın diye satıra bölünüyor ve
+   // gerekirse yazı boyutu küçültülüyor; kenar boşluğu her cihazda sabit
+   // kaldığı için mobil/masaüstü arasında farklı kırpılma olmuyor.
+   const words=String(a.label).split(" ");
+   const longest=Math.max(...words.map(w=>w.length));
+   const fontSize = longest<=6?11:(longest<=8?10:(longest<=10?9:8.2));
+   if(words.length>1){
+     const line1=words.slice(0,Math.ceil(words.length/2)).join(" ");
+     const line2=words.slice(Math.ceil(words.length/2)).join(" ");
+     const lh=fontSize+2;
+     labels+=`<text x="${lx}" y="${ly}" fill="#bbb" font-size="${fontSize}" text-anchor="${anchor}">`
+       + `<tspan x="${lx}" dy="${-lh/2+2}">${escapeHtml(line1)}</tspan>`
+       + `<tspan x="${lx}" dy="${lh}">${escapeHtml(line2)}</tspan>`
+       + `</text>`;
+   } else {
+     labels+=`<text x="${lx}" y="${ly}" fill="#bbb" font-size="${fontSize}" text-anchor="${anchor}" dominant-baseline="middle">${escapeHtml(a.label)}</text>`;
+   }
  });
  const dataPts=axes.map((a,i)=>pointFor(i,a.value).join(",")).join(" ");
  const dots=axes.map((a,i)=>{ const [x,y]=pointFor(i,a.value); return `<circle cx="${x}" cy="${y}" r="3" fill="#d9a441"/>`; }).join("");
@@ -1270,11 +1288,6 @@ function statsSectionDNA(movies){
  if(withRuntime.length){
    avgMin=Math.round(withRuntime.reduce((s,v)=>s+v,0)/withRuntime.length);
    badges.push({label:"Ortalama Film Süresi",value:formatTime(avgMin)});
- }
- const votesArr=movies.map(m=>imdbVotesNum(m)).filter(v=>v!=null).sort((a,b)=>a-b);
- if(votesArr.length>=5){
-   const medVotes=Math.round(statsPercentile(votesArr,50));
-   badges.push({label:"Medyan IMDb Oy Sayısı",value:medVotes.toLocaleString("tr-TR")});
  }
 
  const parts=[`${movies.length} film izlediniz.`];
