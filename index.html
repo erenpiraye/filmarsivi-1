@@ -11,16 +11,35 @@
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <script>
-// Telefonda HER ZAMAN sadece "İzlenen" ya da sadece "İzlenecek" listesi tam
-// ekran gösterilir (ikisi birden dar telefon ekranında çok küçük kalıyordu).
-// "İkisi birden" diye bir ara durum YOK - üstteki ⇄ butonu direkt diğerine geçirir.
-// Seçim localStorage'da saklanır, bir dahaki açılışta hatırlanır.
+// Tek liste odak modu SADECE telefonda (dar ekran) uygulanır: telefonda HER
+// ZAMAN sadece "İzlenen" ya da sadece "İzlenecek" listesi tam ekran gösterilir
+// (ikisi birden dar telefon ekranında çok küçük kalıyordu). PC'de bu mod hiç
+// devreye girmez - iki liste her zaman yan yana (bölünmüş ekran) gösterilir.
+// "İkisi birden" diye bir ara durum YOK (mobilde) - üstteki ⇄ butonu direkt
+// diğerine geçirir. Seçim localStorage'da saklanır, bir dahaki açılışta hatırlanır.
 (function(){
- var params=new URLSearchParams(location.search);
- var focus=localStorage.getItem("filmarsivi_focus");
- if(params.get("buyuk")==="izlenen") focus="watched"; // eski kısayol - hâlâ çalışır
- if(focus!=="watched" && focus!=="watchlist") focus="watched"; // varsayılan
- document.documentElement.classList.add("single-focus","focus-"+focus);
+ var MOBILE_QUERY="(max-width:700px)";
+ function isMobile(){ return window.matchMedia(MOBILE_QUERY).matches; }
+ function apply(){
+   var html=document.documentElement;
+   if(isMobile()){
+     var params=new URLSearchParams(location.search);
+     var focus=localStorage.getItem("filmarsivi_focus");
+     if(params.get("buyuk")==="izlenen") focus="watched"; // eski kısayol - hâlâ çalışır
+     if(focus!=="watched" && focus!=="watchlist") focus="watched"; // varsayılan
+     html.classList.add("single-focus","focus-"+focus);
+   } else {
+     html.classList.remove("single-focus","focus-watched","focus-watchlist");
+   }
+ }
+ apply();
+ // Pencere mobil<->masaüstü eşiğini geçecek şekilde yeniden boyutlanırsa
+ // (örn. tarayıcı penceresi daraltılıp genişletilirse) modu canlı güncelle.
+ if(window.matchMedia){
+   var mq=window.matchMedia(MOBILE_QUERY);
+   if(mq.addEventListener) mq.addEventListener("change",apply);
+   else if(mq.addListener) mq.addListener(apply); // eski tarayıcı desteği
+ }
 })();
 </script>
 <title>Film Arşivi</title>
@@ -28,13 +47,18 @@
 *{box-sizing:border-box}
 body{font-family:Arial;background:#111;color:#eee;margin:0}
 .container{display:flex;height:100vh}
-.column{width:50%;padding:0;box-sizing:border-box;overflow-y:auto;overflow-x:hidden;scroll-behavior:smooth}
+/* scrollbar-gutter:stable: PC'de iki sütun yan yanayken, biri kaydırma
+   çubuğu gerektirip diğeri gerektirmediğinde (örn. biri diğerinden uzun
+   liste), kaydırma çubuğunun kapladığı ~15px genişlik yüzünden kartlar
+   (width:95%) iki sütunda farklı boyut görünüyordu. Her iki sütunda da bu
+   alan hep ayrılınca kartlar her zaman eşit boyutta kalır. */
+.column{width:50%;padding:0;box-sizing:border-box;overflow-y:auto;overflow-x:hidden;scroll-behavior:smooth;scrollbar-gutter:stable}
 .sticky-header{position:sticky;top:0;padding:20px 20px 10px 20px;background:#111;z-index:5;border-bottom:1px solid #222}
 .list-wrap{padding:0 20px 20px 20px}
 .column:first-child{border-right:2px solid #444}
 h2{text-align:center;margin-bottom:10px;font-size:20px}
 .list-header{display:flex;align-items:center;width:95%;margin:0 auto 14px auto;padding:13px 16px;border-radius:10px;background:#222}
-.list-header-brand{display:flex;align-items:center;cursor:pointer}
+.list-header-brand{display:flex;align-items:center}
 .stat-icon{width:38px;height:38px;border-radius:50%;background:var(--acc-bg);color:var(--acc-fg);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-right:12px}
 .stat-icon svg{width:19px;height:19px}
 .list-header-title{font-weight:700;color:#eee;font-size:17px;white-space:nowrap;margin-right:12px}
@@ -134,20 +158,25 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
  .findbox{padding:3px 6px;font-size:11px}
  .sync-bar{padding:3px 12px 0 12px!important}
 }
-/* ===================== TEK LİSTE ODAK MODU (mobilde ikisi birden küçük kaldığında) ===================== */
-/* header'daki ⇄ butonuna basınca ya da eski ?buyuk=izlenen linkiyle aktif olur */
-html.focus-watched .column[data-type="watchlist"]{display:none}
-html.focus-watchlist .column[data-type="watched"]{display:none}
-html.single-focus .column{width:100%}
-html.single-focus h2{font-size:22px}
-html.single-focus .search{font-size:20px;padding:12px}
-html.single-focus .findbox{font-size:18px;padding:10px}
-html.single-focus .controls .sort-select{font-size:16px;padding:8px 10px}
-html.single-focus .movie{padding:16px 14px}
-html.single-focus .movie img{width:130px;height:195px}
-html.single-focus .movie b{font-size:19px}
-html.single-focus .movie .meta{font-size:16px}
-html.single-focus .movie .tr-title{font-size:16px}
+/* ===================== TEK LİSTE ODAK MODU (SADECE mobilde, ikisi birden küçük kaldığında) =====================
+   Bu kurallar bilinçli olarak 700px altı ekranla sınırlı: PC'de bölünmüş
+   (iki sütunlu) görünüm her zaman korunur, tek liste moduna hiç geçilmez. */
+@media (max-width:700px){
+ /* header'daki ⇄ butonuna basınca ya da eski ?buyuk=izlenen linkiyle aktif olur */
+ html.focus-watched .column[data-type="watchlist"]{display:none}
+ html.focus-watchlist .column[data-type="watched"]{display:none}
+ html.single-focus .column{width:100%}
+ html.single-focus h2{font-size:22px}
+ html.single-focus .search{font-size:20px;padding:12px}
+ html.single-focus .findbox{font-size:18px;padding:10px}
+ html.single-focus .controls .sort-select{font-size:16px;padding:8px 10px}
+ html.single-focus .movie{padding:16px 14px}
+ html.single-focus .movie img{width:130px;height:195px}
+ html.single-focus .movie b{font-size:19px}
+ html.single-focus .movie .meta{font-size:16px}
+ html.single-focus .movie .tr-title{font-size:16px}
+ .list-header-brand{cursor:pointer}
+}
 
 /* ===================== DETAY MODALI (afişe/karta tıklayınca açılır) ===================== */
 .detail-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:200;align-items:flex-start;justify-content:center;overflow-y:auto;padding:30px 16px}
@@ -1761,7 +1790,7 @@ async function preloadInfo(){
  await loadGenreMap();
  const all=[...allData.watched,...allData.watchlist].filter(m=>{
    const c=turkishCache[m.imdbID];
-   return !c || !c._checked || !c._v2;
+   return !c || !c._checked || !c._v4;
  });
  const batchSize=5;
  for(let i=0;i<all.length;i+=batchSize){
@@ -2922,6 +2951,10 @@ function renderCompanyRow(companies){
  const list=(companies||[]).filter(c=>c&&c.name);
  if(!list.length){ section.style.display="none"; wrap.innerHTML=""; return; }
  section.style.display="";
+ // Şirket kartı IMDb'de arama sayfasında açılıp bir tık daha gerektirdiği için
+ // (IMDb şirketler için doğrudan/garantili bir kimlik eşlemesi sunmuyor) artık
+ // sadece TMDB'ye gidiyoruz: karta (footer dahil) tıklayınca doğrudan o
+ // şirketin TMDB sayfası açılır, ekstra arama adımı yok.
  wrap.innerHTML=list.map(c=>{
    const logo=c.logo_path?`https://image.tmdb.org/t/p/w185${c.logo_path}`:COMPANY_PLACEHOLDER;
    return `<div class="company-photo-card" data-company-id="${c.id}" data-company-name="${escapeHtml(c.name)}">
@@ -2940,46 +2973,6 @@ function openCompanyPage(companyId){
  openExternalLink(`https://www.themoviedb.org/company/${companyId}`);
 }
 
-// Yapım şirketi kartına (footer hariç) tıklanınca IMDb'de doğrudan o stüdyonun
-// sayfasına gitmek istiyoruz. TMDB API şirketler için IMDb id'si vermiyor, bu
-// yüzden IMDb'nin kendi arama kutusunun kullandığı otomatik-tamamlama
-// servisinden ("suggestion") şirketin "co..." kimliğini buluyoruz ve
-// doğrudan o stüdyonun gelişmiş arama sayfasına (companies=co...) atlıyoruz -
-// IMDb'nin arama kutusuna şirket adını yazıp ilk sonuca tıklayınca varılan
-// sayfanın aynısı. Bu servis resmi/garantili değil; yanıt vermezse veya
-// eşleşme bulunamazsa IMDb'nin genel arama sonuçlarına (bir tık fazla
-// gerektiren) düşülür.
-const companyImdbUrlCache={};
-async function getCompanyImdbUrl(name){
- if(companyImdbUrlCache[name]!==undefined) return companyImdbUrlCache[name];
- const fallback=`https://www.imdb.com/find/?q=${encodeURIComponent(name||"")}&s=co`;
- try{
-   const trimmed=(name||"").trim();
-   const letter=trimmed.charAt(0).toLowerCase();
-   const query=trimmed.toLowerCase().replace(/[^a-z0-9]+/g,"_").replace(/^_+|_+$/g,"");
-   if(!letter||!query) throw new Error("empty");
-   const controller=new AbortController();
-   const t=setTimeout(()=>controller.abort(),6000);
-   const r=await fetch(`https://v2.sg.media-imdb.com/suggestion/${letter}/${query}.json`,{signal:controller.signal});
-   clearTimeout(t);
-   const d=await r.json();
-   const hit=(d&&d.d||[]).find(x=>x.id && x.id.startsWith("co"));
-   const url=hit?`https://www.imdb.com/search/title/?companies=${hit.id}`:fallback;
-   companyImdbUrlCache[name]=url;
-   return url;
- }catch(e){
-   companyImdbUrlCache[name]=fallback;
-   return fallback;
- }
-}
-async function openCompanyImdbPage(name){
- if(companyImdbUrlCache[name]!==undefined){ openExternalLink(companyImdbUrlCache[name]); return; }
- const win=window.open("about:blank","_blank");
- const url=await getCompanyImdbUrl(name);
- if(win) win.location.href=url;
- else openExternalLink(url);
-}
-
 document.querySelector(".detail-body").addEventListener("click",e=>{
  const footer=e.target.closest(".site-link-footer");
  if(footer){
@@ -2994,7 +2987,7 @@ document.querySelector(".detail-body").addEventListener("click",e=>{
  const personLink=e.target.closest(".detail-person-link");
  if(personLink){ openPersonPage(personLink.dataset.personId); return; }
  const companyCard=e.target.closest(".company-photo-card");
- if(companyCard){ openCompanyImdbPage(companyCard.dataset.companyName); return; }
+ if(companyCard){ openCompanyPage(companyCard.dataset.companyId); return; }
 });
 
 function openDetail(id,type,fromHistory){
@@ -3306,6 +3299,9 @@ function currentFocus(){
 }
 
 function toggleFocus(){
+ // PC'de bölünmüş ekran her zaman korunur; bu buton (ve tek liste modu)
+ // sadece dar/mobil ekranda anlamlıdır.
+ if(!window.matchMedia("(max-width:700px)").matches) return;
  const html=document.documentElement;
  const next=currentFocus()==="watched"?"watchlist":"watched";
  html.classList.remove("focus-watched","focus-watchlist");
