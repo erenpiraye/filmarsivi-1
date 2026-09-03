@@ -215,6 +215,11 @@ html.single-focus .movie .tr-title{font-size:16px}
 .person-photo-name{font-size:13px;color:#eee;font-weight:bold;line-height:1.25}
 .person-photo-character{font-size:12px;color:#999;margin-top:2px;line-height:1.2}
 .person-photo-card:hover .person-photo-name{color:#d9a441}
+.company-photo-card{flex-shrink:0;width:140px;cursor:pointer;background:#202020;border:1px solid #333;border-radius:8px;overflow:hidden;transition:border-color .15s}
+.company-photo-card:hover{border-color:#d9a441}
+.company-photo-wrap{position:relative;width:140px;height:88px;overflow:hidden;background:#fff;display:flex;align-items:center;justify-content:center;padding:10px;box-sizing:border-box}
+.company-photo{max-width:100%;max-height:100%;object-fit:contain;display:block}
+.company-photo-card:hover .person-photo-name{color:#d9a441}
 .detail-footer{position:relative;z-index:1;display:flex;justify-content:space-between;align-items:center;padding:16px 24px;border-top:1px solid #2a2a2a;background:#151515}
 .detail-cancel{color:#999;cursor:pointer;font-size:14px}
 .detail-cancel:hover{color:#ccc}
@@ -226,6 +231,8 @@ html.single-focus .movie .tr-title{font-size:16px}
  .detail-people-box{min-width:130px}
  .person-photo-card{width:112px}
  .person-photo-wrap{width:112px;height:148px}
+ .company-photo-card{width:112px}
+ .company-photo-wrap{width:112px;height:74px}
  /* Poster üstte, başlık altta - dikey diziliş yüzünden bu alan uzuyor;
     arka plan fotoğrafı da orantısını bozmadan (background-size:cover ile
     kırpılarak) aynı oranda büyütülüyor ki kısa kalmasın. */
@@ -237,7 +244,9 @@ html.single-focus .movie .tr-title{font-size:16px}
 .stats-overlay.open{display:flex}
 .stats-modal{position:relative;width:100%;max-width:1080px;background:#181818;border:1px solid #3a3222;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,0.6)}
 .stats-topbar{position:relative;display:flex;align-items:center;justify-content:space-between;padding:18px 24px;background:#181818;border-bottom:1px solid #2a2a2a;border-radius:12px 12px 0 0;z-index:2}
-.stats-topbar h2{margin:0;text-align:left;font-size:20px;color:#e8c877}
+.stats-topbar h2{margin:0;display:flex;align-items:center;gap:10px;text-align:left;font-size:20px;color:#e8c877}
+.stats-title-icon{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,#3a2f14,#241d0c);color:#e8c877;flex-shrink:0}
+.stats-title-icon svg{width:19px;height:19px}
 .stats-body{padding:8px 24px 28px 24px}
 .stats-section{margin-top:30px;padding-top:22px;border-top:1px solid #2a2a2a}
 .stats-section:first-child{margin-top:10px;padding-top:0;border-top:none}
@@ -343,6 +352,8 @@ html.single-focus .movie .tr-title{font-size:16px}
 .stats-movie-card:hover .stats-movie-title{color:#e8c877}
 .stats-movie-year{font-size:11.5px;color:#888;margin-top:1px}
 .people-avatar{width:74px;height:100px;border-radius:6px;background:#2a2a2a;margin:0 auto 8px auto;overflow:hidden;display:flex;align-items:center;justify-content:center;color:#888;font-weight:bold;font-size:20px;border:1px solid #333}
+.people-avatar--company{background:#fff;padding:8px;box-sizing:border-box;font-size:11px;color:#444;text-align:center;line-height:1.2}
+.people-avatar--company img{width:100%;height:100%;object-fit:contain}
 .people-avatar img{width:100%;height:100%;object-fit:cover}
 .people-name{font-size:12.5px;color:#eee;font-weight:600;line-height:1.25}
 .people-count{font-size:11.5px;color:#888;margin-top:1px}
@@ -426,6 +437,11 @@ html.single-focus .movie .tr-title{font-size:16px}
    <div class="detail-section">
     <div class="detail-section-title">🎭 Oyuncular</div>
     <div class="detail-cast-row" id="detailCastRow"></div>
+   </div>
+
+   <div class="detail-section" id="detailProductionSection" style="display:none">
+    <div class="detail-section-title">🏢 Yapım Şirketleri</div>
+    <div class="detail-cast-row" id="detailProductionRow"></div>
    </div>
 
    <div class="detail-genres" id="detailGenres"></div>
@@ -553,7 +569,7 @@ html.single-focus .movie .tr-title{font-size:16px}
 <div class="stats-overlay" id="statsOverlay" onclick="if(event.target===this)closeStats()">
  <div class="stats-modal">
   <div class="stats-topbar">
-   <h2>📊 İstatistikler</h2>
+   <h2><span class="stats-title-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M7 15l4-4 3 3 5-6"/><path d="M15 8h4v4"/></svg></span> İstatistikler</h2>
    <span class="detail-close" style="position:static" onclick="closeStats()">✕</span>
   </div>
   <div class="stats-body" id="statsBody">
@@ -590,6 +606,9 @@ const db = firebase.firestore();
 // via.placeholder.com artık çalışmıyor (servis kapandı) - afiş/fotoğraf eksikse
 // yerel, ağa bağlı olmayan bir SVG kullanılıyor.
 const POSTER_PLACEHOLDER="data:image/svg+xml;utf8,"+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="200" height="300" viewBox="0 0 200 300"><rect width="200" height="300" fill="#2a2a2a"/><g fill="none" stroke="#555" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><rect x="55" y="90" width="90" height="115" rx="8"/><circle cx="100" cy="128" r="15"/><path d="M68 188 L92 158 L112 176 L132 152 L152 188"/></g></svg>');
+// Yapım şirketi logosu yoksa (TMDB'de her şirketin logosu bulunmuyor) gösterilecek
+// yerel, ağa bağlı olmayan basit bir "bina" ikonu - afiş yer tutucusuyla aynı mantık.
+const COMPANY_PLACEHOLDER="data:image/svg+xml;utf8,"+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="200" height="130" viewBox="0 0 200 130"><rect width="200" height="130" fill="#fff"/><g fill="none" stroke="#aaa" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"><rect x="62" y="32" width="76" height="80"/><rect x="80" y="48" width="12" height="12"/><rect x="108" y="48" width="12" height="12"/><rect x="80" y="72" width="12" height="12"/><rect x="108" y="72" width="12" height="12"/><rect x="90" y="96" width="20" height="16"/></g></svg>');
 
 /* ===================== İSTATİSTİKLER (letterboxd.com/stats esinli) =====================
    Not: Letterboxd'deki "Liste İlerlemesi" (IMDb Top 250, AFI 100 vb. küratörlü listelerdeki
@@ -685,7 +704,8 @@ function renderStats(){
    {id:"stats-sec-taste",label:"Zevk Analizi",html:statsSectionTasteInsights(movies)},
    {id:"stats-sec-dna",label:"Film DNA",html:statsSectionDNA(movies)},
    {id:"stats-sec-actors",label:"Oyuncular",html:statsSectionPeople(movies,"actor")},
-   {id:"stats-sec-directors",label:"Yönetmenler",html:statsSectionPeople(movies,"director")}
+   {id:"stats-sec-directors",label:"Yönetmenler",html:statsSectionPeople(movies,"director")},
+   {id:"stats-sec-companies",label:"Yapım Şirketleri",html:statsSectionCompanies(movies)}
  ].filter(s=>s.html && s.html.trim());
  const nav = sections.length>1
    ? `<div class="stats-nav">`+sections.map(s=>`<span class="stats-nav-btn" onclick="statsScrollTo('${s.id}')">${escapeHtml(s.label)}</span>`).join("")+`</div>`
@@ -909,6 +929,50 @@ function statsSectionPeople(movies,kind){
    <span class="stats-section-title">${title}</span>
   </div>
   ${statsPeopleHtml(items,mode,kind)}
+ </div>`;
+}
+
+/* ---- Yapım Şirketleri: oyuncular/yönetmenler bölümüyle aynı görünüm, ama
+   avatar yerine TMDB'den gelen şirket logosu (varsa) gösterilir. Veri, "İzlenen"
+   listesindeki her film için önceden çekilmiş TMDB detayından (turkishCache
+   içindeki productionCompanies) geliyor - bütçe/hasılat istatistikleriyle
+   aynı kaynak. ---- */
+function statsCompanyData(movies){
+ const counts={}, moviesMap={}, logos={};
+ movies.forEach(m=>{
+   const c=turkishCache[m.imdbID];
+   const companies=(c&&c.productionCompanies)||[];
+   companies.forEach(co=>{
+     if(!co||!co.name) return;
+     counts[co.name]=(counts[co.name]||0)+1;
+     (moviesMap[co.name]=moviesMap[co.name]||[]).push(m);
+     if(co.logo_path && !logos[co.name]) logos[co.name]=co.logo_path;
+   });
+ });
+ return {counts,moviesMap,logos};
+}
+function statsSectionCompanies(movies){
+ const data=statsCompanyData(movies);
+ statsPeopleMoviesMap.company=data.moviesMap;
+ const items=Object.keys(data.counts)
+   .map(k=>({name:k,count:data.counts[k],logo:data.logos[k]||null}))
+   .sort((a,b)=>b.count-a.count || a.name.localeCompare(b.name,"tr"))
+   .slice(0,18);
+ if(!items.length) return "";
+ return `<div class="stats-section" id="stats-sec-companies">
+  <div class="stats-section-head">
+   <span class="stats-section-title">Yapım Şirketleri</span>
+  </div>
+  <div class="people-grid">`+items.map(x=>{
+    const avatarInner = x.logo
+      ? `<img src="https://image.tmdb.org/t/p/w185${x.logo}" loading="lazy" onerror="this.onerror=null;this.src='${COMPANY_PLACEHOLDER}'">`
+      : `<img src="${COMPANY_PLACEHOLDER}" loading="lazy">`;
+    return `<div class="people-item" data-kind="company" data-person-name="${escapeHtml(x.name)}">
+     <div class="people-avatar people-avatar--company">${avatarInner}</div>
+     <div class="people-name">${escapeHtml(x.name)}</div>
+     <div class="people-count">${x.count} film</div>
+    </div>`;
+  }).join("")+`</div>
  </div>`;
 }
 
@@ -1637,8 +1701,8 @@ async function getTurkishInfo(imdbID,title,year){
  // bile _v2 yok - bu yüzden TMDB butonu/oyuncular kalıcı olarak hiç
  // gelmiyordu. _v2 kontrolü, eski kayıtlar için bir kereliğine sessiz bir
  // yeniden-çekmeye (migrasyon) zorluyor; sonrasında normal şekilde önbellekten okunur.
- if(cached && cached._checked && cached._v3) return cached;
- const info={title:null,poster:null,genres:[],genreIds:[],budget:null,revenue:null,overview:null,backdrop:null,tmdbId:null};
+ if(cached && cached._checked && cached._v4) return cached;
+ const info={title:null,poster:null,genres:[],genreIds:[],budget:null,revenue:null,overview:null,backdrop:null,tmdbId:null,productionCompanies:[]};
  if(cached) Object.assign(info,cached); // eski önbellekte olan (başlık/poster/tür) alanları koru, eksikleri tamamlayacağız
  try{
    const data=await fetchJson(`https://api.themoviedb.org/3/find/${imdbID}?api_key=${TMDB_KEY}&external_source=imdb_id&language=tr-TR`);
@@ -1676,10 +1740,13 @@ async function getTurkishInfo(imdbID,title,year){
          if(det.revenue) info.revenue=det.revenue;
          if(!info.overview && det.overview) info.overview=det.overview;
          if(!info.backdrop && det.backdrop_path) info.backdrop=`https://image.tmdb.org/t/p/w780${det.backdrop_path}`;
+         if(det.production_companies && det.production_companies.length){
+           info.productionCompanies=det.production_companies.map(c=>({id:c.id,name:c.name,logo_path:c.logo_path||null}));
+         }
        }
      }catch(e){}
    }
-   info._v3=true; // bu deneme (find/search) ağ hatası almadan tamamlandı - eski/yeni ayrımı için işaretle
+   info._v4=true; // bu deneme (find/search) ağ hatası almadan tamamlandı - eski/yeni ayrımı için işaretle (v4: yapım şirketleri eklendi)
  }catch(e){}
  // sadece gerçekten bir sonuç bulduysak kalıcı olarak önbelleğe al (_checked=true) -
  // ki bir daha bu film için hiç istek atılmasın. Toptan başarısızlıkta (ağ hatası vb.)
@@ -2845,11 +2912,41 @@ function renderCastRow(cast){
  renderPersonPhotoRow("detailCastRow",cast,true);
 }
 
+// Oyuncu/yönetmen kartlarıyla aynı görünümde, ama fotoğraf yerine yapım
+// şirketinin logosunu (varsa) gösteren kart satırı. Şirketin TMDB'de logosu
+// yoksa yerel bina ikonu (COMPANY_PLACEHOLDER) kullanılır - afiş/oyuncu
+// fotoğrafı yer tutucusuyla aynı mantık.
+function renderCompanyRow(companies){
+ const wrap=document.getElementById("detailProductionRow");
+ const section=document.getElementById("detailProductionSection");
+ if(!wrap||!section) return;
+ const list=(companies||[]).filter(c=>c&&c.name);
+ if(!list.length){ section.style.display="none"; wrap.innerHTML=""; return; }
+ section.style.display="";
+ wrap.innerHTML=list.map(c=>{
+   const logo=c.logo_path?`https://image.tmdb.org/t/p/w185${c.logo_path}`:COMPANY_PLACEHOLDER;
+   return `<div class="company-photo-card" data-company-id="${c.id}">
+     <div class="company-photo-wrap">
+       <img class="company-photo" src="${logo}" loading="lazy" onerror="this.onerror=null;this.src='${COMPANY_PLACEHOLDER}'">
+     </div>
+     <div class="person-photo-info">
+       <div class="person-photo-name">${escapeHtml(c.name)}</div>
+     </div>
+   </div>`;
+ }).join("");
+}
+
+function openCompanyPage(companyId){
+ openExternalLink(`https://www.themoviedb.org/company/${companyId}`);
+}
+
 document.querySelector(".detail-body").addEventListener("click",e=>{
  const personCard=e.target.closest(".person-photo-card");
  if(personCard){ openPersonPage(personCard.dataset.personId); return; }
  const personLink=e.target.closest(".detail-person-link");
  if(personLink){ openPersonPage(personLink.dataset.personId); return; }
+ const companyCard=e.target.closest(".company-photo-card");
+ if(companyCard){ openCompanyPage(companyCard.dataset.companyId); return; }
 });
 
 function openDetail(id,type,fromHistory){
@@ -2882,6 +2979,8 @@ function openDetail(id,type,fromHistory){
  document.getElementById("detailDirector").textContent=(movie.Director&&movie.Director!=="N/A")?movie.Director:"—";
  document.getElementById("detailWriter").textContent=(movie.Writer&&movie.Writer!=="N/A")?movie.Writer:"—";
  document.getElementById("detailCastRow").innerHTML="";
+ document.getElementById("detailProductionRow").innerHTML="";
+ document.getElementById("detailProductionSection").style.display="none";
 
  const genres=movieGenresTr(movie);
  document.getElementById("detailGenres").innerHTML=genres.length?genres.map(g=>`<span class="detail-genre-tag">${escapeHtml(g)}</span>`).join(""):"";
@@ -2911,6 +3010,7 @@ function openDetail(id,type,fromHistory){
      fillDetailMoney(movie,freshInfo);
    tmdbLinkEl.style.display=freshInfo.tmdbId?"":"none";
    tmdbLinkEl.onclick=()=>{if(freshInfo.tmdbId) openExternalLink(`https://www.themoviedb.org/movie/${freshInfo.tmdbId}`);return false;};
+   renderCompanyRow(freshInfo.productionCompanies);
 
    if(!freshInfo.tmdbId) return;
    loadCastForDetail(freshInfo.tmdbId).then(castInfo=>{
