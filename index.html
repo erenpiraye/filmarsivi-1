@@ -53,9 +53,8 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 .search{width:95%;padding:10px;margin:0 auto 8px auto;display:block;background:#333;color:#eee;border:1px solid #555;border-radius:4px;font-size:16px}
 .sort-select{padding:6px 8px;font-size:13px;background:#222;color:#ccc;border:1px solid #444;border-radius:4px}
 .movie{width:95%;display:flex;align-items:center;margin:0 auto 15px auto;background:#222;padding:12px 16px;border-radius:8px;position:relative}
-.movie img{width:90px;height:135px;object-fit:cover;margin-right:15px;border-radius:4px}
+.movie img{width:110px;height:165px;object-fit:cover;margin-right:15px;border-radius:4px}
 .movie img.poster-link{cursor:pointer}
-.number{font-size:2.2em;color:#555;width:80px;display:flex;justify-content:center;align-items:center;margin-right:20px}
 .rank-input{width:100%;font-size:0.55em;text-align:center;background:#222;color:#eee;border:1px solid #d9a441;border-radius:4px;padding:2px 0}
 .rank-input::-webkit-inner-spin-button,.rank-input::-webkit-outer-spin-button{opacity:1}
 .btn{margin-top:6px;padding:6px 12px;background:#555;color:#fff;border:none;border-radius:4px;cursor:pointer}
@@ -94,9 +93,8 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 
 #watchedList.grid-view,#watchList.grid-view{width:95%;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px 15px;align-items:start}
 .grid-view .movie{width:100%;margin:0;min-width:0;overflow:hidden}
-.grid-view .movie .number{width:48px;font-size:1.3em;margin-right:10px;flex-shrink:0;flex-grow:0}
-.grid-view .movie img{width:55px;height:82px;margin-right:10px;flex-shrink:0}
-.grid-view .movie>div:not(.number){min-width:0;overflow-wrap:break-word}
+.grid-view .movie img{width:72px;height:108px;margin-right:10px;flex-shrink:0}
+.grid-view .movie>div{min-width:0;overflow-wrap:break-word}
 
 .sync-bar{width:95%;margin:0 auto 10px auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .sync-bar button{padding:6px 10px;background:#333;color:#eee;border:1px solid #555;border-radius:4px;cursor:pointer;font-size:12px}
@@ -121,8 +119,7 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
  .findbox{padding:4px 8px;font-size:12px;margin-bottom:0}
  .list-wrap{padding:0 12px 12px 12px}
  .movie{padding:8px 10px;margin:0 auto 10px auto}
- .movie img{width:60px;height:90px;margin-right:10px}
- .number{font-size:1.3em;width:38px;margin-right:10px}
+ .movie img{width:92px;height:138px;margin-right:10px}
  .sync-bar{padding:5px 12px 0 12px!important;gap:6px}
  .sync-bar button{font-size:11px;padding:4px 7px}
  .sync-status{font-size:11px}
@@ -147,8 +144,7 @@ html.single-focus .search{font-size:20px;padding:12px}
 html.single-focus .findbox{font-size:18px;padding:10px}
 html.single-focus .controls .sort-select{font-size:16px;padding:8px 10px}
 html.single-focus .movie{padding:16px 14px}
-html.single-focus .movie .number{font-size:2em;width:60px}
-html.single-focus .movie img{width:85px;height:127px}
+html.single-focus .movie img{width:130px;height:195px}
 html.single-focus .movie b{font-size:19px}
 html.single-focus .movie .meta{font-size:16px}
 html.single-focus .movie .tr-title{font-size:16px}
@@ -207,19 +203,22 @@ html.single-focus .movie .tr-title{font-size:16px}
 .detail-genres{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
 .detail-genre-tag{background:#2a2a2a;border:1px solid #444;color:#ccc;padding:4px 10px;border-radius:14px;font-size:12px}
 .detail-cast-row{display:flex;flex-wrap:wrap;gap:12px;padding-bottom:8px;margin-bottom:6px}
-.person-photo-card{flex-shrink:0;width:140px;cursor:pointer;background:#202020;border:1px solid #333;border-radius:8px;overflow:hidden;transition:border-color .15s}
+.person-photo-card{flex-shrink:0;width:140px;cursor:pointer;background:#202020;border:1px solid #333;border-radius:8px;overflow:hidden;transition:border-color .15s;display:flex;flex-direction:column}
 .person-photo-card:hover{border-color:#d9a441}
 .person-photo-wrap{position:relative;width:140px;height:180px;overflow:hidden;background:#2a2a2a}
 .person-photo{width:100%;height:100%;object-fit:cover;display:block}
-.person-photo-info{padding:8px 10px}
+.person-photo-info{padding:8px 10px;flex:1 1 auto}
 .person-photo-name{font-size:13px;color:#eee;font-weight:bold;line-height:1.25}
 .person-photo-character{font-size:12px;color:#999;margin-top:2px;line-height:1.2}
 .person-photo-card:hover .person-photo-name{color:#d9a441}
-.company-photo-card{flex-shrink:0;width:140px;cursor:pointer;background:#202020;border:1px solid #333;border-radius:8px;overflow:hidden;transition:border-color .15s}
+.company-photo-card{flex-shrink:0;width:140px;cursor:pointer;background:#202020;border:1px solid #333;border-radius:8px;overflow:hidden;transition:border-color .15s;display:flex;flex-direction:column}
 .company-photo-card:hover{border-color:#d9a441}
 .company-photo-wrap{position:relative;width:140px;height:180px;overflow:hidden;background:#fff;display:flex;align-items:center;justify-content:center;padding:14px;box-sizing:border-box}
 .company-photo{max-width:100%;max-height:100%;object-fit:contain;display:block}
 .company-photo-card:hover .person-photo-name{color:#d9a441}
+.site-link-footer{flex-shrink:0;height:24px;display:flex;align-items:center;justify-content:center;border-top:1px solid #333;font-size:10px;font-weight:800;letter-spacing:.4px;cursor:pointer;transition:filter .15s ease;background:rgba(1,180,228,0.16);color:#01b4e4}
+.site-link-footer:hover{filter:brightness(1.2)}
+.site-link-footer:active{filter:brightness(0.92)}
 .detail-footer{position:relative;z-index:1;display:flex;justify-content:space-between;align-items:center;padding:16px 24px;border-top:1px solid #2a2a2a;background:#151515}
 .detail-cancel{color:#999;cursor:pointer;font-size:14px}
 .detail-cancel:hover{color:#ccc}
@@ -1954,7 +1953,6 @@ function card(m,i,isWatch){
  d.dataset.id=m.imdbID;
  d.dataset.hasPoster=hasOmdbPoster?"1":"0";
  d.innerHTML=`
- <div class="number" title="Çift tıkla: sıra numarası gir" ondblclick="editRank(event,'${m.imdbID}','${isWatch?'watchlist':'watched'}')">${i+1}</div>
  <img class="poster-link" src="${poster}" draggable="false" ondragstart="return false" onclick="openDetail('${m.imdbID}','${isWatch?'watchlist':'watched'}')">
  <div>
  <b>${m.Title}</b> (${m.Year})
@@ -2896,7 +2894,7 @@ function renderPersonPhotoRow(containerId,people,showCharacter){
  wrap.innerHTML=people.map(p=>{
    const photo=p.profile_path?`https://image.tmdb.org/t/p/w185${p.profile_path}`:POSTER_PLACEHOLDER;
    const sub=showCharacter?(p.character||""):(p.job||"");
-   return `<div class="person-photo-card" data-person-id="${p.id}">
+   return `<div class="person-photo-card" data-person-id="${p.id}" data-person-name="${escapeHtml(p.name)}">
      <div class="person-photo-wrap">
        <img class="person-photo" src="${photo}" loading="lazy">
      </div>
@@ -2904,6 +2902,7 @@ function renderPersonPhotoRow(containerId,people,showCharacter){
        <div class="person-photo-name">${escapeHtml(p.name)}</div>
        <div class="person-photo-character">${escapeHtml(sub)}</div>
      </div>
+     <div class="site-link-footer">TMDB</div>
    </div>`;
  }).join("");
 }
@@ -2925,13 +2924,14 @@ function renderCompanyRow(companies){
  section.style.display="";
  wrap.innerHTML=list.map(c=>{
    const logo=c.logo_path?`https://image.tmdb.org/t/p/w185${c.logo_path}`:COMPANY_PLACEHOLDER;
-   return `<div class="company-photo-card" data-company-id="${c.id}">
+   return `<div class="company-photo-card" data-company-id="${c.id}" data-company-name="${escapeHtml(c.name)}">
      <div class="company-photo-wrap">
        <img class="company-photo" src="${logo}" loading="lazy" onerror="this.onerror=null;this.src='${COMPANY_PLACEHOLDER}'">
      </div>
      <div class="person-photo-info">
        <div class="person-photo-name">${escapeHtml(c.name)}</div>
      </div>
+     <div class="site-link-footer">TMDB</div>
    </div>`;
  }).join("");
 }
@@ -2940,13 +2940,61 @@ function openCompanyPage(companyId){
  openExternalLink(`https://www.themoviedb.org/company/${companyId}`);
 }
 
+// Yapım şirketi kartına (footer hariç) tıklanınca IMDb'de doğrudan o stüdyonun
+// sayfasına gitmek istiyoruz. TMDB API şirketler için IMDb id'si vermiyor, bu
+// yüzden IMDb'nin kendi arama kutusunun kullandığı otomatik-tamamlama
+// servisinden ("suggestion") şirketin "co..." kimliğini buluyoruz ve
+// doğrudan o stüdyonun gelişmiş arama sayfasına (companies=co...) atlıyoruz -
+// IMDb'nin arama kutusuna şirket adını yazıp ilk sonuca tıklayınca varılan
+// sayfanın aynısı. Bu servis resmi/garantili değil; yanıt vermezse veya
+// eşleşme bulunamazsa IMDb'nin genel arama sonuçlarına (bir tık fazla
+// gerektiren) düşülür.
+const companyImdbUrlCache={};
+async function getCompanyImdbUrl(name){
+ if(companyImdbUrlCache[name]!==undefined) return companyImdbUrlCache[name];
+ const fallback=`https://www.imdb.com/find/?q=${encodeURIComponent(name||"")}&s=co`;
+ try{
+   const trimmed=(name||"").trim();
+   const letter=trimmed.charAt(0).toLowerCase();
+   const query=trimmed.toLowerCase().replace(/[^a-z0-9]+/g,"_").replace(/^_+|_+$/g,"");
+   if(!letter||!query) throw new Error("empty");
+   const controller=new AbortController();
+   const t=setTimeout(()=>controller.abort(),6000);
+   const r=await fetch(`https://v2.sg.media-imdb.com/suggestion/${letter}/${query}.json`,{signal:controller.signal});
+   clearTimeout(t);
+   const d=await r.json();
+   const hit=(d&&d.d||[]).find(x=>x.id && x.id.startsWith("co"));
+   const url=hit?`https://www.imdb.com/search/title/?companies=${hit.id}`:fallback;
+   companyImdbUrlCache[name]=url;
+   return url;
+ }catch(e){
+   companyImdbUrlCache[name]=fallback;
+   return fallback;
+ }
+}
+async function openCompanyImdbPage(name){
+ if(companyImdbUrlCache[name]!==undefined){ openExternalLink(companyImdbUrlCache[name]); return; }
+ const win=window.open("about:blank","_blank");
+ const url=await getCompanyImdbUrl(name);
+ if(win) win.location.href=url;
+ else openExternalLink(url);
+}
+
 document.querySelector(".detail-body").addEventListener("click",e=>{
+ const footer=e.target.closest(".site-link-footer");
+ if(footer){
+   const companyCard0=footer.closest(".company-photo-card");
+   if(companyCard0){ openCompanyPage(companyCard0.dataset.companyId); return; }
+   const personCard0=footer.closest(".person-photo-card");
+   if(personCard0){ openExternalLink(`https://www.themoviedb.org/person/${personCard0.dataset.personId}`); return; }
+   return;
+ }
  const personCard=e.target.closest(".person-photo-card");
  if(personCard){ openPersonPage(personCard.dataset.personId); return; }
  const personLink=e.target.closest(".detail-person-link");
  if(personLink){ openPersonPage(personLink.dataset.personId); return; }
  const companyCard=e.target.closest(".company-photo-card");
- if(companyCard){ openCompanyPage(companyCard.dataset.companyId); return; }
+ if(companyCard){ openCompanyImdbPage(companyCard.dataset.companyName); return; }
 });
 
 function openDetail(id,type,fromHistory){
