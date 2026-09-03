@@ -136,6 +136,13 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
  .list-header-meta{font-size:13px}
  .icon-btn{width:32px;height:32px}
  .icon-btn svg{width:16px;height:16px}
+ /* Kartları yan yana (2'li) gösteren ızgara görünümü dar telefon ekranında
+    sığmadığı için mobilde bu özelliği tamamen kaldırıyoruz: buton gizli,
+    liste her zaman tek sütun (normal) görünümde kalıyor. */
+ .grid-toggle-btn{display:none}
+ #watchedList.grid-view,#watchList.grid-view{display:block}
+ .grid-view .movie{width:95%;margin:0 auto 10px auto}
+ .grid-view .movie img{width:92px;height:138px;margin-right:10px}
  h2{font-size:13px;margin-bottom:4px}
  .search{padding:5px 8px;font-size:14px;margin-bottom:4px}
  .controls{gap:4px;margin-bottom:4px}
@@ -366,9 +373,16 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
  .dna-radar-box{width:100%;max-width:300px;margin:0 auto}
 }
 
-.stats-list-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:300;align-items:flex-start;justify-content:center;overflow-y:auto;padding:30px 16px}
+/* Üstteki 30px boşluk overlay'in kendi padding'inden geliyordu; sticky topbar
+   (bir alt satırdaki .stats-list-topbar) kayan kapsayıcının padding'ine göre
+   sabitlendiği için bu boşluğu asla geçemiyor, aşağı kaydırınca da üstte
+   kalıcı bir boşluk bırakıp arkadaki film kartlarının kesik görünmesine yol
+   açıyordu. Boşluğu overlay'in padding'inden değil, modal'ın margin'inden
+   veriyoruz - kaydırılınca bu boşluk normal içerik gibi kaybolur ve başlık
+   ekranın en tepesine tam yaslanır. */
+.stats-list-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:300;align-items:flex-start;justify-content:center;overflow-y:auto;padding:0 16px 30px 16px}
 .stats-list-overlay.open{display:flex}
-.stats-list-modal{position:relative;width:100%;max-width:900px;background:#181818;border:1px solid #3a3222;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,0.6)}
+.stats-list-modal{position:relative;width:100%;max-width:900px;margin-top:30px;background:#181818;border:1px solid #3a3222;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,0.6)}
 .stats-list-topbar{position:sticky;top:0;display:flex;align-items:center;justify-content:space-between;padding:16px 22px;background:#181818;border-bottom:1px solid #2a2a2a;border-radius:12px 12px 0 0;z-index:2}
 .stats-list-topbar h3{margin:0;font-size:17px;color:#e8c877;font-weight:bold}
 .stats-list-body{padding:18px 22px 26px 22px}
@@ -505,7 +519,7 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
   <span class="icon-btn" onclick="openStats()" title="İstatistikler"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span>
   <span class="icon-btn refresh-btn" onclick="reload()" title="Yenile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg></span>
   <span class="icon-btn" onclick="scrollToTop('watched')" title="Başa dön"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg></span>
-  <span class="icon-btn" onclick="toggleView('watched')" title="Görünümü değiştir"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span>
+  <span class="icon-btn grid-toggle-btn" onclick="toggleView('watched')" title="Görünümü değiştir"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span>
  </span>
 </div>
 <input id="searchWatched" class="search" placeholder="Film ara" oninput="searchMain(this,'watched')">
@@ -554,7 +568,7 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
  <span class="header-icons">
   <span class="icon-btn refresh-btn" onclick="reload()" title="Yenile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg></span>
   <span class="icon-btn" onclick="scrollToTop('watchlist')" title="Başa dön"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg></span>
-  <span class="icon-btn" onclick="toggleView('watchlist')" title="Görünümü değiştir"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span>
+  <span class="icon-btn grid-toggle-btn" onclick="toggleView('watchlist')" title="Görünümü değiştir"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span>
  </span>
 </div>
 <input id="searchWatch" class="search" placeholder="Film ara" oninput="searchMain(this,'watchlist')">
@@ -3310,6 +3324,10 @@ function toggleFocus(){
 }
 
 function toggleView(type){
+ // Mobilde kartları yan yana (2'li) gösteren "ızgara" görünümü dar ekrana
+ // sığmadığından bu buton mobilde zaten gizli; yine de programatik bir
+ // çağrı gelirse (örn. eski bir kısayol) burada da no-op yapıyoruz.
+ if(window.matchMedia("(max-width:700px)").matches) return;
  viewState[type]=viewState[type]==="list"?"grid":"list";
  const listEl=type==="watchlist"?watchList:watchedList;
  listEl.classList.toggle("grid-view",viewState[type]==="grid");
