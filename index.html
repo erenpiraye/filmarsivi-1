@@ -320,8 +320,8 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 .bar-fill.c-country{background:#4fa8e8}
 .bar-fill.c-lang{background:#e8933f}
 
-.people-grid{display:flex;flex-wrap:wrap;gap:22px 16px}
-.people-item{width:96px;text-align:center;cursor:pointer}
+.people-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(74px,1fr));gap:22px 16px}
+.people-item{width:auto;min-width:0;text-align:center;cursor:pointer}
 .people-item:hover .people-name{color:#e8c877}
 
 /* ---- Yeni istatistik bölümleri: En'ler, Puan Dağılımı, Süre, Zevk Analizi, Film DNA ---- */
@@ -393,7 +393,7 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 .stats-movie-title{font-size:12.5px;color:#eee;font-weight:600;line-height:1.25}
 .stats-movie-card:hover .stats-movie-title{color:#e8c877}
 .stats-movie-year{font-size:11.5px;color:#888;margin-top:1px}
-.people-avatar{width:74px;height:100px;border-radius:6px;background:#2a2a2a;margin:0 auto 8px auto;overflow:hidden;display:flex;align-items:center;justify-content:center;color:#888;font-weight:bold;font-size:20px;border:1px solid #333}
+.people-avatar{width:100%;aspect-ratio:74/100;border-radius:6px;background:#2a2a2a;margin:0 auto 8px auto;overflow:hidden;display:flex;align-items:center;justify-content:center;color:#888;font-weight:bold;font-size:20px;border:1px solid #333}
 .people-avatar--company{background:#fff;padding:8px;box-sizing:border-box;font-size:11px;color:#444;text-align:center;line-height:1.2}
 .people-grid .people-avatar--company img{width:100%;height:100%;object-fit:contain}
 .people-avatar img{width:100%;height:100%;object-fit:cover}
