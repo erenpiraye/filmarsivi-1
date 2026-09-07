@@ -697,10 +697,13 @@ function statsYearOf(m){
 function statsInitials(name){
  return name.split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0]).join("").toUpperCase();
 }
-// OMDb'nin "Country" alanı (varsa) tür/yönetmen alanlarıyla aynı formatta
-// (virgülle ayrılmış) geliyor - eski kayıtlarda bu alan hiç olmayabilir,
-// böyle filmler ülkeyle ilgili istatistiklerde sessizce atlanır.
+// TMDB'den çekilen yapım ülkesi listesi (turkishCache) varsa o kullanılır -
+// OMDb'nin "Country" alanı bazen eksik/tek ülkeyle sınırlı kalabiliyor.
+// TMDB verisi henüz önbellekte yoksa OMDb alanına geri düşülür; o da yoksa
+// (eski kayıtlar) böyle filmler ülkeyle ilgili istatistiklerde sessizce atlanır.
 function movieCountries(m){
+ const info=turkishCache[m.imdbID];
+ if(info && info.countryNames && info.countryNames.length) return info.countryNames;
  return (m.Country||"").split(",").map(s=>s.trim()).filter(s=>s&&s!=="N/A");
 }
 function imdbVotesNum(m){
@@ -745,8 +748,8 @@ function renderStats(){
    {id:"stats-sec-genres",label:"Türler",html:statsSectionBreakdown(movies)},
    {id:"stats-sec-taste",label:"Zevk Analizi",html:statsSectionTasteInsights(movies)},
    {id:"stats-sec-dna",label:"Film DNA",html:statsSectionDNA(movies)},
-   {id:"stats-sec-actors",label:"Oyuncular",html:statsSectionPeople(movies,"actor")},
    {id:"stats-sec-directors",label:"Yönetmenler",html:statsSectionPeople(movies,"director")},
+   {id:"stats-sec-actors",label:"Oyuncular",html:statsSectionPeople(movies,"actor")},
    {id:"stats-sec-companies",label:"Yapım Şirketleri",html:statsSectionCompanies(movies)}
  ].filter(s=>s.html && s.html.trim());
  const nav = sections.length>1
@@ -1619,6 +1622,12 @@ function personLinksHtml(str,kind){
    .map(name=>`<span class="person-link" data-kind="${kind}" data-name="${escapeHtml(name)}">${escapeHtml(name)}</span>`)
    .join(", ");
 }
+// personLinksHtml'in isim dizisi alan hali (movieActors()/movieDirectors() çıktısı için) -
+// limit verilirse sadece o kadar isim gösterilir (ana sayfa kartında oyuncu sayısını sınırlamak için).
+function personLinksHtmlList(names,kind,limit){
+ const list=limit?names.slice(0,limit):names;
+ return list.map(name=>`<span class="person-link" data-kind="${kind}" data-name="${escapeHtml(name)}">${escapeHtml(name)}</span>`).join(", ");
+}
 
 function personClick(type,kind,name){
  genreState[type]="all";
@@ -1743,21 +1752,43 @@ async function getTurkishInfo(imdbID,title,year){
  // bile _v2 yok - bu yüzden TMDB butonu/oyuncular kalıcı olarak hiç
  // gelmiyordu. _v2 kontrolü, eski kayıtlar için bir kereliğine sessiz bir
  // yeniden-çekmeye (migrasyon) zorluyor; sonrasında normal şekilde önbellekten okunur.
- if(cached && cached._checked && cached._v4) return cached;
- const info={title:null,poster:null,genres:[],genreIds:[],budget:null,revenue:null,overview:null,backdrop:null,tmdbId:null,productionCompanies:[]};
+ if(cached && cached._checked && cached._v7) return cached;
+ const info={title:null,poster:null,genres:[],genreIds:[],budget:null,revenue:null,overview:null,backdrop:null,tmdbId:null,productionCompanies:[],castNames:[],directorNames:[],countryNames:[]};
  if(cached) Object.assign(info,cached); // eski önbellekte olan (başlık/poster/tür) alanları koru, eksikleri tamamlayacağız
  try{
    const data=await fetchJson(`https://api.themoviedb.org/3/find/${imdbID}?api_key=${TMDB_KEY}&external_source=imdb_id&language=tr-TR`);
    let movie=data.movie_results?.[0]||null;
 
    if(!movie && title){
+     // IMDb ID ile bulunamadıysa başlığa göre arama yapıyoruz - ama bu arama
+     // yanlış filmi (ör. aynı serideki, adı çok benzeyen ayrı bir yapım/kısa
+     // film) döndürebilir. Bu yüzden bulduğumuz sonucun başlığının (Türkçe
+     // değil orijinal başlığı) OMDb'deki başlıkla TAM eşleştiğini (ve varsa
+     // yılın ±1 tolerans içinde olduğunu) doğrulamadan kabul etmiyoruz -
+     // eşleşme güvenilir değilse (ör. "X" filmi yerine "X Reenactors" gibi
+     // alakasız bir yapım) sonuç reddedilir ve OMDb'nin kendi (doğru) tür/
+     // oyuncu/yönetmen bilgisine sessizce geri düşülür.
+     const normTitle=s=>(s||"").toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g," ").trim();
+     const wantedNorm=normTitle(title);
+     const searchMatchOk=(cand)=>{
+       if(!cand) return false;
+       const candNorms=[normTitle(cand.title),normTitle(cand.original_title)];
+       if(!candNorms.includes(wantedNorm)) return false;
+       const y=parseInt(year,10);
+       if(!isNaN(y) && cand.release_date){
+         const cy=parseInt(String(cand.release_date).slice(0,4),10);
+         if(!isNaN(cy) && Math.abs(cy-y)>1) return false;
+       }
+       return true;
+     };
      const trySearch=async(withYear)=>{
        let url=`https://api.themoviedb.org/3/search/movie?api_key=${TMDB_KEY}&language=tr-TR&query=${encodeURIComponent(title)}`;
        const y=parseInt(year);
        if(withYear && !isNaN(y)) url+=`&year=${y}`;
        try{
          const d=await fetchJson(url);
-         return d.results?.[0]||null;
+         const cand=d.results?.[0]||null;
+         return searchMatchOk(cand)?cand:null;
        }catch(e){return null;}
      };
      movie=await trySearch(true);
@@ -1785,10 +1816,26 @@ async function getTurkishInfo(imdbID,title,year){
          if(det.production_companies && det.production_companies.length){
            info.productionCompanies=det.production_companies.map(c=>({id:c.id,name:c.name,logo_path:c.logo_path||null}));
          }
+         // Yapım ülkesi (production_countries): OMDb'nin "Country" alanı bazen
+         // eksik/farklı formatlı oluyor - TMDB'den geleni önceliklendiriyoruz.
+         if(det.production_countries && det.production_countries.length){
+           info.countryNames=det.production_countries.map(c=>c.name).filter(Boolean);
+         }
+       }
+     }catch(e){}
+     // Tam oyuncu kadrosu + yönetmen(ler): ana sayfa kartında ve istatistiklerde
+     // OMDb'nin sınırlı "Actors"/"Director" alanı yerine bunlar kullanılır -
+     // böylece başrolde olmayan ama filmde oynayan oyuncular da (TMDB'nin
+     // billing sırasına göre geniş bir listesi) istatistiklere dahil olur.
+     try{
+       const credits=await fetchJson(`https://api.themoviedb.org/3/movie/${movie.id}/credits?api_key=${TMDB_KEY}`);
+       if(credits){
+         info.castNames=(credits.cast||[]).map(c=>c.name).filter(Boolean);
+         info.directorNames=(credits.crew||[]).filter(c=>c.job==="Director").map(c=>c.name).filter(Boolean);
        }
      }catch(e){}
    }
-   info._v4=true; // bu deneme (find/search) ağ hatası almadan tamamlandı - eski/yeni ayrımı için işaretle (v4: yapım şirketleri eklendi)
+   info._v7=true; // bu deneme (find/search) ağ hatası almadan tamamlandı - eski/yeni ayrımı için işaretle (v7: yanlış film eşleşmelerine karşı başlık/yıl doğrulaması eklendi)
  }catch(e){}
  // sadece gerçekten bir sonuç bulduysak kalıcı olarak önbelleğe al (_checked=true) -
  // ki bir daha bu film için hiç istek atılmasın. Toptan başarısızlıkta (ağ hatası vb.)
@@ -1804,7 +1851,7 @@ async function preloadInfo(){
  await loadGenreMap();
  const all=[...allData.watched,...allData.watchlist].filter(m=>{
    const c=turkishCache[m.imdbID];
-   return !c || !c._checked || !c._v4;
+   return !c || !c._checked || !c._v7;
  });
  const batchSize=5;
  for(let i=0;i<all.length;i+=batchSize){
@@ -2005,8 +2052,8 @@ function card(m,i,isWatch){
  <div class="meta"><span class="meta-icon">⏱</span> ${m.Runtime}</div>
  <div class="meta money-budget" data-boxoffice="${(m.BoxOffice&&m.BoxOffice!=='N/A')?m.BoxOffice:''}">${moneyLines(m.BoxOffice,info).budget}</div>
  <div class="meta money-revenue">${moneyLines(m.BoxOffice,info).revenue}</div>
- <div class="meta"><span class="meta-icon">🎬</span> ${personLinksHtml(m.Director,"director")}</div>
- <div class="meta"><span class="meta-icon">🎭</span> ${personLinksHtml(m.Actors,"actor")}</div>
+ <div class="meta"><span class="meta-icon">🎬</span> ${personLinksHtmlList(movieDirectors(m),"director")}</div>
+ <div class="meta"><span class="meta-icon">🎭</span> ${personLinksHtmlList(movieActors(m),"actor",5)}</div>
  </div>
  ${isWatch?`<button class="tick-btn" onclick="move('${m.imdbID}')">✔</button>`:""}
  <button class="delete-btn" onclick="deleteMovie('${m.imdbID}','${isWatch?'watchlist':'watched'}')">✕</button>`;
@@ -2565,10 +2612,18 @@ function movieGenresTr(m){
  if(info && info.genres && info.genres.length) return info.genres; // eski önbellek (genreIds'siz) için yedek
  return movieGenres(m).map(g=>GENRE_EN_TR[g]||g);
 }
+// TMDB'den çekilen tam kadro/yönetmen listesi (turkishCache) varsa o kullanılır -
+// bu, OMDb'nin sınırlı Actors/Director alanından farklı olarak başrolde
+// olmayan ama filmde oynayan oyuncuları da içerir. TMDB verisi henüz
+// önbellekte yoksa (ör. ilk yükleme sırasında) OMDb alanına geri düşülür.
 function movieDirectors(m){
+ const info=turkishCache[m.imdbID];
+ if(info && info.directorNames && info.directorNames.length) return info.directorNames;
  return (m.Director||"").split(",").map(s=>s.trim()).filter(s=>s&&s!=="N/A");
 }
 function movieActors(m){
+ const info=turkishCache[m.imdbID];
+ if(info && info.castNames && info.castNames.length) return info.castNames;
  return (m.Actors||"").split(",").map(s=>s.trim()).filter(s=>s&&s!=="N/A");
 }
 
@@ -2762,6 +2817,21 @@ function refreshCardsInPlace(){
      if(lines.budget) budgetEl.innerHTML=lines.budget;
      const revEl=el.querySelector(".money-revenue");
      if(revEl && lines.revenue) revEl.innerHTML=lines.revenue;
+   }
+   // TMDB'den tam kadro/yönetmen geldiyse (castNames/directorNames), kart
+   // üzerindeki oyuncu/yönetmen satırlarını da güncelle - böylece OMDb'nin
+   // sınırlı listesi yerine (ana kartta 5 oyuncuya kadar) tam liste görünür.
+   const m=(allData.watched||[]).concat(allData.watchlist||[]).find(x=>x.imdbID===id);
+   if(m){
+     const metas=el.querySelectorAll(".meta .meta-icon");
+     metas.forEach(iconEl=>{
+       if(iconEl.textContent==="🎬" && info.directorNames && info.directorNames.length){
+         iconEl.parentElement.innerHTML=`<span class="meta-icon">🎬</span> ${personLinksHtmlList(movieDirectors(m),"director")}`;
+       }
+       if(iconEl.textContent==="🎭" && info.castNames && info.castNames.length){
+         iconEl.parentElement.innerHTML=`<span class="meta-icon">🎭</span> ${personLinksHtmlList(movieActors(m),"actor",5)}`;
+       }
+     });
    }
  });
  populateGenreSelect("watched");
@@ -3053,12 +3123,12 @@ function openDetail(id,type,fromHistory){
  }
 
  // TMDB bilgisi (Türkçe özet/backdrop/bütçe) önbellekte yoksa açılışta bir kere çek.
- // _v4 kontrolü: PC sürümünde önbellek diske kaydedilip bir sonraki açılışta
- // geri yükleniyor - bu özellikten (yapım şirketleri) ÖNCE kaydedilmiş eski
- // kayıtlarda _checked=true olsa bile _v4 yok, bu yüzden şirket verisi hiç
- // gelmiyordu. _v4 eksikse karta bakılırken bir kereliğine sessizce tazelenir;
+ // _v7 kontrolü: PC sürümünde önbellek diske kaydedilip bir sonraki açılışta
+ // geri yükleniyor - bu özellikten (tam kadro/yönetmen) ÖNCE kaydedilmiş eski
+ // kayıtlarda _checked=true olsa bile _v7 yok, bu yüzden yeni veri hiç
+ // gelmiyordu. _v7 eksikse karta bakılırken bir kereliğine sessizce tazelenir;
  // sonrasında normal şekilde önbellekten okunur.
- const infoPromise=(!turkishCache[id] || !turkishCache[id]._checked || !turkishCache[id]._v4)
+ const infoPromise=(!turkishCache[id] || !turkishCache[id]._checked || !turkishCache[id]._v7)
    ? getTurkishInfo(id,movie.Title,movie.Year)
    : Promise.resolve(info);
 
