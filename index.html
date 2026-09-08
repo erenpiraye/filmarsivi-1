@@ -76,7 +76,7 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 @keyframes icon-spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
 .search{width:95%;padding:10px;margin:0 auto 8px auto;display:block;background:#333;color:#eee;border:1px solid #555;border-radius:4px;font-size:16px}
 .sort-select{padding:6px 8px;font-size:13px;background:#222;color:#ccc;border:1px solid #444;border-radius:4px}
-.movie{width:95%;display:flex;align-items:center;margin:0 auto 15px auto;background:#222;padding:12px 16px;border-radius:8px;position:relative}
+.movie{width:95%;display:flex;align-items:stretch;margin:0 auto 15px auto;background:#222;padding:12px 16px;border-radius:8px;position:relative}
 .movie img{width:110px;height:165px;object-fit:cover;margin-right:15px;border-radius:4px}
 .movie img.poster-link{cursor:pointer}
 .rank-input{width:100%;font-size:0.55em;text-align:center;background:#222;color:#eee;border:1px solid #d9a441;border-radius:4px;padding:2px 0}
@@ -112,6 +112,7 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 .find-row.has-matches .find-nav-btn{display:flex}
 .find-row.has-matches .find-count{display:inline-block}
 .movie.highlight{outline:3px solid #ffd700;box-shadow:0 0 14px #ffd700}
+.movie.find-hidden{display:none}
 .person-link{color:inherit;text-decoration:none;cursor:pointer}
 .person-link:hover{color:#d9a441;text-decoration:underline}
 
@@ -339,6 +340,7 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 .stat-highlight-title{font-size:13px;color:#eee;font-weight:600;line-height:1.25;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .stat-highlight-value{font-size:17px;color:#e8c877;font-weight:bold;line-height:1.2}
 .stat-highlight-sub{font-size:11.5px;color:#999;margin-top:2px}
+.stat-highlight-avatar.people-avatar{width:42px;height:63px;aspect-ratio:auto;margin:0;flex-shrink:0;font-size:14px}
 
 .stat-pill-row{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:20px}
 .stat-pill{background:#1e1e1e;border:1px solid #303030;border-radius:8px;padding:10px 16px;min-width:96px;text-align:center}
@@ -894,9 +896,9 @@ function statsBreakdownList(data,mode){
    : items.sort((a,b)=>b.count-a.count);
  return items; // ana sayfadaki Kategori açılır menüsünde kaç tür varsa burada da hepsi listelensin - üst sınır yok
 }
-function statsBarListHtml(items,mode,colorClass,field){
+function statsBarListHtml(items,mode,colorClass,field,maxOverride){
  if(!items.length) return '<div class="stats-empty">Yeterli veri yok</div>';
- const maxVal = mode==="rating" ? 10 : Math.max(...items.map(x=>x.count));
+ const maxVal = mode==="rating" ? 10 : (maxOverride!=null ? maxOverride : Math.max(...items.map(x=>x.count)));
  return items.map(x=>{
    const val = mode==="rating" ? x.avg : x.count;
    const pct = Math.max((val/maxVal)*100,3);
@@ -911,18 +913,17 @@ function statsSectionBreakdown(movies){
  const genreData=statsBreakdownData(movies,"genre");
  statsBreakdownMoviesMap.genre=genreData.moviesMap;
  const mode="count";
- // Tür listesi uzun olabildiği için tek sütunda çok aşağı iniyor ve sağda
- // boşluk kalıyordu - listeyi ikiye bölüp iki sütunda yan yana gösteriyoruz.
  const list=statsBreakdownList(genreData,mode);
  const half=Math.ceil(list.length/2);
  const col1=list.slice(0,half), col2=list.slice(half);
+ const globalMax=list.length?Math.max(...list.map(x=>x.count)):0;
  return `<div class="stats-section" id="stats-sec-genres">
   <div class="stats-section-head">
    <span class="stats-section-title">Türler</span>
   </div>
   <div class="stats-columns">
-   <div class="stats-col">${statsBarListHtml(col1,mode,"c-genre","genre")}</div>
-   ${col2.length?`<div class="stats-col">${statsBarListHtml(col2,mode,"c-genre","genre")}</div>`:""}
+   <div class="stats-col">${statsBarListHtml(col1,mode,"c-genre","genre",globalMax)}</div>
+   ${col2.length?`<div class="stats-col">${statsBarListHtml(col2,mode,"c-genre","genre",globalMax)}</div>`:""}
   </div>
  </div>`;
 }
@@ -1037,10 +1038,20 @@ function statsHighlightMovieCard(icon,label,m,valueText){
  </div>`;
 }
 function statsHighlightNameCard(icon,label,kind,name,sub){
+ const isPerson = kind==="director" || kind==="actor";
+ const body = isPerson
+   ? `<div class="stat-highlight-main">
+       <div class="people-avatar stat-highlight-avatar" data-person-name="${escapeHtml(name)}">${escapeHtml(statsInitials(name))}</div>
+       <div class="stat-highlight-body">
+        <div class="stat-highlight-value" style="margin-top:0">${escapeHtml(name)}</div>
+        <div class="stat-highlight-sub">${escapeHtml(sub)}</div>
+       </div>
+      </div>`
+   : `<div class="stat-highlight-value" style="margin-top:2px">${escapeHtml(name)}</div>
+      <div class="stat-highlight-sub">${escapeHtml(sub)}</div>`;
  return `<div class="stat-highlight-card" data-kind="${kind}" data-name="${escapeHtml(name)}">
   <div class="stat-highlight-label">${icon} ${label}</div>
-  <div class="stat-highlight-value" style="margin-top:2px">${escapeHtml(name)}</div>
-  <div class="stat-highlight-sub">${escapeHtml(sub)}</div>
+  ${body}
  </div>`;
 }
 function statsSectionSuperlatives(movies){
@@ -1213,17 +1224,23 @@ function statsSectionRuntime(movies){
  const catItems=STATS_RUNTIME_CATS.map(c=>({name:c.label,count:(catMoviesMap[c.label]||[]).length})).filter(x=>x.count>0);
  const catBarsHtml = catItems.length ? statsBarListHtml(catItems,"count","c-runtime","runtimeCategory") : '<div class="stats-empty">Yeterli veri yok</div>';
 
- // Süre - puan ilişkisi: yalnızca en az 2 filmi olan kategoriler için ortalama puan gösterilir.
- const relRows=STATS_RUNTIME_CATS.map(c=>{
-   const rs=catRatingSums[c.label];
-   if(!rs || rs.n<2) return null;
-   return {name:c.label,avg:rs.sum/rs.n};
- }).filter(Boolean);
+ // Süre - puan ilişkisi: sol sütunla (Süre Kategorileri) aynı satır sayısı -
+ // veri yoksa "—" gösterilir, iki sütun her zaman aynı yükseklikte kalır.
+ const relRows=catItems.map(x=>{
+   const rs=catRatingSums[x.name];
+   return (rs && rs.n>=2) ? {name:x.name,avg:rs.sum/rs.n} : {name:x.name,avg:null};
+ });
  const relHtml = relRows.length
-   ? relRows.map(x=>`<div class="bar-row" style="cursor:default">
-      <div class="bar-row-top"><span>${escapeHtml(x.name)}</span><span class="bar-val">★ ${x.avg.toFixed(2)}</span></div>
-      <div class="bar-track"><div class="bar-fill c-rating" style="width:${Math.max(x.avg/10*100,3)}%"></div></div>
-     </div>`).join("")
+   ? relRows.map(x=> x.avg!=null
+       ? `<div class="bar-row" style="cursor:default">
+          <div class="bar-row-top"><span>${escapeHtml(x.name)}</span><span class="bar-val">★ ${x.avg.toFixed(2)}</span></div>
+          <div class="bar-track"><div class="bar-fill c-rating" style="width:${Math.max(x.avg/10*100,3)}%"></div></div>
+         </div>`
+       : `<div class="bar-row" style="cursor:default">
+          <div class="bar-row-top"><span>${escapeHtml(x.name)}</span><span class="bar-val">—</span></div>
+          <div class="bar-track"><div class="bar-fill c-rating" style="width:3%;opacity:.3"></div></div>
+         </div>`
+     ).join("")
    : '<div class="stats-empty">Yeterli veri yok</div>';
 
  return `<div class="stats-section" id="stats-sec-runtime">
@@ -2661,10 +2678,10 @@ function _attachDirectorLazy(type){
  const sel=document.getElementById(id);
  if(!sel||sel._lazyDir) return;
  sel._lazyDir=true;
- const handler=()=>_injectDirectorOptions(type);
- sel.addEventListener("mousedown",handler,{passive:true});
- sel.addEventListener("focus",handler,{passive:true});
- sel.addEventListener("touchstart",handler,{passive:true});
+ const h=()=>_injectDirectorOptions(type);
+ sel.addEventListener("mousedown",h,{passive:true});
+ sel.addEventListener("focus",h,{passive:true});
+ sel.addEventListener("touchstart",h,{passive:true});
 }
 function populateDirectorSelect(type){
  _dirCache[type].dirty=true;
@@ -2677,11 +2694,6 @@ function populateDirectorSelect(type){
  }
 }
 
-// ── Oyuncu filtresi: seçenekler açılana kadar DOM'a eklenmez (lazy load).
-// Büyük TMDB kadrosu varken her render'da binlerce <option> oluşturmak
-// tarayıcıyı donduruyordu; artık sadece <select> ilk kez açıldığında
-// (focus/mousedown/touchstart) bir kez yükleniyor, sonraki açılışlarda
-// içerik değişmemişse DOM hiç dokunulmadan atlanıyor.
 const _actorCache={watched:{names:null,dirty:true},watchlist:{names:null,dirty:true}};
 function _buildActorNames(type){
  const set=new Set();
@@ -2690,12 +2702,12 @@ function _buildActorNames(type){
 }
 function _injectActorOptions(type){
  const cache=_actorCache[type];
- if(!cache.dirty) return; // içerik değişmedi, DOM'a dokunma
+ if(!cache.dirty) return;
  cache.dirty=false;
  const names=_buildActorNames(type);
  cache.names=names;
  const sel=document.getElementById(type==="watchlist"?"actorWatch":"actorWatched");
- const cur=sel.value; // seçili değeri koru
+ const cur=sel.value;
  sel.innerHTML='<option value="all">Oyuncu</option>'+
    names.map(n=>`<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join("");
  sel.value=(cur!=="all" && names.includes(cur))?cur:"all";
@@ -2705,17 +2717,14 @@ function _attachActorLazy(type){
  const sel=document.getElementById(id);
  if(!sel||sel._lazyActor) return;
  sel._lazyActor=true;
- const handler=()=>_injectActorOptions(type);
- sel.addEventListener("mousedown",handler,{passive:true});
- sel.addEventListener("focus",handler,{passive:true});
- sel.addEventListener("touchstart",handler,{passive:true});
+ const h=()=>_injectActorOptions(type);
+ sel.addEventListener("mousedown",h,{passive:true});
+ sel.addEventListener("focus",h,{passive:true});
+ sel.addEventListener("touchstart",h,{passive:true});
 }
 function populateActorSelect(type){
- // Seçenekleri hemen oluşturma — sadece "kirli" bayrağını koy ve
- // lazy loader'ı bağla. Seçenekler select ilk açıldığında üretilecek.
  _actorCache[type].dirty=true;
  _attachActorLazy(type);
- // Mevcut seçimi koru: listeyi henüz oluşturmadık ama state'i kontrol et
  const names=_actorCache[type].names;
  if(names && actorState[type]!=="all" && !names.includes(actorState[type])){
    actorState[type]="all";
@@ -2738,7 +2747,7 @@ function onDirectorChange(type){
  renderColumn(type);
 }
 function onActorChange(type){
- _injectActorOptions(type); // ensure options are present before reading value
+ _injectActorOptions(type);
  actorState[type]=document.getElementById(type==="watchlist"?"actorWatch":"actorWatched").value;
  renderColumn(type);
 }
@@ -2750,10 +2759,12 @@ let findState={watched:{matches:[],index:-1},watchlist:{matches:[],index:-1}};
 function findInList(input,type){
  const q=input.value.trim().toLowerCase();
  const st=findState[type];
+ const listElForClear=type==="watchlist"?watchList:watchedList;
  if(!q){
    st.matches=[];
    st.index=-1;
    updateFindCount(type);
+   listElForClear.querySelectorAll(".movie.find-hidden").forEach(el=>el.classList.remove("find-hidden"));
    const listEl=type==="watchlist"?watchList:watchedList;
    listEl.querySelectorAll(".movie.highlight").forEach(el=>el.classList.remove("highlight"));
    return;
@@ -2773,6 +2784,8 @@ function findInList(input,type){
    const text=((titleEl?titleEl.textContent:"")+" "+(trEl?trEl.textContent:"")).toLowerCase();
    return text.includes(q);
  });
+ const matchSet=new Set(st.matches);
+ cards.forEach(c=>c.classList.toggle("find-hidden",!matchSet.has(c)));
  st.index=st.matches.length?0:-1;
  goToFindMatch(type);
 }
