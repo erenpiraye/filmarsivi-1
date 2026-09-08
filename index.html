@@ -112,6 +112,7 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 .find-row.has-matches .find-nav-btn{display:flex}
 .find-row.has-matches .find-count{display:inline-block}
 .movie.highlight{outline:3px solid #ffd700;box-shadow:0 0 14px #ffd700}
+.movie.find-hidden{display:none!important}
 .person-link{color:inherit;text-decoration:none;cursor:pointer}
 .person-link:hover{color:#d9a441;text-decoration:underline}
 
@@ -325,7 +326,10 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 .people-item:hover .people-name{color:#e8c877}
 
 /* ---- Yeni istatistik bölümleri: En'ler, Puan Dağılımı, Süre, Zevk Analizi, Film DNA ---- */
-.stats-nav{display:flex;gap:8px;overflow-x:auto;padding:0 0 16px 0;margin-bottom:14px;border-bottom:1px solid #2a2a2a}
+/* İstatistikler altındaki bölüm başlıkları (Film DNA, Türler, Süre, Oyuncular...)
+   yana kaydırma (overflow-x) gerektiriyordu - artık satır dolunca yana taşmak
+   yerine (ekran genişliği ne olursa olsun) otomatik olarak alt satıra geçiyor. */
+.stats-nav{display:flex;flex-wrap:wrap;gap:8px;overflow-x:visible;padding:0 0 16px 0;margin-bottom:14px;border-bottom:1px solid #2a2a2a}
 .stats-nav-btn{flex-shrink:0;padding:6px 13px;border-radius:16px;background:#222;border:1px solid #333;color:#ccc;font-size:12px;font-weight:600;cursor:pointer;user-select:none;white-space:nowrap;transition:border-color .15s ease,color .15s ease}
 .stats-nav-btn:hover{border-color:#d9a441;color:#e8c877}
 
@@ -335,6 +339,7 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 .stat-highlight-label{font-size:11px;color:#999;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;display:flex;align-items:center;gap:6px}
 .stat-highlight-main{display:flex;align-items:center;gap:10px}
 .stat-highlight-poster{width:42px;height:63px;object-fit:cover;border-radius:4px;background:#2a2a2a;flex-shrink:0}
+.people-avatar.stat-highlight-avatar{width:42px;height:63px;aspect-ratio:auto;flex-shrink:0;margin:0;font-size:14px}
 .stat-highlight-body{min-width:0}
 .stat-highlight-title{font-size:13px;color:#eee;font-weight:600;line-height:1.25;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .stat-highlight-value{font-size:17px;color:#e8c877;font-weight:bold;line-height:1.2}
@@ -911,18 +916,15 @@ function statsSectionBreakdown(movies){
  const genreData=statsBreakdownData(movies,"genre");
  statsBreakdownMoviesMap.genre=genreData.moviesMap;
  const mode="count";
- // Tür listesi uzun olabildiği için tek sütunda çok aşağı iniyor ve sağda
- // boşluk kalıyordu - listeyi ikiye bölüp iki sütunda yan yana gösteriyoruz.
+ // Kullanıcı isteği üzerine tek sütunda, alt alta gösteriliyor (önceden liste
+ // uzun olduğu için ikiye bölünüp yan yana gösteriliyordu).
  const list=statsBreakdownList(genreData,mode);
- const half=Math.ceil(list.length/2);
- const col1=list.slice(0,half), col2=list.slice(half);
  return `<div class="stats-section" id="stats-sec-genres">
   <div class="stats-section-head">
    <span class="stats-section-title">Türler</span>
   </div>
   <div class="stats-columns">
-   <div class="stats-col">${statsBarListHtml(col1,mode,"c-genre","genre")}</div>
-   ${col2.length?`<div class="stats-col">${statsBarListHtml(col2,mode,"c-genre","genre")}</div>`:""}
+   <div class="stats-col">${statsBarListHtml(list,mode,"c-genre","genre")}</div>
   </div>
  </div>`;
 }
@@ -1037,6 +1039,21 @@ function statsHighlightMovieCard(icon,label,m,valueText){
  </div>`;
 }
 function statsHighlightNameCard(icon,label,kind,name,sub){
+ // Oyuncu/yönetmen kartlarında, Oyuncular/Yönetmenler bölümündeki kartlarla
+ // aynı avatar (TMDB fotoğrafı, yoksa baş harfler) gösterilir - lazyLoadStatsPhotos
+ // zaten sayfadaki tüm ".people-avatar[data-person-name]" öğelerini otomatik doldurur.
+ if(kind==="actor"||kind==="director"){
+   return `<div class="stat-highlight-card" data-kind="${kind}" data-name="${escapeHtml(name)}">
+    <div class="stat-highlight-label">${icon} ${label}</div>
+    <div class="stat-highlight-main">
+     <div class="people-avatar stat-highlight-avatar" data-person-name="${escapeHtml(name)}">${escapeHtml(statsInitials(name))}</div>
+     <div class="stat-highlight-body">
+      <div class="stat-highlight-title">${escapeHtml(name)}</div>
+      <div class="stat-highlight-value" style="font-size:13px">${escapeHtml(sub)}</div>
+     </div>
+    </div>
+   </div>`;
+ }
  return `<div class="stat-highlight-card" data-kind="${kind}" data-name="${escapeHtml(name)}">
   <div class="stat-highlight-label">${icon} ${label}</div>
   <div class="stat-highlight-value" style="margin-top:2px">${escapeHtml(name)}</div>
@@ -1213,17 +1230,26 @@ function statsSectionRuntime(movies){
  const catItems=STATS_RUNTIME_CATS.map(c=>({name:c.label,count:(catMoviesMap[c.label]||[]).length})).filter(x=>x.count>0);
  const catBarsHtml = catItems.length ? statsBarListHtml(catItems,"count","c-runtime","runtimeCategory") : '<div class="stats-empty">Yeterli veri yok</div>';
 
- // Süre - puan ilişkisi: yalnızca en az 2 filmi olan kategoriler için ortalama puan gösterilir.
- const relRows=STATS_RUNTIME_CATS.map(c=>{
-   const rs=catRatingSums[c.label];
-   if(!rs || rs.n<2) return null;
-   return {name:c.label,avg:rs.sum/rs.n};
- }).filter(Boolean);
+ // Süre - puan ilişkisi: sol taraftaki "Süre Kategorileri" listesiyle BİREBİR aynı
+ // kategoriler, aynı sırayla gösterilir - aksi halde iki sütun farklı sayıda
+ // satıra sahip oluyor ve yan yana duran iki kutunun yükseklikleri eşit çıkmıyordu.
+ // Ortalama puan için hâlâ en az 2 derecelendirilmiş film aranıyor; bu şartı
+ // sağlamayan kategoriler satırdan tamamen kaldırılmak yerine boş/pasif bir
+ // satır olarak (dolu bar olmadan) gösteriliyor, böylece satır sayısı hep eşleşir.
+ const relRows=catItems.map(c=>{
+   const rs=catRatingSums[c.name];
+   return (rs && rs.n>=2) ? {name:c.name,avg:rs.sum/rs.n} : {name:c.name,avg:null};
+ });
  const relHtml = relRows.length
-   ? relRows.map(x=>`<div class="bar-row" style="cursor:default">
-      <div class="bar-row-top"><span>${escapeHtml(x.name)}</span><span class="bar-val">★ ${x.avg.toFixed(2)}</span></div>
-      <div class="bar-track"><div class="bar-fill c-rating" style="width:${Math.max(x.avg/10*100,3)}%"></div></div>
-     </div>`).join("")
+   ? relRows.map(x=>{
+       const hasAvg=x.avg!=null;
+       const pct=hasAvg?Math.max(x.avg/10*100,3):0;
+       const label=hasAvg?`★ ${x.avg.toFixed(2)}`:"—";
+       return `<div class="bar-row" style="cursor:default">
+      <div class="bar-row-top"><span>${escapeHtml(x.name)}</span><span class="bar-val">${label}</span></div>
+      <div class="bar-track"><div class="bar-fill c-rating" style="width:${pct}%${hasAvg?"":";opacity:.3"}"></div></div>
+     </div>`;
+     }).join("")
    : '<div class="stats-empty">Yeterli veri yok</div>';
 
  return `<div class="stats-section" id="stats-sec-runtime">
@@ -1237,6 +1263,8 @@ function statsSectionRuntime(movies){
     <div class="stats-section-title" style="margin-bottom:12px">Süre Kategorileri</div>
     ${catBarsHtml}
    </div>
+  </div>
+  <div class="stats-columns">
    <div class="stats-col">
     <div class="stats-section-title" style="margin-bottom:12px">Süre - Puan İlişkisi</div>
     ${relHtml}
@@ -1752,7 +1780,12 @@ async function getTurkishInfo(imdbID,title,year){
  // bile _v2 yok - bu yüzden TMDB butonu/oyuncular kalıcı olarak hiç
  // gelmiyordu. _v2 kontrolü, eski kayıtlar için bir kereliğine sessiz bir
  // yeniden-çekmeye (migrasyon) zorluyor; sonrasında normal şekilde önbellekten okunur.
- if(cached && cached._checked && cached._v7) return cached;
+ // _v8: tam kadro (credits) isteği ağ hatası/rate-limit yüzünden başarısız olursa
+ // castNames boş kalıyor ama film yine de _v7=true ile "tamam" işaretleniyordu -
+ // bu yüzden o film bir daha HİÇ denenmiyor ve oyuncu filtresinde sadece OMDb'nin
+ // kısa (3-4 kişilik) "Actors" listesine sınırlı kalıyordu. _v8, credits isteği
+ // gerçekten başarılı olduğunda set edilir; eksikse bir kereliğine yeniden denenir.
+ if(cached && cached._checked && cached._v7 && cached._v8) return cached;
  const info={title:null,poster:null,genres:[],genreIds:[],budget:null,revenue:null,overview:null,backdrop:null,tmdbId:null,productionCompanies:[],castNames:[],directorNames:[],countryNames:[]};
  if(cached) Object.assign(info,cached); // eski önbellekte olan (başlık/poster/tür) alanları koru, eksikleri tamamlayacağız
  try{
@@ -1832,10 +1865,12 @@ async function getTurkishInfo(imdbID,title,year){
        if(credits){
          info.castNames=(credits.cast||[]).map(c=>c.name).filter(Boolean);
          info.directorNames=(credits.crew||[]).filter(c=>c.job==="Director").map(c=>c.name).filter(Boolean);
+         info._v8=true; // tam kadro isteği bu sefer başarıyla tamamlandı
        }
      }catch(e){}
    }
    info._v7=true; // bu deneme (find/search) ağ hatası almadan tamamlandı - eski/yeni ayrımı için işaretle (v7: yanlış film eşleşmelerine karşı başlık/yıl doğrulaması eklendi)
+   if(!movie) info._v8=true; // TMDB'de eşleşme yok - çekilecek kadro da yok, sonsuza kadar tekrar denenmesin
  }catch(e){}
  // sadece gerçekten bir sonuç bulduysak kalıcı olarak önbelleğe al (_checked=true) -
  // ki bir daha bu film için hiç istek atılmasın. Toptan başarısızlıkta (ağ hatası vb.)
@@ -1851,7 +1886,7 @@ async function preloadInfo(){
  await loadGenreMap();
  const all=[...allData.watched,...allData.watchlist].filter(m=>{
    const c=turkishCache[m.imdbID];
-   return !c || !c._checked || !c._v7;
+   return !c || !c._checked || !c._v7 || !c._v8;
  });
  const batchSize=5;
  for(let i=0;i<all.length;i+=batchSize){
@@ -2681,15 +2716,47 @@ function onActorChange(type){
 
 let findState={watched:{matches:[],index:-1},watchlist:{matches:[],index:-1}};
 
-function findInList(input,type){
- const q=input.value.trim().toLowerCase();
+// Listedeki filmleri "Listede ara" kutusuna göre gerçekten filtreler (eşleşmeyenleri
+// gizler). Hem kullanıcı yazarken hem de liste sıralama/filtre değişikliği ile
+// yeniden çizildiğinde (renderColumn içinden) çağrılır, böylece arama aktifken
+// liste her yeniden çizildiğinde filtre kaybolmaz.
+function applyFindFilter(type){
+ const inputEl=document.getElementById(type==="watchlist"?"findWatch":"findWatched");
+ const q=inputEl?inputEl.value.trim().toLowerCase():"";
+ const listEl=type==="watchlist"?watchList:watchedList;
  const st=findState[type];
  if(!q){
    st.matches=[];
    st.index=-1;
    updateFindCount(type);
-   const listEl=type==="watchlist"?watchList:watchedList;
+   listEl.querySelectorAll(".movie.find-hidden").forEach(el=>el.classList.remove("find-hidden"));
+   return;
+ }
+ const cards=Array.from(listEl.querySelectorAll(".movie"));
+ st.matches=[];
+ cards.forEach(c=>{
+   const titleEl=c.querySelector("b");
+   const trEl=c.querySelector(".tr-title");
+   const text=((titleEl?titleEl.textContent:"")+" "+(trEl?trEl.textContent:"")).toLowerCase();
+   const isMatch=text.includes(q);
+   c.classList.toggle("find-hidden",!isMatch);
+   if(isMatch) st.matches.push(c);
+ });
+ st.index=st.matches.length?0:-1;
+ updateFindCount(type);
+}
+
+function findInList(input,type){
+ const q=input.value.trim().toLowerCase();
+ const st=findState[type];
+ const listEl=type==="watchlist"?watchList:watchedList;
+ if(!q){
+   st.matches=[];
+   st.index=-1;
+   updateFindCount(type);
    listEl.querySelectorAll(".movie.highlight").forEach(el=>el.classList.remove("highlight"));
+   // Arama kutusu boşaltılınca listedeki tüm filmler tekrar görünür olsun.
+   listEl.querySelectorAll(".movie.find-hidden").forEach(el=>el.classList.remove("find-hidden"));
    return;
  }
 
@@ -2699,15 +2766,7 @@ function findInList(input,type){
  if(actorState[type]!=="all"){actorState[type]="all";changed=true;}
  if(changed) renderColumn(type);
 
- const listEl=type==="watchlist"?watchList:watchedList;
- const cards=Array.from(listEl.querySelectorAll(".movie"));
- st.matches=cards.filter(c=>{
-   const titleEl=c.querySelector("b");
-   const trEl=c.querySelector(".tr-title");
-   const text=((titleEl?titleEl.textContent:"")+" "+(trEl?trEl.textContent:"")).toLowerCase();
-   return text.includes(q);
- });
- st.index=st.matches.length?0:-1;
+ applyFindFilter(type);
  goToFindMatch(type);
 }
 
@@ -2795,6 +2854,11 @@ function renderColumn(type){
 
  countEl.textContent=indexed.length;
  timeEl.textContent=formatTime(totalMin);
+
+ // Liste yeniden çizildiğinde "Listede ara" filtresi aktifse (kutuda hâlâ
+ // metin varsa) filtreyi yeni kartlara da uygula - aksi halde sıralama/kategori
+ // değişince ya da liste yenilenince filtre sıfırlanmış gibi görünürdü.
+ applyFindFilter(type);
 }
 
 function render(){
@@ -2836,6 +2900,10 @@ function refreshCardsInPlace(){
  });
  populateGenreSelect("watched");
  populateGenreSelect("watchlist");
+ populateDirectorSelect("watched");
+ populateDirectorSelect("watchlist");
+ populateActorSelect("watched");
+ populateActorSelect("watchlist");
 }
 
 async function fetchOmdbById(imdbId){
@@ -3128,7 +3196,7 @@ function openDetail(id,type,fromHistory){
  // kayıtlarda _checked=true olsa bile _v7 yok, bu yüzden yeni veri hiç
  // gelmiyordu. _v7 eksikse karta bakılırken bir kereliğine sessizce tazelenir;
  // sonrasında normal şekilde önbellekten okunur.
- const infoPromise=(!turkishCache[id] || !turkishCache[id]._checked || !turkishCache[id]._v7)
+ const infoPromise=(!turkishCache[id] || !turkishCache[id]._checked || !turkishCache[id]._v7 || !turkishCache[id]._v8)
    ? getTurkishInfo(id,movie.Title,movie.Year)
    : Promise.resolve(info);
 
