@@ -94,12 +94,12 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 .movie.drop-gap-after{margin-bottom:28px !important;transition:margin-bottom 0.12s ease}
 .tick-btn{position:absolute;top:38px;right:10px;background:#333;color:#0f0;border:none;width:24px;height:24px;border-radius:50%;cursor:pointer}
 .delete-btn{position:absolute;top:10px;right:10px;background:#333;color:#bbb;border:none;width:24px;height:24px;border-radius:50%;cursor:pointer}
-.meta{font-size:13px;color:#bbb;margin-top:3px}
+.meta{font-size:13px;color:#bbb;margin-top:3px;display:flex;align-items:center;gap:5px}
+.meta-icon{display:inline-flex;width:16px;flex-shrink:0;justify-content:center;align-items:center}
 .money-budget,.money-revenue{color:#bbb}
 .money-budget:empty,.money-revenue:empty{display:none}
 .my-rating-line:empty{display:none}
 .my-rating-line .my-star{color:#4fa8e8}
-.meta-icon{display:inline-flex;width:16px;justify-content:center;align-items:center;vertical-align:-3px}
 .tr-title{color:#888;font-size:13px;margin-top:2px}
 .controls{width:95%;margin:0 auto 10px auto;display:flex;flex-wrap:wrap;gap:8px}
 .controls .sort-select{flex:1 1 130px;min-width:110px}
@@ -152,6 +152,10 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
  .list-wrap{padding:0 12px 12px 12px}
  .movie{padding:8px 10px;margin:0 auto 10px auto}
  .movie img{width:92px;height:138px;margin-right:10px}
+ .movie>div b{font-size:14px}
+ .movie .tr-title{font-size:11px;margin-top:1px}
+ .movie .meta{font-size:11px;margin-top:2px;line-height:1.25;gap:4px}
+ .movie .meta-icon{width:13px}
  .sync-bar{padding:5px 12px 0 12px!important;gap:6px}
  .sync-bar button{font-size:11px;padding:4px 7px}
  .sync-status{font-size:11px}
@@ -914,17 +918,12 @@ function statsSectionBreakdown(movies){
  statsBreakdownMoviesMap.genre=genreData.moviesMap;
  const mode="count";
  const list=statsBreakdownList(genreData,mode);
- const half=Math.ceil(list.length/2);
- const col1=list.slice(0,half), col2=list.slice(half);
  const globalMax=list.length?Math.max(...list.map(x=>x.count)):0;
  return `<div class="stats-section" id="stats-sec-genres">
   <div class="stats-section-head">
    <span class="stats-section-title">Türler</span>
   </div>
-  <div class="stats-columns">
-   <div class="stats-col">${statsBarListHtml(col1,mode,"c-genre","genre",globalMax)}</div>
-   ${col2.length?`<div class="stats-col">${statsBarListHtml(col2,mode,"c-genre","genre",globalMax)}</div>`:""}
-  </div>
+  ${statsBarListHtml(list,mode,"c-genre","genre",globalMax)}
  </div>`;
 }
 
@@ -1249,16 +1248,10 @@ function statsSectionRuntime(movies){
    <div class="stat-pill"><div class="stat-pill-value">${formatTime(total)}</div><div class="stat-pill-label">Toplam Süre</div></div>
    <div class="stat-pill"><div class="stat-pill-value">${formatTime(Math.round(avg))}</div><div class="stat-pill-label">Ortalama</div></div>
   </div>
-  <div class="stats-columns">
-   <div class="stats-col">
-    <div class="stats-section-title" style="margin-bottom:12px">Süre Kategorileri</div>
-    ${catBarsHtml}
-   </div>
-   <div class="stats-col">
-    <div class="stats-section-title" style="margin-bottom:12px">Süre - Puan İlişkisi</div>
-    ${relHtml}
-   </div>
-  </div>
+  <div class="stats-section-title" style="margin-bottom:12px;margin-top:22px">Süre Kategorileri</div>
+  ${catBarsHtml}
+  <div class="stats-section-title" style="margin-bottom:12px;margin-top:22px">Süre - Puan İlişkisi</div>
+  ${relHtml}
  </div>`;
 }
 
