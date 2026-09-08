@@ -76,7 +76,7 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 @keyframes icon-spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
 .search{width:95%;padding:10px;margin:0 auto 8px auto;display:block;background:#333;color:#eee;border:1px solid #555;border-radius:4px;font-size:16px}
 .sort-select{padding:6px 8px;font-size:13px;background:#222;color:#ccc;border:1px solid #444;border-radius:4px}
-.movie{width:95%;display:flex;align-items:center;margin:0 auto 15px auto;background:#222;padding:12px 16px;border-radius:8px;position:relative}
+.movie{width:95%;display:flex;align-items:center;margin:0 auto 8px auto;background:#222;padding:8px 12px;border-radius:8px;position:relative}
 .movie img{width:110px;height:165px;object-fit:cover;margin-right:15px;border-radius:4px}
 .movie img.poster-link{cursor:pointer}
 .rank-input{width:100%;font-size:0.55em;text-align:center;background:#222;color:#eee;border:1px solid #d9a441;border-radius:4px;padding:2px 0}
@@ -130,6 +130,8 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
  .column:first-child{border-right:none;border-bottom:2px solid #444}
  .sticky-header{padding:6px 12px 5px 12px}
  .list-header{padding:11px 14px;margin-bottom:10px}
+ .list-header{flex-wrap:wrap !important}
+ .list-header-brand{width:100%;margin-bottom:8px}
  .list-header-title{font-size:16px}
  .stat-icon{width:34px;height:34px;margin-right:10px}
  .stat-icon svg{width:17px;height:17px}
@@ -143,17 +145,19 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
  #watchedList.grid-view,#watchList.grid-view{display:block}
  .grid-view .movie{width:95%;margin:0 auto 10px auto}
  .grid-view .movie img{width:92px;height:138px;margin-right:10px}
- h2{font-size:13px;margin-bottom:4px}
+ h2{font-size:13px;margin-bottom:4px;display:block;width:100%}
  .search{padding:5px 8px;font-size:14px;margin-bottom:4px}
  .controls{gap:4px;margin-bottom:4px}
  .controls .sort-select{flex:1 1 47%;min-width:0;font-size:11px;padding:3px 5px}
  .findbox{padding:4px 8px;font-size:12px;margin-bottom:0}
  .list-wrap{padding:0 12px 12px 12px}
- .movie{padding:8px 10px;margin:0 auto 10px auto}
+ .movie{padding:6px 8px;margin:0 auto 6px auto}
  .movie img{width:92px;height:138px;margin-right:10px}
  .sync-bar{padding:5px 12px 0 12px!important;gap:6px}
  .sync-bar button{font-size:11px;padding:4px 7px}
  .sync-status{font-size:11px}
+ /* Mobilde istatistikler ve başlıklar alt alta gösterilsin */
+ .stats-columns{display:block !important}
 }
 /* Yatay (landscape) telefon: dikey alan az, üst bloğu daha da sıkıştır */
 @media (max-width:700px) and (orientation:landscape){
@@ -177,7 +181,7 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
  html.single-focus .search{font-size:20px;padding:12px}
  html.single-focus .findbox{font-size:18px;padding:10px}
  html.single-focus .controls .sort-select{font-size:16px;padding:8px 10px}
- html.single-focus .movie{padding:16px 14px}
+ html.single-focus .movie{padding:10px 10px}
  html.single-focus .movie img{width:130px;height:195px}
  html.single-focus .movie b{font-size:19px}
  html.single-focus .movie .meta{font-size:16px}
@@ -335,6 +339,7 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 .stat-highlight-label{font-size:11px;color:#999;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;display:flex;align-items:center;gap:6px}
 .stat-highlight-main{display:flex;align-items:center;gap:10px}
 .stat-highlight-poster{width:42px;height:63px;object-fit:cover;border-radius:4px;background:#2a2a2a;flex-shrink:0}
+.stat-highlight-avatar{width:42px;flex-shrink:0;margin:0;font-size:14px}
 .stat-highlight-body{min-width:0}
 .stat-highlight-title{font-size:13px;color:#eee;font-weight:600;line-height:1.25;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .stat-highlight-value{font-size:17px;color:#e8c877;font-weight:bold;line-height:1.2}
@@ -1037,6 +1042,21 @@ function statsHighlightMovieCard(icon,label,m,valueText){
  </div>`;
 }
 function statsHighlightNameCard(icon,label,kind,name,sub){
+ // Oyuncu/yönetmen kartlarında, Oyuncular/Yönetmenler bölümündeki kartlarla
+ // aynı avatar (TMDB fotoğrafı, yoksa baş harfler) gösterilir - lazyLoadStatsPhotos
+ // zaten sayfadaki tüm ".people-avatar[data-person-name]" öğelerini otomatik doldurur.
+ if(kind==="actor"||kind==="director"){
+   return `<div class="stat-highlight-card" data-kind="${kind}" data-name="${escapeHtml(name)}">
+    <div class="stat-highlight-label">${icon} ${label}</div>
+    <div class="stat-highlight-main">
+     <div class="people-avatar stat-highlight-avatar" data-person-name="${escapeHtml(name)}">${escapeHtml(statsInitials(name))}</div>
+     <div class="stat-highlight-body">
+      <div class="stat-highlight-title">${escapeHtml(name)}</div>
+      <div class="stat-highlight-value" style="font-size:13px">${escapeHtml(sub)}</div>
+     </div>
+    </div>
+   </div>`;
+ }
  return `<div class="stat-highlight-card" data-kind="${kind}" data-name="${escapeHtml(name)}">
   <div class="stat-highlight-label">${icon} ${label}</div>
   <div class="stat-highlight-value" style="margin-top:2px">${escapeHtml(name)}</div>
@@ -1213,17 +1233,26 @@ function statsSectionRuntime(movies){
  const catItems=STATS_RUNTIME_CATS.map(c=>({name:c.label,count:(catMoviesMap[c.label]||[]).length})).filter(x=>x.count>0);
  const catBarsHtml = catItems.length ? statsBarListHtml(catItems,"count","c-runtime","runtimeCategory") : '<div class="stats-empty">Yeterli veri yok</div>';
 
- // Süre - puan ilişkisi: yalnızca en az 2 filmi olan kategoriler için ortalama puan gösterilir.
- const relRows=STATS_RUNTIME_CATS.map(c=>{
-   const rs=catRatingSums[c.label];
-   if(!rs || rs.n<2) return null;
-   return {name:c.label,avg:rs.sum/rs.n};
- }).filter(Boolean);
+ // Süre - puan ilişkisi: sol taraftaki "Süre Kategorileri" listesiyle BİREBİR aynı
+ // kategoriler, aynı sırayla gösterilir - aksi halde iki sütun farklı sayıda
+ // satıra sahip oluyor ve yan yana duran iki kutunun yükseklikleri eşit çıkmıyordu.
+ // Ortalama puan için hâlâ en az 2 derecelendirilmiş film aranıyor; bu şartı
+ // sağlamayan kategoriler satırdan tamamen kaldırılmak yerine boş/pasif bir
+ // satır olarak (dolu bar olmadan) gösteriliyor, böylece satır sayısı hep eşleşir.
+ const relRows=catItems.map(c=>{
+   const rs=catRatingSums[c.name];
+   return (rs && rs.n>=2) ? {name:c.name,avg:rs.sum/rs.n} : {name:c.name,avg:null};
+ });
  const relHtml = relRows.length
-   ? relRows.map(x=>`<div class="bar-row" style="cursor:default">
-      <div class="bar-row-top"><span>${escapeHtml(x.name)}</span><span class="bar-val">★ ${x.avg.toFixed(2)}</span></div>
-      <div class="bar-track"><div class="bar-fill c-rating" style="width:${Math.max(x.avg/10*100,3)}%"></div></div>
-     </div>`).join("")
+   ? relRows.map(x=>{
+       const hasAvg=x.avg!=null;
+       const pct=hasAvg?Math.max(x.avg/10*100,3):0;
+       const label=hasAvg?`★ ${x.avg.toFixed(2)}`:"—";
+       return `<div class="bar-row" style="cursor:default">
+      <div class="bar-row-top"><span>${escapeHtml(x.name)}</span><span class="bar-val">${label}</span></div>
+      <div class="bar-track"><div class="bar-fill c-rating" style="width:${pct}%${hasAvg?"":";opacity:.3"}"></div></div>
+     </div>`;
+     }).join("")
    : '<div class="stats-empty">Yeterli veri yok</div>';
 
  return `<div class="stats-section" id="stats-sec-runtime">
@@ -1607,6 +1636,7 @@ let genreState={watched:"all",watchlist:"all"};
 let directorState={watched:"all",watchlist:"all"};
 let actorState={watched:"all",watchlist:"all"};
 let viewState={watched:"list",watchlist:"list"};
+let filterState={watched:"",watchlist:""}; // Listeleri filtrelemek için arama metni
 let searchGen={watched:0,watchlist:0};
 let searchActive={watched:false,watchlist:false};
 
@@ -1866,12 +1896,10 @@ async function preloadInfo(){
 
 function searchMain(input,type){
  clearTimeout(searchTimer);
- searchGen[type]++;
- const myGen=searchGen[type];
  const raw=input.value.trim();
- if(raw.length<3){searchActive[type]=false;reload();return;}
- searchActive[type]=true;
- searchTimer=setTimeout(()=>searchImmediate(raw,type,myGen),400);
+ filterState[type]=raw;
+ // İçsel listeden hemen filtrele
+ render();
 }
 
 async function searchTmdbTurkishImdbIds(query){
@@ -2774,6 +2802,20 @@ function renderColumn(type){
  populateActorSelect(type);
 
  let indexed=allData[type].map((m,i)=>({m,i}));
+ 
+ // Arama filtresi - başlık, Türkçe başlık, yönetmen ve oyuncuları kontrol et
+ if(filterState[type].trim()){
+   const q=filterState[type].toLowerCase();
+   indexed=indexed.filter(x=>{
+     const m=x.m;
+     const turkishTitle=(turkishCache[m.imdbID]?.title||"").toLowerCase();
+     const title=(m.Title||"").toLowerCase();
+     const directors=(movieDirectors(m)||[]).join(" ").toLowerCase();
+     const actors=(movieActors(m)||[]).join(" ").toLowerCase();
+     return title.includes(q) || turkishTitle.includes(q) || directors.includes(q) || actors.includes(q);
+   });
+ }
+ 
  if(genreState[type]!=="all"){
    indexed=indexed.filter(x=>movieGenresTr(x.m).includes(genreState[type]));
  }
@@ -2836,6 +2878,10 @@ function refreshCardsInPlace(){
  });
  populateGenreSelect("watched");
  populateGenreSelect("watchlist");
+ populateDirectorSelect("watched");
+ populateDirectorSelect("watchlist");
+ populateActorSelect("watched");
+ populateActorSelect("watchlist");
 }
 
 async function fetchOmdbById(imdbId){
