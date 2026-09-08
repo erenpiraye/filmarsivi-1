@@ -76,7 +76,7 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 @keyframes icon-spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
 .search{width:95%;padding:10px;margin:0 auto 8px auto;display:block;background:#333;color:#eee;border:1px solid #555;border-radius:4px;font-size:16px}
 .sort-select{padding:6px 8px;font-size:13px;background:#222;color:#ccc;border:1px solid #444;border-radius:4px}
-.movie{width:95%;display:flex;align-items:stretch;margin:0 auto 15px auto;background:#222;padding:12px 16px;border-radius:8px;position:relative}
+.movie{width:95%;display:flex;align-items:center;margin:0 auto 15px auto;background:#222;padding:12px 16px;border-radius:8px;position:relative}
 .movie img{width:110px;height:165px;object-fit:cover;margin-right:15px;border-radius:4px}
 .movie img.poster-link{cursor:pointer}
 .rank-input{width:100%;font-size:0.55em;text-align:center;background:#222;color:#eee;border:1px solid #d9a441;border-radius:4px;padding:2px 0}
@@ -94,12 +94,12 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 .movie.drop-gap-after{margin-bottom:28px !important;transition:margin-bottom 0.12s ease}
 .tick-btn{position:absolute;top:38px;right:10px;background:#333;color:#0f0;border:none;width:24px;height:24px;border-radius:50%;cursor:pointer}
 .delete-btn{position:absolute;top:10px;right:10px;background:#333;color:#bbb;border:none;width:24px;height:24px;border-radius:50%;cursor:pointer}
-.meta{font-size:13px;color:#bbb;margin-top:3px;display:flex;align-items:center;gap:5px}
-.meta-icon{display:inline-flex;width:16px;flex-shrink:0;justify-content:center;align-items:center}
+.meta{font-size:13px;color:#bbb;margin-top:3px}
 .money-budget,.money-revenue{color:#bbb}
 .money-budget:empty,.money-revenue:empty{display:none}
 .my-rating-line:empty{display:none}
 .my-rating-line .my-star{color:#4fa8e8}
+.meta-icon{display:inline-flex;width:16px;justify-content:center;align-items:center;vertical-align:-3px}
 .tr-title{color:#888;font-size:13px;margin-top:2px}
 .controls{width:95%;margin:0 auto 10px auto;display:flex;flex-wrap:wrap;gap:8px}
 .controls .sort-select{flex:1 1 130px;min-width:110px}
@@ -112,7 +112,6 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 .find-row.has-matches .find-nav-btn{display:flex}
 .find-row.has-matches .find-count{display:inline-block}
 .movie.highlight{outline:3px solid #ffd700;box-shadow:0 0 14px #ffd700}
-.movie.find-hidden{display:none}
 .person-link{color:inherit;text-decoration:none;cursor:pointer}
 .person-link:hover{color:#d9a441;text-decoration:underline}
 
@@ -152,10 +151,6 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
  .list-wrap{padding:0 12px 12px 12px}
  .movie{padding:8px 10px;margin:0 auto 10px auto}
  .movie img{width:92px;height:138px;margin-right:10px}
- .movie>div b{font-size:14px}
- .movie .tr-title{font-size:11px;margin-top:1px}
- .movie .meta{font-size:11px;margin-top:2px;line-height:1.25;gap:4px}
- .movie .meta-icon{width:13px}
  .sync-bar{padding:5px 12px 0 12px!important;gap:6px}
  .sync-bar button{font-size:11px;padding:4px 7px}
  .sync-status{font-size:11px}
@@ -330,8 +325,8 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 .people-item:hover .people-name{color:#e8c877}
 
 /* ---- Yeni istatistik bölümleri: En'ler, Puan Dağılımı, Süre, Zevk Analizi, Film DNA ---- */
-.stats-nav{display:flex;flex-wrap:wrap;gap:8px;padding:0 0 16px 0;margin-bottom:14px;border-bottom:1px solid #2a2a2a}
-.stats-nav-btn{padding:6px 13px;border-radius:16px;background:#222;border:1px solid #333;color:#ccc;font-size:12px;font-weight:600;cursor:pointer;user-select:none;white-space:nowrap;transition:border-color .15s ease,color .15s ease}
+.stats-nav{display:flex;gap:8px;overflow-x:auto;padding:0 0 16px 0;margin-bottom:14px;border-bottom:1px solid #2a2a2a}
+.stats-nav-btn{flex-shrink:0;padding:6px 13px;border-radius:16px;background:#222;border:1px solid #333;color:#ccc;font-size:12px;font-weight:600;cursor:pointer;user-select:none;white-space:nowrap;transition:border-color .15s ease,color .15s ease}
 .stats-nav-btn:hover{border-color:#d9a441;color:#e8c877}
 
 .stat-highlight-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:14px}
@@ -344,7 +339,6 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 .stat-highlight-title{font-size:13px;color:#eee;font-weight:600;line-height:1.25;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .stat-highlight-value{font-size:17px;color:#e8c877;font-weight:bold;line-height:1.2}
 .stat-highlight-sub{font-size:11.5px;color:#999;margin-top:2px}
-.stat-highlight-avatar.people-avatar{width:42px;height:63px;aspect-ratio:auto;margin:0;flex-shrink:0;font-size:14px}
 
 .stat-pill-row{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:20px}
 .stat-pill{background:#1e1e1e;border:1px solid #303030;border-radius:8px;padding:10px 16px;min-width:96px;text-align:center}
@@ -900,9 +894,9 @@ function statsBreakdownList(data,mode){
    : items.sort((a,b)=>b.count-a.count);
  return items; // ana sayfadaki Kategori açılır menüsünde kaç tür varsa burada da hepsi listelensin - üst sınır yok
 }
-function statsBarListHtml(items,mode,colorClass,field,maxOverride){
+function statsBarListHtml(items,mode,colorClass,field){
  if(!items.length) return '<div class="stats-empty">Yeterli veri yok</div>';
- const maxVal = mode==="rating" ? 10 : (maxOverride!=null ? maxOverride : Math.max(...items.map(x=>x.count)));
+ const maxVal = mode==="rating" ? 10 : Math.max(...items.map(x=>x.count));
  return items.map(x=>{
    const val = mode==="rating" ? x.avg : x.count;
    const pct = Math.max((val/maxVal)*100,3);
@@ -917,13 +911,19 @@ function statsSectionBreakdown(movies){
  const genreData=statsBreakdownData(movies,"genre");
  statsBreakdownMoviesMap.genre=genreData.moviesMap;
  const mode="count";
+ // Tür listesi uzun olabildiği için tek sütunda çok aşağı iniyor ve sağda
+ // boşluk kalıyordu - listeyi ikiye bölüp iki sütunda yan yana gösteriyoruz.
  const list=statsBreakdownList(genreData,mode);
- const globalMax=list.length?Math.max(...list.map(x=>x.count)):0;
+ const half=Math.ceil(list.length/2);
+ const col1=list.slice(0,half), col2=list.slice(half);
  return `<div class="stats-section" id="stats-sec-genres">
   <div class="stats-section-head">
    <span class="stats-section-title">Türler</span>
   </div>
-  ${statsBarListHtml(list,mode,"c-genre","genre",globalMax)}
+  <div class="stats-columns">
+   <div class="stats-col">${statsBarListHtml(col1,mode,"c-genre","genre")}</div>
+   ${col2.length?`<div class="stats-col">${statsBarListHtml(col2,mode,"c-genre","genre")}</div>`:""}
+  </div>
  </div>`;
 }
 
@@ -1037,20 +1037,10 @@ function statsHighlightMovieCard(icon,label,m,valueText){
  </div>`;
 }
 function statsHighlightNameCard(icon,label,kind,name,sub){
- const isPerson = kind==="director" || kind==="actor";
- const body = isPerson
-   ? `<div class="stat-highlight-main">
-       <div class="people-avatar stat-highlight-avatar" data-person-name="${escapeHtml(name)}">${escapeHtml(statsInitials(name))}</div>
-       <div class="stat-highlight-body">
-        <div class="stat-highlight-value" style="margin-top:0">${escapeHtml(name)}</div>
-        <div class="stat-highlight-sub">${escapeHtml(sub)}</div>
-       </div>
-      </div>`
-   : `<div class="stat-highlight-value" style="margin-top:2px">${escapeHtml(name)}</div>
-      <div class="stat-highlight-sub">${escapeHtml(sub)}</div>`;
  return `<div class="stat-highlight-card" data-kind="${kind}" data-name="${escapeHtml(name)}">
   <div class="stat-highlight-label">${icon} ${label}</div>
-  ${body}
+  <div class="stat-highlight-value" style="margin-top:2px">${escapeHtml(name)}</div>
+  <div class="stat-highlight-sub">${escapeHtml(sub)}</div>
  </div>`;
 }
 function statsSectionSuperlatives(movies){
@@ -1223,23 +1213,17 @@ function statsSectionRuntime(movies){
  const catItems=STATS_RUNTIME_CATS.map(c=>({name:c.label,count:(catMoviesMap[c.label]||[]).length})).filter(x=>x.count>0);
  const catBarsHtml = catItems.length ? statsBarListHtml(catItems,"count","c-runtime","runtimeCategory") : '<div class="stats-empty">Yeterli veri yok</div>';
 
- // Süre - puan ilişkisi: sol sütunla (Süre Kategorileri) aynı satır sayısı -
- // veri yoksa "—" gösterilir, iki sütun her zaman aynı yükseklikte kalır.
- const relRows=catItems.map(x=>{
-   const rs=catRatingSums[x.name];
-   return (rs && rs.n>=2) ? {name:x.name,avg:rs.sum/rs.n} : {name:x.name,avg:null};
- });
+ // Süre - puan ilişkisi: yalnızca en az 2 filmi olan kategoriler için ortalama puan gösterilir.
+ const relRows=STATS_RUNTIME_CATS.map(c=>{
+   const rs=catRatingSums[c.label];
+   if(!rs || rs.n<2) return null;
+   return {name:c.label,avg:rs.sum/rs.n};
+ }).filter(Boolean);
  const relHtml = relRows.length
-   ? relRows.map(x=> x.avg!=null
-       ? `<div class="bar-row" style="cursor:default">
-          <div class="bar-row-top"><span>${escapeHtml(x.name)}</span><span class="bar-val">★ ${x.avg.toFixed(2)}</span></div>
-          <div class="bar-track"><div class="bar-fill c-rating" style="width:${Math.max(x.avg/10*100,3)}%"></div></div>
-         </div>`
-       : `<div class="bar-row" style="cursor:default">
-          <div class="bar-row-top"><span>${escapeHtml(x.name)}</span><span class="bar-val">—</span></div>
-          <div class="bar-track"><div class="bar-fill c-rating" style="width:3%;opacity:.3"></div></div>
-         </div>`
-     ).join("")
+   ? relRows.map(x=>`<div class="bar-row" style="cursor:default">
+      <div class="bar-row-top"><span>${escapeHtml(x.name)}</span><span class="bar-val">★ ${x.avg.toFixed(2)}</span></div>
+      <div class="bar-track"><div class="bar-fill c-rating" style="width:${Math.max(x.avg/10*100,3)}%"></div></div>
+     </div>`).join("")
    : '<div class="stats-empty">Yeterli veri yok</div>';
 
  return `<div class="stats-section" id="stats-sec-runtime">
@@ -1248,10 +1232,16 @@ function statsSectionRuntime(movies){
    <div class="stat-pill"><div class="stat-pill-value">${formatTime(total)}</div><div class="stat-pill-label">Toplam Süre</div></div>
    <div class="stat-pill"><div class="stat-pill-value">${formatTime(Math.round(avg))}</div><div class="stat-pill-label">Ortalama</div></div>
   </div>
-  <div class="stats-section-title" style="margin-bottom:12px;margin-top:22px">Süre Kategorileri</div>
-  ${catBarsHtml}
-  <div class="stats-section-title" style="margin-bottom:12px;margin-top:22px">Süre - Puan İlişkisi</div>
-  ${relHtml}
+  <div class="stats-columns">
+   <div class="stats-col">
+    <div class="stats-section-title" style="margin-bottom:12px">Süre Kategorileri</div>
+    ${catBarsHtml}
+   </div>
+   <div class="stats-col">
+    <div class="stats-section-title" style="margin-bottom:12px">Süre - Puan İlişkisi</div>
+    ${relHtml}
+   </div>
+  </div>
  </div>`;
 }
 
@@ -2648,82 +2638,26 @@ function populateGenreSelect(type){
  sel.value=genreState[type];
 }
 
-const _dirCache={watched:{names:null,dirty:true},watchlist:{names:null,dirty:true}};
-function _buildDirectorNames(type){
- const set=new Set();
- allData[type].forEach(m=>movieDirectors(m).forEach(d=>set.add(d)));
- return Array.from(set).sort((a,b)=>a.localeCompare(b,"tr"));
-}
-function _injectDirectorOptions(type){
- const cache=_dirCache[type];
- if(!cache.dirty) return;
- cache.dirty=false;
- const names=_buildDirectorNames(type);
- cache.names=names;
- const sel=document.getElementById(type==="watchlist"?"directorWatch":"directorWatched");
- const cur=sel.value;
- sel.innerHTML='<option value="all">Yönetmen</option>'+
-   names.map(n=>`<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join("");
- sel.value=(cur!=="all" && names.includes(cur))?cur:"all";
-}
-function _attachDirectorLazy(type){
- const id=type==="watchlist"?"directorWatch":"directorWatched";
- const sel=document.getElementById(id);
- if(!sel||sel._lazyDir) return;
- sel._lazyDir=true;
- const h=()=>_injectDirectorOptions(type);
- sel.addEventListener("mousedown",h,{passive:true});
- sel.addEventListener("focus",h,{passive:true});
- sel.addEventListener("touchstart",h,{passive:true});
-}
 function populateDirectorSelect(type){
- _dirCache[type].dirty=true;
- _attachDirectorLazy(type);
- const names=_dirCache[type].names;
- if(names && directorState[type]!=="all" && !names.includes(directorState[type])){
-   directorState[type]="all";
-   const sel=document.getElementById(type==="watchlist"?"directorWatch":"directorWatched");
-   if(sel) sel.value="all";
- }
+ const sel=document.getElementById(type==="watchlist"?"directorWatch":"directorWatched");
+ const current=directorState[type];
+ const set=new Set();
+ allData[type].forEach(m=>movieDirectors(m).forEach(dName=>set.add(dName)));
+ const names=Array.from(set).sort((a,b)=>a.localeCompare(b,"tr"));
+ sel.innerHTML='<option value="all">Yönetmen</option>'+names.map(n=>`<option value="${n}">${n}</option>`).join("");
+ if(current!=="all" && !names.includes(current)) directorState[type]="all";
+ sel.value=directorState[type];
 }
 
-const _actorCache={watched:{names:null,dirty:true},watchlist:{names:null,dirty:true}};
-function _buildActorNames(type){
+function populateActorSelect(type){
+ const sel=document.getElementById(type==="watchlist"?"actorWatch":"actorWatched");
+ const current=actorState[type];
  const set=new Set();
  allData[type].forEach(m=>movieActors(m).forEach(a=>set.add(a)));
- return Array.from(set).sort((a,b)=>a.localeCompare(b,"tr"));
-}
-function _injectActorOptions(type){
- const cache=_actorCache[type];
- if(!cache.dirty) return;
- cache.dirty=false;
- const names=_buildActorNames(type);
- cache.names=names;
- const sel=document.getElementById(type==="watchlist"?"actorWatch":"actorWatched");
- const cur=sel.value;
- sel.innerHTML='<option value="all">Oyuncu</option>'+
-   names.map(n=>`<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join("");
- sel.value=(cur!=="all" && names.includes(cur))?cur:"all";
-}
-function _attachActorLazy(type){
- const id=type==="watchlist"?"actorWatch":"actorWatched";
- const sel=document.getElementById(id);
- if(!sel||sel._lazyActor) return;
- sel._lazyActor=true;
- const h=()=>_injectActorOptions(type);
- sel.addEventListener("mousedown",h,{passive:true});
- sel.addEventListener("focus",h,{passive:true});
- sel.addEventListener("touchstart",h,{passive:true});
-}
-function populateActorSelect(type){
- _actorCache[type].dirty=true;
- _attachActorLazy(type);
- const names=_actorCache[type].names;
- if(names && actorState[type]!=="all" && !names.includes(actorState[type])){
-   actorState[type]="all";
-   const sel=document.getElementById(type==="watchlist"?"actorWatch":"actorWatched");
-   if(sel) sel.value="all";
- }
+ const names=Array.from(set).sort((a,b)=>a.localeCompare(b,"tr"));
+ sel.innerHTML='<option value="all">Oyuncu</option>'+names.map(n=>`<option value="${n}">${n}</option>`).join("");
+ if(current!=="all" && !names.includes(current)) actorState[type]="all";
+ sel.value=actorState[type];
 }
 
 function onSortChange(type){
@@ -2735,12 +2669,10 @@ function onGenreChange(type){
  renderColumn(type);
 }
 function onDirectorChange(type){
- _injectDirectorOptions(type);
  directorState[type]=document.getElementById(type==="watchlist"?"directorWatch":"directorWatched").value;
  renderColumn(type);
 }
 function onActorChange(type){
- _injectActorOptions(type);
  actorState[type]=document.getElementById(type==="watchlist"?"actorWatch":"actorWatched").value;
  renderColumn(type);
 }
@@ -2752,12 +2684,10 @@ let findState={watched:{matches:[],index:-1},watchlist:{matches:[],index:-1}};
 function findInList(input,type){
  const q=input.value.trim().toLowerCase();
  const st=findState[type];
- const listElForClear=type==="watchlist"?watchList:watchedList;
  if(!q){
    st.matches=[];
    st.index=-1;
    updateFindCount(type);
-   listElForClear.querySelectorAll(".movie.find-hidden").forEach(el=>el.classList.remove("find-hidden"));
    const listEl=type==="watchlist"?watchList:watchedList;
    listEl.querySelectorAll(".movie.highlight").forEach(el=>el.classList.remove("highlight"));
    return;
@@ -2777,8 +2707,6 @@ function findInList(input,type){
    const text=((titleEl?titleEl.textContent:"")+" "+(trEl?trEl.textContent:"")).toLowerCase();
    return text.includes(q);
  });
- const matchSet=new Set(st.matches);
- cards.forEach(c=>c.classList.toggle("find-hidden",!matchSet.has(c)));
  st.index=st.matches.length?0:-1;
  goToFindMatch(type);
 }
@@ -2908,10 +2836,6 @@ function refreshCardsInPlace(){
  });
  populateGenreSelect("watched");
  populateGenreSelect("watchlist");
- ["watched","watchlist"].forEach(t=>{
-   if(window._dirCache) _dirCache[t].dirty=true;
-   if(window._actorCache) _actorCache[t].dirty=true;
- });
 }
 
 async function fetchOmdbById(imdbId){
