@@ -45,14 +45,20 @@
 <title>Film Arşivi</title>
 <style>
 *{box-sizing:border-box}
+html,body{overscroll-behavior-y:contain}
 body{font-family:Arial;background:#111;color:#eee;margin:0}
+/* İstatistik penceresi (veya üstündeki film/kişi listesi) açıkken arka
+   plandaki ana sayfanın telefonda AYNI ANDA kaymasını engeller - bkz.
+   _lockBackgroundScroll/_unlockBackgroundScroll. PC'de zaten .column kendi
+   içinde kaydığından (body kaymaz) bu kuralın PC'de görünür bir etkisi yok. */
+html.stats-modal-open,html.stats-modal-open body{overflow:hidden}
 .container{display:flex;height:100vh}
 /* scrollbar-gutter:stable: PC'de iki sütun yan yanayken, biri kaydırma
    çubuğu gerektirip diğeri gerektirmediğinde (örn. biri diğerinden uzun
    liste), kaydırma çubuğunun kapladığı ~15px genişlik yüzünden kartlar
    (width:95%) iki sütunda farklı boyut görünüyordu. Her iki sütunda da bu
    alan hep ayrılınca kartlar her zaman eşit boyutta kalır. */
-.column{width:50%;padding:0;box-sizing:border-box;overflow-y:auto;overflow-x:hidden;scroll-behavior:smooth;scrollbar-gutter:stable}
+.column{width:50%;padding:0;box-sizing:border-box;overflow-y:auto;overflow-x:hidden;scroll-behavior:smooth;scrollbar-gutter:stable;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
 .sticky-header{position:sticky;top:0;padding:20px 20px 10px 20px;background:#111;z-index:5;border-bottom:1px solid #222}
 .list-wrap{padding:0 20px 20px 20px}
 .column:first-child{border-right:2px solid #444}
@@ -187,7 +193,7 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 }
 
 /* ===================== DETAY MODALI (afişe/karta tıklayınca açılır) ===================== */
-.detail-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:200;align-items:flex-start;justify-content:center;overflow-y:auto;padding:30px 16px}
+.detail-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:200;align-items:flex-start;justify-content:center;overflow-y:auto;padding:30px 16px;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
 .detail-overlay.open{display:flex}
 .detail-modal{position:relative;width:100%;max-width:820px;background:#181818;border:1px solid #3a3222;border-radius:12px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.6);touch-action:pan-y}
 .detail-backdrop{position:absolute;top:0;left:0;right:0;height:300px;background-size:cover;background-position:center;filter:blur(2px) brightness(0.5);z-index:0}
@@ -276,14 +282,14 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 }
 
 /* ===================== İSTATİSTİKLER ===================== */
-.stats-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:200;align-items:flex-start;justify-content:center;overflow-y:auto;padding:0 16px 30px 16px}
+.stats-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:200;align-items:flex-start;justify-content:center;overflow-y:auto;padding:0 16px 30px 16px;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
 .stats-overlay.open{display:flex}
-.stats-modal{position:relative;width:100%;max-width:1080px;margin-top:30px;background:#181818;border:1px solid #3a3222;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,0.6);display:flex;flex-direction:column;max-height:calc(100vh - 60px)}
+.stats-modal{position:relative;width:100%;max-width:1080px;margin-top:30px;background:#181818;border:1px solid #3a3222;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,0.6);display:flex;flex-direction:column;max-height:calc(100vh - 60px);max-height:calc(100dvh - 60px)}
 .stats-topbar{position:sticky;top:0;display:flex;align-items:center;justify-content:space-between;padding:18px 24px;background:#181818;border-bottom:1px solid #2a2a2a;border-radius:12px 12px 0 0;z-index:2;flex-shrink:0}
 .stats-topbar h2{margin:0;display:flex;align-items:center;gap:10px;text-align:left;font-size:20px;color:#e8c877}
 .stats-title-icon{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,#3a2f14,#241d0c);color:#e8c877;flex-shrink:0}
 .stats-title-icon svg{width:19px;height:19px}
-.stats-body{padding:8px 24px 28px 24px;overflow-y:auto;flex:1}
+.stats-body{padding:8px 24px 28px 24px;overflow-y:auto;flex:1;min-height:0;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
 .stats-section{margin-top:30px;padding-top:22px;border-top:1px solid #2a2a2a}
 .stats-section:first-child{margin-top:10px;padding-top:0;border-top:none}
 .stats-section-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:18px}
@@ -348,7 +354,8 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 /* İstatistikler altındaki bölüm başlıkları (Film DNA, Türler, Süre, Oyuncular...)
    yana kaydırma (overflow-x) gerektiriyordu - artık satır dolunca yana taşmak
    yerine (ekran genişliği ne olursa olsun) otomatik olarak alt satıra geçiyor. */
-.stats-nav{display:flex;flex-wrap:wrap;gap:8px;overflow-x:visible;padding:8px 0 16px 0;margin-bottom:14px;border-bottom:1px solid #2a2a2a;position:sticky;top:0;z-index:3;background:#181818}
+.stats-nav-wrap{flex-shrink:0;background:#181818;border-bottom:1px solid #2a2a2a;padding:10px 24px 0 24px}
+.stats-nav{display:flex;flex-wrap:wrap;gap:8px;overflow-x:visible;padding:0 0 10px 0;margin-bottom:0;border-bottom:none}
 .stats-nav-btn{flex-shrink:0;padding:6px 13px;border-radius:16px;background:#222;border:1px solid #333;color:#ccc;font-size:12px;font-weight:600;cursor:pointer;user-select:none;white-space:nowrap;transition:border-color .15s ease,color .15s ease}
 .stats-nav-btn:hover{border-color:#d9a441;color:#e8c877}
 
@@ -404,7 +411,7 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
    açıyordu. Boşluğu overlay'in padding'inden değil, modal'ın margin'inden
    veriyoruz - kaydırılınca bu boşluk normal içerik gibi kaybolur ve başlık
    ekranın en tepesine tam yaslanır. */
-.stats-list-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:300;align-items:flex-start;justify-content:center;overflow-y:auto;padding:0 16px 30px 16px}
+.stats-list-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:300;align-items:flex-start;justify-content:center;overflow-y:auto;padding:0 16px 30px 16px;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
 .stats-list-overlay.open{display:flex}
 .stats-list-modal{position:relative;width:100%;max-width:900px;margin-top:30px;background:#181818;border:1px solid #3a3222;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,0.6)}
 .stats-list-topbar{position:sticky;top:0;display:flex;align-items:center;justify-content:space-between;padding:16px 22px;background:#181818;border-bottom:1px solid #2a2a2a;border-radius:12px 12px 0 0;z-index:2}
@@ -424,8 +431,9 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 .people-name{font-size:13px;color:#eee;font-weight:600;line-height:1.25}
 .people-count{font-size:12px;color:#888;margin-top:1px}
 @media (max-width:700px){
- .stats-body{padding:8px 14px 20px 14px;overflow-y:auto;flex:1}
+ .stats-body{padding:8px 14px 20px 14px;overflow-y:auto;flex:1;min-height:0;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
  .stats-topbar{padding:14px 16px}
+ .stats-nav-wrap{padding:8px 14px 0 14px}
  .money-budget,.money-revenue{display:none!important}
 }
 </style>
@@ -639,6 +647,7 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
    <h2><span class="stats-title-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M7 15l4-4 3 3 5-6"/><path d="M15 8h4v4"/></svg></span> İstatistikler</h2>
    <span class="detail-close" style="position:static" onclick="closeStats()">✕</span>
   </div>
+  <div class="stats-nav-wrap" id="statsNavWrap"></div>
   <div class="stats-body" id="statsBody">
    <!-- JS ile dolduruluyor: renderStats() -->
   </div>
@@ -707,12 +716,29 @@ let statsYearMoviesMap={};                                  // yıl -> [film,...
 let statsBreakdownMoviesMap={genre:{}};                     // tür -> [film,...]
 let statsPeopleMoviesMap={actor:{},director:{}};             // tür -> {isim: [film,...]}
 
+// İstatistik pencereleri (ve üstüne açılan film/kişi listesi) açıkken
+// arkadaki ana sayfa telefonda AYNI ANDA kayabiliyordu (arka planın kendi
+// scroll'u ile üstteki pencerenin scroll'u çakışıyordu) - bu da parmakla
+// kaydırırken sayfanın "tepkisiz/donmuş" hissettirmesinin sebeplerinden
+// biriydi. Kaç pencerenin açık olduğunu sayan basit bir sayaçla, en az bir
+// pencere açıkken arka planı kilitliyoruz; hepsi kapanınca serbest bırakıyoruz.
+let _statsModalLockCount=0;
+function _lockBackgroundScroll(){
+ _statsModalLockCount++;
+ document.documentElement.classList.add("stats-modal-open");
+}
+function _unlockBackgroundScroll(){
+ _statsModalLockCount=Math.max(0,_statsModalLockCount-1);
+ if(_statsModalLockCount===0) document.documentElement.classList.remove("stats-modal-open");
+}
 function openStats(){
  renderStats();
  document.getElementById("statsOverlay").classList.add("open");
+ _lockBackgroundScroll();
 }
 function closeStats(){
  document.getElementById("statsOverlay").classList.remove("open");
+ _unlockBackgroundScroll();
 }
 document.addEventListener("keydown",e=>{
  if(e.key!=="Escape") return;
@@ -792,7 +818,10 @@ function renderStats(){
  const nav = sections.length>1
    ? `<div class="stats-nav">`+sections.map(s=>`<span class="stats-nav-btn" onclick="statsScrollTo('${s.id}')">${escapeHtml(s.label)}</span>`).join("")+`</div>`
    : "";
- body.innerHTML = nav + sections.map(s=>s.html).join("");
+ const navWrap=document.getElementById("statsNavWrap");
+ if(navWrap) navWrap.innerHTML=nav;
+ body.innerHTML = sections.map(s=>s.html).join("");
+ _statsPhotosRunning=false;
  lazyLoadStatsPhotos();
  lazyLoadStatsPosterImgs(body);
 }
@@ -848,7 +877,15 @@ let statsDecadeMoviesMap={};      // on yıl -> [{m,r}, ...] (seçili sekmenin a
 
 function selectDecadeTab(d){
  statsDecadeSelected=d;
- renderStats();
+ // Sadece On Yıllar bölümünü güncelle - tüm renderStats() çok ağır
+ const sec=document.getElementById("stats-sec-decades");
+ if(!sec){ renderStats(); return; }
+ const movies=allData.watched||[];
+ const newHtml=statsSectionDecades(movies);
+ const tmp=document.createElement("div");
+ tmp.innerHTML=newHtml;
+ const newSec=tmp.firstElementChild;
+ if(newSec){ sec.replaceWith(newSec); lazyLoadStatsPosterImgs(newSec); }
 }
 
 function statsSectionDecades(movies){
@@ -1240,7 +1277,7 @@ function statsRuntimeCatOf(min){
  return c?c.label:null;
 }
 function statsSectionRuntime(movies){
- const withRuntime=movies.map(m=>({m,min:runtimeMin(m.Runtime),r:statsRatingOf(m)})).filter(x=>x.min>0);
+ const withRuntime=movies.map(m=>({m,min:runtimeMin(m.Runtime)})).filter(x=>x.min>0);
  if(!withRuntime.length){
    return `<div class="stats-section" id="stats-sec-runtime">
     <div class="stats-section-head"><span class="stats-section-title">Film Süresi</span></div>
@@ -1251,38 +1288,15 @@ function statsSectionRuntime(movies){
  const total=mins.reduce((s,v)=>s+v,0);
  const avg=total/mins.length;
 
- const catMoviesMap={}, catRatingSums={};
+ const catMoviesMap={};
  withRuntime.forEach(x=>{
    const cat=statsRuntimeCatOf(x.min);
    if(!cat) return;
    (catMoviesMap[cat]=catMoviesMap[cat]||[]).push(x.m);
-   if(x.r!=null){ catRatingSums[cat]=catRatingSums[cat]||{sum:0,n:0}; catRatingSums[cat].sum+=x.r; catRatingSums[cat].n++; }
  });
  statsBreakdownMoviesMap.runtimeCategory=catMoviesMap;
  const catItems=STATS_RUNTIME_CATS.map(c=>({name:c.label,count:(catMoviesMap[c.label]||[]).length})).filter(x=>x.count>0);
  const catBarsHtml = catItems.length ? statsBarListHtml(catItems,"count","c-runtime","runtimeCategory") : '<div class="stats-empty">Yeterli veri yok</div>';
-
- // Süre - puan ilişkisi: sol taraftaki "Süre Kategorileri" listesiyle BİREBİR aynı
- // kategoriler, aynı sırayla gösterilir - aksi halde iki sütun farklı sayıda
- // satıra sahip oluyor ve yan yana duran iki kutunun yükseklikleri eşit çıkmıyordu.
- // Ortalama puan için hâlâ en az 2 derecelendirilmiş film aranıyor; bu şartı
- // sağlamayan kategoriler satırdan tamamen kaldırılmak yerine boş/pasif bir
- // satır olarak (dolu bar olmadan) gösteriliyor, böylece satır sayısı hep eşleşir.
- const relRows=catItems.map(c=>{
-   const rs=catRatingSums[c.name];
-   return (rs && rs.n>=2) ? {name:c.name,avg:rs.sum/rs.n} : {name:c.name,avg:null};
- });
- const relHtml = relRows.length
-   ? relRows.map(x=>{
-       const hasAvg=x.avg!=null;
-       const pct=hasAvg?Math.max(x.avg/10*100,3):0;
-       const label=hasAvg?`★ ${x.avg.toFixed(2)}`:"—";
-       return `<div class="bar-row" style="cursor:default">
-      <div class="bar-row-top"><span>${escapeHtml(x.name)}</span><span class="bar-val">${label}</span></div>
-      <div class="bar-track"><div class="bar-fill c-rating" style="width:${pct}%${hasAvg?"":";opacity:.3"}"></div></div>
-     </div>`;
-     }).join("")
-   : '<div class="stats-empty">Yeterli veri yok</div>';
 
  return `<div class="stats-section" id="stats-sec-runtime">
   <div class="stats-section-head"><span class="stats-section-title">Film Süresi</span></div>
@@ -1290,18 +1304,8 @@ function statsSectionRuntime(movies){
    <div class="stat-pill"><div class="stat-pill-value">${formatTime(total)}</div><div class="stat-pill-label">Toplam Süre</div></div>
    <div class="stat-pill"><div class="stat-pill-value">${formatTime(Math.round(avg))}</div><div class="stat-pill-label">Ortalama</div></div>
   </div>
-  <div class="stats-columns">
-   <div class="stats-col">
-    <div class="stats-section-title" style="margin-bottom:12px">Süre Kategorileri</div>
-    ${catBarsHtml}
-   </div>
-  </div>
-  <div class="stats-columns">
-   <div class="stats-col">
-    <div class="stats-section-title" style="margin-bottom:12px">Süre - Puan İlişkisi</div>
-    ${relHtml}
-   </div>
-  </div>
+  <div class="stats-section-head"><span class="stats-section-title">Süre Kategorileri</span></div>
+  ${catBarsHtml}
  </div>`;
 }
 
@@ -1504,8 +1508,54 @@ function statsSectionDNA(movies){
  </div>`;
 }
 
-/* ---- Görünen oyuncu/yönetmen avatarları için TMDB'den fotoğraf (arka planda, sırayla) ---- */
+/* ---- Görünen oyuncu/yönetmen avatarları için TMDB'den fotoğraf ----
+   Hem "En'ler/vitrin" bölümü (lazyLoadStatsPhotos, sırayla) hem de "Tüm
+   Kişiler" listesi (lazyLoadStatsPhotosOnScroll, ekrana girdikçe) aynı isme
+   AYNI ANDA istek atabiliyordu (ör. bir oyuncu hem vitrin kartında hem tam
+   listede görünüyorsa). Ayrıca "Tüm Kişiler" açılışında ekrana bir anda
+   giren onlarca avatar için IntersectionObserver hepsini TEK SEFERDE ateşleyip
+   onlarca eşzamanlı ağ isteği + arka arkaya çok sayıda DOM güncellemesi
+   (her biri innerHTML yazıyor) yapıyordu; zayıf telefonlarda bu ani yığılma
+   sayfanın bir anlığına tepkisiz/donmuş gibi hissettirmesine yol açıyordu.
+   Aşağıdaki tek merkezi fonksiyon: (1) aynı isim için mükerrer isteği
+   engeller (in-flight kayıt), (2) aynı anda en fazla birkaç istek çalışmasını
+   sağlar (basit bir eşzamanlılık sınırı/kuyruk). */
+const _personPhotoInFlight={};
+let _personPhotoActive=0;
+const _personPhotoQueue=[];
+const PERSON_PHOTO_MAX_CONCURRENT=3;
+function _personPhotoPump(){
+ while(_personPhotoActive<PERSON_PHOTO_MAX_CONCURRENT && _personPhotoQueue.length){
+   const job=_personPhotoQueue.shift();
+   _personPhotoActive++;
+   job().finally(()=>{ _personPhotoActive--; _personPhotoPump(); });
+ }
+}
+function fetchStatsPersonPhoto(name){
+ if(statsPersonPhotoCache[name]!==undefined) return Promise.resolve(statsPersonPhotoCache[name]);
+ if(_personPhotoInFlight[name]) return _personPhotoInFlight[name];
+ const p=new Promise(resolve=>{
+   _personPhotoQueue.push(async ()=>{
+     let url=null;
+     try{
+       const d=await fetchJson(`https://api.themoviedb.org/3/search/person?api_key=${TMDB_KEY}&query=${encodeURIComponent(name)}`);
+       const person=d?.results?.[0];
+       url=(person && person.profile_path) ? `https://image.tmdb.org/t/p/w185${person.profile_path}` : null;
+     }catch(e){ url=null; }
+     statsPersonPhotoCache[name]=url;
+     delete _personPhotoInFlight[name];
+     resolve(url);
+   });
+ });
+ _personPhotoInFlight[name]=p;
+ _personPhotoPump();
+ return p;
+}
+
+let _statsPhotosRunning=false;
 async function lazyLoadStatsPhotos(){
+ if(_statsPhotosRunning) return;
+ _statsPhotosRunning=true;
  const avatars=document.querySelectorAll('.people-avatar[data-person-name]');
  for(const el of avatars){
    const name=el.dataset.personName;
@@ -1514,17 +1564,10 @@ async function lazyLoadStatsPhotos(){
      if(statsPersonPhotoCache[name]) el.innerHTML=`<img src="${statsPersonPhotoCache[name]}" loading="lazy">`;
      continue;
    }
-   try{
-     const d=await fetchJson(`https://api.themoviedb.org/3/search/person?api_key=${TMDB_KEY}&query=${encodeURIComponent(name)}`);
-     const p=d?.results?.[0];
-     const url=(p && p.profile_path) ? `https://image.tmdb.org/t/p/w185${p.profile_path}` : null;
-     statsPersonPhotoCache[name]=url;
-     if(url && el.isConnected) el.innerHTML=`<img src="${url}" loading="lazy">`;
-   }catch(e){
-     statsPersonPhotoCache[name]=null;
-   }
-   await new Promise(res=>setTimeout(res,50));
+   const url=await fetchStatsPersonPhoto(name);
+   if(url && el.isConnected) el.innerHTML=`<img src="${url}" loading="lazy">`;
  }
+ _statsPhotosRunning=false;
 }
 
 /* ---- Yıl çubuğu için özel tooltip (native "title" farenin ALTINDA ve okunaksız
@@ -1622,9 +1665,11 @@ function openStatsList(title,movies){
    : '<div class="stats-empty">Film bulunamadı.</div>';
  lazyLoadStatsPosterImgs(body);
  document.getElementById("statsListOverlay").classList.add("open");
+ _lockBackgroundScroll();
 }
 function closeStatsList(){
  document.getElementById("statsListOverlay").classList.remove("open");
+ _unlockBackgroundScroll();
 }
 document.getElementById("statsListBody").addEventListener("click",e=>{
  const card=e.target.closest(".stats-movie-card");
@@ -1696,6 +1741,7 @@ function openAllPeopleList(kind){
  document.getElementById("statsPeopleOverlay").scrollTop=0;
  positionPeopleAzNav();
  updateStatsPeopleScrollBtn();
+ _lockBackgroundScroll();
 }
 /* ---- A-Z satırı, üstbardaki başlığın (Oyuncular/Yönetmenler) hemen altına
    yapışık kalsın diye "sticky" - ama sticky'nin doğru yerde durması için
@@ -1726,6 +1772,7 @@ function statsScrollToLetter(letter){
 }
 function closeStatsPeopleList(){
  document.getElementById("statsPeopleOverlay").classList.remove("open");
+ _unlockBackgroundScroll();
 }
 document.getElementById("statsPeopleListBody").addEventListener("click",e=>{
  const item=e.target.closest(".people-item");
@@ -1760,7 +1807,19 @@ function updateStatsPeopleScrollBtn(){
  btn.textContent=nearBottom?"▲":"▼";
  btn.title=nearBottom?"Yukarı çık":"Aşağı in";
 }
-document.getElementById("statsPeopleOverlay").addEventListener("scroll",updateStatsPeopleScrollBtn);
+// rAF ile kısıtlanmış (throttled) kaydırma dinleyicisi: parmakla hızlı
+// kaydırırken saniyede onlarca kez tetiklenen "scroll" olayında her seferinde
+// çalışmak yerine, bir sonraki çizim karesinde en fazla bir kez çalışır -
+// özellikle zayıf telefonlarda kare düşmesini/takılmayı azaltır.
+let _statsPeopleScrollTicking=false;
+document.getElementById("statsPeopleOverlay").addEventListener("scroll",()=>{
+ if(_statsPeopleScrollTicking) return;
+ _statsPeopleScrollTicking=true;
+ requestAnimationFrame(()=>{
+   updateStatsPeopleScrollBtn();
+   _statsPeopleScrollTicking=false;
+ });
+},{passive:true});
 
 /* ---- Görünen oyuncu/yönetmen avatarlarına, statsBody'deki (En Çok İzlenen vb.)
    sınırlı kartların aksine, TÜM kişiler listesinde fotoğrafı PEŞİNEN değil
@@ -1778,16 +1837,14 @@ function lazyLoadStatsPhotosOnScroll(rootEl){
        if(statsPersonPhotoCache[name]) el.innerHTML=`<img src="${statsPersonPhotoCache[name]}" loading="lazy">`;
        return;
      }
-     fetchJson(`https://api.themoviedb.org/3/search/person?api_key=${TMDB_KEY}&query=${encodeURIComponent(name)}`)
-       .then(d=>{
-         const p=d?.results?.[0];
-         const url=(p && p.profile_path)?`https://image.tmdb.org/t/p/w185${p.profile_path}`:null;
-         statsPersonPhotoCache[name]=url;
-         if(url && el.isConnected) el.innerHTML=`<img src="${url}" loading="lazy">`;
-       })
-       .catch(()=>{ statsPersonPhotoCache[name]=null; });
+     // Ortak kuyruk/eşzamanlılık sınırlı yükleyici: aynı isim için mükerrer
+     // istek atılmaz, aynı anda sadece birkaç istek çalışır (bkz. yukarıdaki
+     // fetchStatsPersonPhoto tanımı).
+     fetchStatsPersonPhoto(name).then(url=>{
+       if(url && el.isConnected) el.innerHTML=`<img src="${url}" loading="lazy">`;
+     });
    });
- },{root:rootEl,rootMargin:"300px"});
+ },{root:rootEl,rootMargin:"120px"});
  rootEl.querySelectorAll('.people-avatar[data-person-name]').forEach(el=>io.observe(el));
 }
 
