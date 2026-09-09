@@ -95,7 +95,8 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 .tick-btn{position:absolute;top:38px;right:10px;background:#333;color:#0f0;border:none;width:24px;height:24px;border-radius:50%;cursor:pointer}
 .delete-btn{position:absolute;top:10px;right:10px;background:#333;color:#bbb;border:none;width:24px;height:24px;border-radius:50%;cursor:pointer}
 .meta{font-size:13px;color:#bbb;margin-top:3px}
-
+.money-budget,.money-revenue{color:#bbb}
+.money-budget:empty,.money-revenue:empty{display:none}
 .my-rating-line:empty{display:none}
 .my-rating-line .my-star{color:#4fa8e8}
 .meta-icon{display:inline-flex;width:16px;justify-content:center;align-items:center;vertical-align:-3px}
@@ -275,26 +276,21 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 }
 
 /* ===================== İSTATİSTİKLER ===================== */
-.stats-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:200;align-items:flex-start;justify-content:center;overflow-y:auto;padding:0 16px 30px 16px}
+.stats-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:200;align-items:flex-start;justify-content:center;overflow-y:auto;padding:30px 16px}
 .stats-overlay.open{display:flex}
-.stats-modal{position:relative;width:100%;max-width:1080px;margin-top:30px;background:#181818;border:1px solid #3a3222;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,0.6)}
-/* Başlık ("İstatistikler") ve hemen altındaki bölüm sekmeleri (En'ler, Yıllar,
-   Türler...) TEK bir sticky blok halinde gruplanıyor; böylece aşağı kaydırılınca
-   ikisi birlikte ekranın üstüne yapışık kalıyor - ana sayfadaki liste başlığı
-   (.sticky-header) gibi. Üstteki boşluk artık overlay'in padding'inden değil
-   modal'ın margin-top'ından geliyor (stats-list-topbar'daki aynı numara), yoksa
-   sticky blok kaydırılınca o boşluğu hiç geçemeyip tepede kalıcı bir aralık
-   bırakırdı. */
-.stats-sticky-head{position:sticky;top:0;z-index:6;background:#181818;border-radius:12px 12px 0 0}
-.stats-topbar{position:relative;display:flex;align-items:center;justify-content:space-between;padding:18px 24px;background:#181818;border-bottom:1px solid #2a2a2a}
+.stats-modal{position:relative;width:100%;max-width:1080px;background:#181818;border:1px solid #3a3222;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,0.6);display:flex;flex-direction:column;max-height:calc(100vh - 60px)}
+.stats-topbar{position:sticky;top:0;display:flex;align-items:center;justify-content:space-between;padding:18px 24px;background:#181818;border-bottom:1px solid #2a2a2a;border-radius:12px 12px 0 0;z-index:2;flex-shrink:0}
 .stats-topbar h2{margin:0;display:flex;align-items:center;gap:10px;text-align:left;font-size:20px;color:#e8c877}
 .stats-title-icon{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,#3a2f14,#241d0c);color:#e8c877;flex-shrink:0}
 .stats-title-icon svg{width:19px;height:19px}
-.stats-body{padding:8px 24px 28px 24px}
+.stats-body{padding:8px 24px 28px 24px;overflow-y:auto;flex:1}
 .stats-section{margin-top:30px;padding-top:22px;border-top:1px solid #2a2a2a}
 .stats-section:first-child{margin-top:10px;padding-top:0;border-top:none}
 .stats-section-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:18px}
-.stats-section-title{font-size:13px !important;font-weight:bold;letter-spacing:1px;color:#999;text-transform:uppercase}
+.stats-section-title{font-size:12px;font-weight:bold;letter-spacing:1px;color:#999;text-transform:uppercase}
+.stats-section-title--clickable{cursor:pointer}
+.stats-section-title--clickable:hover{color:#e8c877}
+.stats-section-title--clickable::after{content:" ›";font-weight:normal}
 .stats-toggle{display:flex;gap:4px;background:#222;border-radius:6px;padding:3px}
 .stats-toggle-btn{padding:5px 12px;font-size:12px;border-radius:4px;color:#999;cursor:pointer;user-select:none;white-space:nowrap}
 .stats-toggle-btn.active{background:#3a3222;color:#e8c877}
@@ -309,7 +305,7 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 .stats-tooltip.show{opacity:1}
 
 .decade-tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}
-.decade-tab{padding:8px 14px;border-radius:8px;background:#222;border:1px solid #333;color:#ccc;font-size:13px;font-weight:600;cursor:pointer;user-select:none;transition:background .15s ease,border-color .15s ease,color .15s ease}
+.decade-tab{padding:8px 14px;border-radius:8px;background:#222;border:1px solid #333;color:#ccc;font-size:12px;font-weight:600;cursor:pointer;user-select:none;transition:background .15s ease,border-color .15s ease,color .15s ease}
 .decade-tab:hover{border-color:#555;color:#eee}
 .decade-tab.active{background:#3a3222;border-color:#d9a441;color:#e8c877}
 .decade-tab-rating{color:#999;font-weight:normal;font-size:12px}
@@ -319,7 +315,7 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 .stats-col{flex:1;min-width:220px;margin-left:28px}
 .stats-col--single{max-width:420px}
 .bar-row{margin-bottom:11px;cursor:pointer}
-.bar-row-top{display:flex;justify-content:space-between;font-size:13px !important;color:#ddd;margin-bottom:4px}
+.bar-row-top{display:flex;justify-content:space-between;font-size:13px;color:#ddd;margin-bottom:4px}
 .bar-row-top .bar-val{color:#999}
 .bar-row:hover .bar-row-top span:first-child{color:#e8c877}
 .bar-track{height:7px;border-radius:4px;background:#262626;overflow:hidden}
@@ -332,36 +328,52 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 .people-item{width:auto;min-width:0;text-align:center;cursor:pointer}
 .people-item:hover .people-name{color:#e8c877}
 
+/* ---- Tüm oyuncular/yönetmenler listesi: harfe göre gruplanmış görünüm,
+   üstte A-Z hızlı atlama satırı ve sağ altta sabit aşağı/yukarı kaydırma
+   düğmesi (isim sayısı çok olduğunda listede gezinmeyi kolaylaştırmak için) ---- */
+.people-az-nav{display:flex;flex-wrap:wrap;gap:5px;padding:10px 0 16px 0;margin-bottom:18px;border-bottom:1px solid #2a2a2a;position:sticky;top:0;z-index:4;background:#181818}
+.people-az-btn{width:26px;height:26px;display:flex;align-items:center;justify-content:center;border-radius:6px;background:#222;border:1px solid #333;color:#ccc;font-size:12px;font-weight:600;cursor:pointer;user-select:none}
+.people-az-btn:hover{border-color:#d9a441;color:#e8c877}
+.people-az-btn--disabled{opacity:.25;cursor:default;pointer-events:none}
+.people-letter-group{margin-top:26px}
+.people-letter-group:first-of-type{margin-top:0}
+.people-letter-heading{font-size:12px;font-weight:bold;letter-spacing:1px;color:#e8c877;text-transform:uppercase;margin-bottom:12px;padding-bottom:5px;border-bottom:1px solid #2a2a2a}
+.people-scroll-btn{position:fixed;right:20px;bottom:24px;width:44px;height:44px;border-radius:50%;background:#3a3222;border:1px solid #d9a441;color:#e8c877;font-size:17px;display:none;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,0.55);z-index:5}
+.people-scroll-btn:hover{background:#4a4128}
+@media (max-width:700px){
+ .people-scroll-btn{right:14px;bottom:18px;width:40px;height:40px;font-size:15px}
+}
+
 /* ---- Yeni istatistik bölümleri: En'ler, Puan Dağılımı, Süre, Zevk Analizi, Film DNA ---- */
 /* İstatistikler altındaki bölüm başlıkları (Film DNA, Türler, Süre, Oyuncular...)
    yana kaydırma (overflow-x) gerektiriyordu - artık satır dolunca yana taşmak
    yerine (ekran genişliği ne olursa olsun) otomatik olarak alt satıra geçiyor. */
-.stats-nav{display:flex;flex-wrap:wrap;gap:8px;overflow-x:visible;padding:14px 24px 16px 24px;margin:0;border-bottom:1px solid #2a2a2a}
+.stats-nav{display:flex;flex-wrap:wrap;gap:8px;overflow-x:visible;padding:8px 0 16px 0;margin-bottom:14px;border-bottom:1px solid #2a2a2a;position:sticky;top:0;z-index:3;background:#181818}
 .stats-nav-btn{flex-shrink:0;padding:6px 13px;border-radius:16px;background:#222;border:1px solid #333;color:#ccc;font-size:12px;font-weight:600;cursor:pointer;user-select:none;white-space:nowrap;transition:border-color .15s ease,color .15s ease}
 .stats-nav-btn:hover{border-color:#d9a441;color:#e8c877}
 
 .stat-highlight-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:14px}
 .stat-highlight-card{background:#1e1e1e;border:1px solid #303030;border-radius:10px;padding:12px;cursor:pointer;transition:border-color .15s ease,transform .12s ease}
 .stat-highlight-card:hover{border-color:#d9a441;transform:translateY(-2px)}
-.stat-highlight-label{font-size:11px;color:#999;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.stat-highlight-label{font-size:12px;color:#999;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;display:flex;align-items:center;gap:6px}
 .stat-highlight-main{display:flex;align-items:center;gap:10px}
 .stat-highlight-poster{width:42px;height:63px;object-fit:cover;border-radius:4px;background:#2a2a2a;flex-shrink:0}
 .people-avatar.stat-highlight-avatar{width:42px;height:63px;aspect-ratio:auto;flex-shrink:0;margin:0;font-size:14px}
 .stat-highlight-body{min-width:0}
-.stat-highlight-title{font-size:13px !important;color:#eee;font-weight:600;line-height:1.25;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
-.stat-highlight-value{font-size:13px !important;color:#e8c877;font-weight:bold;line-height:1.2}
-.stat-highlight-sub{font-size:11.5px;color:#999;margin-top:2px}
+.stat-highlight-title{font-size:13px;color:#eee;font-weight:600;line-height:1.25;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.stat-highlight-value{font-size:13px;color:#e8c877;font-weight:bold;line-height:1.2}
+.stat-highlight-sub{font-size:12px;color:#999;margin-top:2px}
 
 .stat-pill-row{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:20px}
 .stat-pill{background:#1e1e1e;border:1px solid #303030;border-radius:8px;padding:10px 16px;min-width:96px;text-align:center}
-.stat-pill-value{font-size:13px !important;color:#e8c877;font-weight:bold}
-.stat-pill-label{font-size:13px !important;color:#999;text-transform:uppercase;letter-spacing:.5px;margin-top:3px}
+.stat-pill-value{font-size:13px;color:#e8c877;font-weight:bold}
+.stat-pill-label{font-size:12px;color:#999;text-transform:uppercase;letter-spacing:.5px;margin-top:3px}
 
 .rating-hist{display:flex;align-items:flex-end;gap:6px;height:140px;padding-bottom:4px}
 .rating-hist-bar-wrap{flex:1;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;cursor:pointer}
 .rating-hist-bar{width:100%;min-height:2px;background:linear-gradient(180deg,#f0d9a3,#d9a441);border-radius:3px 3px 0 0}
 .rating-hist-bar-wrap:hover .rating-hist-bar{background:linear-gradient(180deg,#fff0cc,#e8b955)}
-.rating-hist-label{font-size:11px;color:#888;margin-top:6px}
+.rating-hist-label{font-size:12px;color:#888;margin-top:6px}
 
 .bar-fill.c-runtime{background:#b98be0}
 .bar-fill.c-rating{background:#d9a441}
@@ -369,7 +381,7 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 .insight-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
 .insight-card{display:flex;gap:12px;background:#1e1e1e;border:1px solid #303030;border-radius:10px;padding:14px}
 .insight-icon{flex-shrink:0;width:34px;height:34px;border-radius:50%;background:#2a2416;color:#e8c877;display:flex;align-items:center;justify-content:center;font-size:16px}
-.insight-text{font-size:13px !important;color:#ddd;line-height:1.45}
+.insight-text{font-size:13px;color:#ddd;line-height:1.45}
 .insight-text b{color:#e8c877}
 
 .dna-wrap{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start}
@@ -377,8 +389,8 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 .dna-badges{flex:1;min-width:220px;display:flex;flex-direction:column;gap:10px}
 .dna-badge{background:#1e1e1e;border:1px solid #303030;border-radius:8px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px}
 .dna-badge-label{font-size:12px;color:#999}
-.dna-badge-value{font-size:13.5px;color:#e8c877;font-weight:bold;text-align:right}
-.dna-summary{margin-top:18px;background:#1e1e1e;border:1px solid #303030;border-left:3px solid #d9a441;border-radius:8px;padding:14px 16px;font-size:13.5px;color:#ddd;line-height:1.55}
+.dna-badge-value{font-size:13px;color:#e8c877;font-weight:bold;text-align:right}
+.dna-summary{margin-top:18px;background:#1e1e1e;border:1px solid #303030;border-left:3px solid #d9a441;border-radius:8px;padding:14px 16px;font-size:13px;color:#ddd;line-height:1.55}
 
 @media (max-width:700px){
  .dna-wrap{flex-direction:column;align-items:stretch}
@@ -393,23 +405,6 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
    veriyoruz - kaydırılınca bu boşluk normal içerik gibi kaybolur ve başlık
    ekranın en tepesine tam yaslanır. */
 .stats-list-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:300;align-items:flex-start;justify-content:center;overflow-y:auto;padding:0 16px 30px 16px}
-.stats-section-title-clickable{cursor:pointer;border-bottom:1px dashed #666;padding-bottom:1px;transition:color .15s,border-color .15s}
-.stats-section-title-clickable:hover{color:#e8c877;border-color:#e8c877}
-.all-actors-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:350;align-items:flex-start;justify-content:center;overflow-y:auto;padding:0 16px 30px 16px}
-.all-actors-overlay.open{display:flex}
-.all-actors-modal{position:relative;width:100%;max-width:900px;margin-top:30px;background:#181818;border:1px solid #3a3222;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,0.6)}
-.all-actors-topbar{position:sticky;top:0;display:flex;align-items:center;justify-content:space-between;padding:16px 22px;background:#181818;border-bottom:1px solid #2a2a2a;border-radius:12px 12px 0 0;z-index:2;gap:12px;flex-wrap:wrap}
-.all-actors-topbar h3{margin:0;font-size:17px;color:#e8c877;font-weight:bold;white-space:nowrap}
-.all-actors-search{flex:1;min-width:140px;padding:7px 12px;border-radius:8px;border:1px solid #3a3a3a;background:#222;color:#eee;font-size:14px;outline:none}
-.all-actors-search:focus{border-color:#d9a441}
-.all-actors-body{padding:18px 22px 26px 22px}
-.all-actors-letter-group{margin-bottom:18px}
-.all-actors-letter{font-size:12px;font-weight:bold;letter-spacing:1px;color:#666;text-transform:uppercase;margin-bottom:8px;border-bottom:1px solid #2a2a2a;padding-bottom:4px}
-.all-actors-list{display:flex;flex-wrap:wrap;gap:6px 8px}
-.all-actors-item{padding:5px 11px;border-radius:16px;background:#222;border:1px solid #333;color:#ccc;font-size:13px;cursor:pointer;transition:background .12s,color .12s,border-color .12s;white-space:nowrap}
-.all-actors-item:hover{background:#3a3222;border-color:#d9a441;color:#e8c877}
-.all-actors-count{font-size:11px;color:#666;margin-left:4px}
-@media(max-width:600px){.all-actors-modal{margin-top:12px;border-radius:10px}.all-actors-topbar{padding:12px 14px}.all-actors-body{padding:12px 14px 24px 14px}.all-actors-item{font-size:12px;padding:4px 9px}}
 .stats-list-overlay.open{display:flex}
 .stats-list-modal{position:relative;width:100%;max-width:900px;margin-top:30px;background:#181818;border:1px solid #3a3222;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,0.6)}
 .stats-list-topbar{position:sticky;top:0;display:flex;align-items:center;justify-content:space-between;padding:16px 22px;background:#181818;border-bottom:1px solid #2a2a2a;border-radius:12px 12px 0 0;z-index:2}
@@ -419,19 +414,19 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 .stats-movie-card{cursor:pointer;text-align:center}
 .stats-movie-poster{width:100%;aspect-ratio:2/3;object-fit:cover;border-radius:6px;background:#2a2a2a;display:block;margin-bottom:6px;transition:transform .12s ease}
 .stats-movie-card:hover .stats-movie-poster{transform:scale(1.035)}
-.stats-movie-title{font-size:12.5px;color:#eee;font-weight:600;line-height:1.25}
+.stats-movie-title{font-size:13px;color:#eee;font-weight:600;line-height:1.25}
 .stats-movie-card:hover .stats-movie-title{color:#e8c877}
-.stats-movie-year{font-size:11.5px;color:#888;margin-top:1px}
+.stats-movie-year{font-size:12px;color:#888;margin-top:1px}
 .people-avatar{width:100%;aspect-ratio:74/100;border-radius:6px;background:#2a2a2a;margin:0 auto 8px auto;overflow:hidden;display:flex;align-items:center;justify-content:center;color:#888;font-weight:bold;font-size:20px;border:1px solid #333}
 .people-avatar--company{background:#fff;padding:8px;box-sizing:border-box;font-size:11px;color:#444;text-align:center;line-height:1.2}
 .people-grid .people-avatar--company img{width:100%;height:100%;object-fit:contain}
 .people-avatar img{width:100%;height:100%;object-fit:cover}
-.people-name{font-size:13px !important;color:#eee;font-weight:600;line-height:1.25}
-.people-count{font-size:11.5px;color:#888;margin-top:1px}
+.people-name{font-size:13px;color:#eee;font-weight:600;line-height:1.25}
+.people-count{font-size:12px;color:#888;margin-top:1px}
 @media (max-width:700px){
- .stats-body{padding:8px 14px 20px 14px}
+ .stats-body{padding:8px 14px 20px 14px;overflow-y:auto;flex:1}
  .stats-topbar{padding:14px 16px}
- .stats-nav{padding:10px 16px 12px 16px}
+ .money-budget,.money-revenue{display:none!important}
 }
 </style>
 </head>
@@ -640,12 +635,9 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 
 <div class="stats-overlay" id="statsOverlay" onclick="if(event.target===this)closeStats()">
  <div class="stats-modal">
-  <div class="stats-sticky-head">
-   <div class="stats-topbar">
-    <h2><span class="stats-title-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M7 15l4-4 3 3 5-6"/><path d="M15 8h4v4"/></svg></span> İstatistikler</h2>
-    <span class="detail-close" style="position:static" onclick="closeStats()">✕</span>
-   </div>
-   <div class="stats-nav" id="statsNav"></div>
+  <div class="stats-topbar">
+   <h2><span class="stats-title-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M7 15l4-4 3 3 5-6"/><path d="M15 8h4v4"/></svg></span> İstatistikler</h2>
+   <span class="detail-close" style="position:static" onclick="closeStats()">✕</span>
   </div>
   <div class="stats-body" id="statsBody">
    <!-- JS ile dolduruluyor: renderStats() -->
@@ -653,16 +645,6 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
  </div>
 </div>
 
-<div class="all-actors-overlay" id="allActorsOverlay" onclick="if(event.target===this)closeAllActors()">
- <div class="all-actors-modal">
-  <div class="all-actors-topbar">
-   <h3 id="allActorsTitle">Tüm Oyuncular</h3>
-   <input class="all-actors-search" id="allActorsSearch" placeholder="Oyuncu ara…" oninput="filterAllActors(this.value)">
-   <span class="detail-close" style="position:static" onclick="closeAllActors()">✕</span>
-  </div>
-  <div class="all-actors-body" id="allActorsBody"></div>
- </div>
-</div>
 <div class="stats-list-overlay" id="statsListOverlay" onclick="if(event.target===this)closeStatsList()">
  <div class="stats-list-modal">
   <div class="stats-list-topbar">
@@ -671,6 +653,17 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
   </div>
   <div class="stats-list-body" id="statsListBody"></div>
  </div>
+</div>
+
+<div class="stats-list-overlay" id="statsPeopleOverlay" onclick="if(event.target===this)closeStatsPeopleList()">
+ <div class="stats-list-modal">
+  <div class="stats-list-topbar">
+   <h3 id="statsPeopleListTitle" onclick="scrollStatsPeopleToTop()" title="En üste çık" style="cursor:pointer"></h3>
+   <span class="detail-close" style="position:static" onclick="closeStatsPeopleList()">✕</span>
+  </div>
+  <div class="stats-list-body" id="statsPeopleListBody"></div>
+ </div>
+ <button class="people-scroll-btn" id="statsPeopleScrollBtn" onclick="statsPeopleScrollBtnClick()" title="Aşağı in">▼</button>
 </div>
 
 <script>
@@ -723,8 +716,9 @@ function closeStats(){
 }
 document.addEventListener("keydown",e=>{
  if(e.key!=="Escape") return;
- // Film listesi modalı açıksa Escape önce SADECE onu kapatsın (katman katman kapama).
+ // Film/kişi listesi modalı açıksa Escape önce SADECE onu kapatsın (katman katman kapama).
  if(document.getElementById("statsListOverlay").classList.contains("open")) return;
+ if(document.getElementById("statsPeopleOverlay").classList.contains("open")) return;
  if(document.getElementById("statsOverlay").classList.contains("open")) closeStats();
 });
 
@@ -765,24 +759,14 @@ function statsPercentile(sortedVals,p){
  return sortedVals[lo]+(sortedVals[hi]-sortedVals[lo])*(idx-lo);
 }
 function statsScrollTo(id){
- // Başlık + sekmeler artık sticky (yapışkan) olduğu için düz scrollIntoView
- // kullanılırsa hedef bölüm bu sabit bloğun ARKASINDA kalır. Bloğun o anki
- // (mobil/PC'ye göre değişen) yüksekliği kadar ekstra pay bırakarak kaydırıyoruz.
  const el=document.getElementById(id);
- const scroller=document.getElementById("statsOverlay");
- if(!el||!scroller) return;
- const head=document.querySelector(".stats-sticky-head");
- const headH=head?head.offsetHeight:0;
- const top=el.getBoundingClientRect().top-scroller.getBoundingClientRect().top+scroller.scrollTop-headH-12;
- scroller.scrollTo({top,behavior:"smooth"});
+ if(el) el.scrollIntoView({behavior:"smooth",block:"start"});
 }
 
 function renderStats(){
  const movies=allData.watched||[];
  const body=document.getElementById("statsBody");
  if(!movies.length){
-   const navEl0=document.getElementById("statsNav");
-   if(navEl0){ navEl0.innerHTML=""; navEl0.style.display="none"; }
    body.innerHTML='<div class="stats-empty">Henüz izlenen film yok - istatistikler burada görünecek.</div>';
    return;
  }
@@ -805,16 +789,10 @@ function renderStats(){
    {id:"stats-sec-actors",label:"Oyuncular",html:statsSectionPeople(movies,"actor")},
    {id:"stats-sec-companies",label:"Yapım Şirketleri",html:statsSectionCompanies(movies)}
  ].filter(s=>s.html && s.html.trim());
- // Sekmeler (nav) artık sticky başlık bloğunun içinde ayrı, sabit bir kutuda
- // (#statsNav) - scroll ile kayan #statsBody'nin İÇİNE artık basılmıyor.
- const navEl=document.getElementById("statsNav");
- if(navEl){
-   navEl.innerHTML = sections.length>1
-     ? sections.map(s=>`<span class="stats-nav-btn" onclick="statsScrollTo('${s.id}')">${escapeHtml(s.label)}</span>`).join("")
-     : "";
-   navEl.style.display = sections.length>1 ? "flex" : "none";
- }
- body.innerHTML = sections.map(s=>s.html).join("");
+ const nav = sections.length>1
+   ? `<div class="stats-nav">`+sections.map(s=>`<span class="stats-nav-btn" onclick="statsScrollTo('${s.id}')">${escapeHtml(s.label)}</span>`).join("")+`</div>`
+   : "";
+ body.innerHTML = nav + sections.map(s=>s.html).join("");
  lazyLoadStatsPhotos();
  lazyLoadStatsPosterImgs(body);
 }
@@ -1022,17 +1000,12 @@ function statsPeopleHtml(items,mode,kind){
 function statsSectionPeople(movies,kind){
  const data=statsPeopleData(movies,kind);
  statsPeopleMoviesMap[kind]=data.moviesMap;
- // Tüm oyuncu/yönetmen listesini sonradan openAllActors() için sakla
- if(kind==="actor") statsPeopleMoviesMap._allActorsData=data;
  const mode="count";
  const title=kind==="actor"?"Oyuncular":"Yönetmenler";
  const items=statsPeopleList(data,mode);
- const titleEl = kind==="actor"
-   ? `<span class="stats-section-title stats-section-title-clickable" onclick="openAllActors()" title="Tüm oyuncuları göster">${title} ▾</span>`
-   : `<span class="stats-section-title">${title}</span>`;
  return `<div class="stats-section" id="stats-sec-${kind==="actor"?"actors":"directors"}">
   <div class="stats-section-head">
-   ${titleEl}
+   <span class="stats-section-title stats-section-title--clickable" onclick="openAllPeopleList('${kind}')">${title}</span>
   </div>
   ${statsPeopleHtml(items,mode,kind)}
  </div>`;
@@ -1108,7 +1081,7 @@ function statsHighlightNameCard(icon,label,kind,name,sub){
      <div class="people-avatar stat-highlight-avatar" data-person-name="${escapeHtml(name)}">${escapeHtml(statsInitials(name))}</div>
      <div class="stat-highlight-body">
       <div class="stat-highlight-title">${escapeHtml(name)}</div>
-      <div class="stat-highlight-value" style="font-size:13px">${escapeHtml(sub)}</div>
+      <div class="stat-highlight-value">${escapeHtml(sub)}</div>
      </div>
     </div>
    </div>`;
@@ -1653,82 +1626,6 @@ function openStatsList(title,movies){
 function closeStatsList(){
  document.getElementById("statsListOverlay").classList.remove("open");
 }
-
-/* ---- Tüm Oyuncular modal (istatistikler → "Oyuncular ▾" tıklaması) ---- */
-let _allActorsRendered=null; // önbelleklenmiş {counts, moviesMap}
-
-function openAllActors(){
- const data=statsPeopleMoviesMap._allActorsData;
- if(!data){return;}
- // Tüm oyuncuları al, film sayısına göre sırala, alfabetik grupla
- const counts=data.counts, moviesMap=data.moviesMap;
- const all=Object.keys(counts).sort((a,b)=>a.localeCompare(b,"tr"));
- _allActorsRendered={counts,moviesMap,all};
- document.getElementById("allActorsTitle").textContent=`Tüm Oyuncular (${all.length})`;
- document.getElementById("allActorsSearch").value="";
- renderAllActors(all,counts);
- document.getElementById("allActorsOverlay").classList.add("open");
-}
-
-function renderAllActors(list,counts){
- const body=document.getElementById("allActorsBody");
- if(!list.length){
-   body.innerHTML='<div class="stats-empty">Oyuncu bulunamadı.</div>';
-   return;
- }
- // Alfabetik gruplama
- const groups={};
- list.forEach(name=>{
-   const letter=(name[0]||"#").toLocaleUpperCase("tr");
-   (groups[letter]=groups[letter]||[]).push(name);
- });
- const letters=Object.keys(groups).sort((a,b)=>a.localeCompare(b,"tr"));
- body.innerHTML=letters.map(letter=>`
-  <div class="all-actors-letter-group">
-   <div class="all-actors-letter">${letter}</div>
-   <div class="all-actors-list">
-    ${groups[letter].map(name=>`<span class="all-actors-item" data-name="${escapeHtml(name)}">${escapeHtml(name)}<span class="all-actors-count">${counts[name]}</span></span>`).join("")}
-   </div>
-  </div>`).join("");
-}
-
-function filterAllActors(q){
- if(!_allActorsRendered) return;
- const {all,counts}=_allActorsRendered;
- const lq=q.toLocaleLowerCase("tr");
- const filtered=lq?all.filter(n=>n.toLocaleLowerCase("tr").includes(lq)):all;
- renderAllActors(filtered,counts);
-}
-
-function closeAllActors(){
- document.getElementById("allActorsOverlay").classList.remove("open");
-}
-
-// Oyuncu ismine tıklanınca: modalı kapat, stats overlay'i kapat, ana sayfada filtrele
-document.getElementById("allActorsOverlay").addEventListener("click",e=>{
- const item=e.target.closest(".all-actors-item");
- if(!item) return;
- const name=item.dataset.name;
- closeAllActors();
- // Stats overlay'i de kapat
- document.getElementById("statsOverlay").classList.remove("open");
- // Ana sayfada watched sütununda oyuncuya göre filtrele (personClick ile aynı mantık)
- genreState["watched"]="all";
- directorState["watched"]="all";
- actorState["watched"]=name;
- // Dropdown'ı güncelle (isim listede yoksa "all"a düşer, bu OK)
- populateActorSelect("watched");
- populateDirectorSelect("watched");
- populateGenreSelect("watched");
- renderColumn("watched");
- // Watched sütununa scroll et (mobilde önemli)
- const watchedEl=document.querySelector(".col-watched") || document.getElementById("watchedList");
- if(watchedEl) setTimeout(()=>watchedEl.scrollIntoView({behavior:"smooth",block:"start"}),120);
-});
-
-document.addEventListener("keydown",e=>{
- if(e.key==="Escape" && document.getElementById("allActorsOverlay").classList.contains("open")) closeAllActors();
-});
 document.getElementById("statsListBody").addEventListener("click",e=>{
  const card=e.target.closest(".stats-movie-card");
  if(card && card.dataset.imdbId){
@@ -1739,6 +1636,161 @@ document.getElementById("statsListBody").addEventListener("click",e=>{
 document.addEventListener("keydown",e=>{
  if(e.key==="Escape" && document.getElementById("statsListOverlay").classList.contains("open")) closeStatsList();
 });
+
+/* ---- İstatistikler > Oyuncular/Yönetmenler başlığına tıklanınca açılan,
+   TÜM filmlerdeki TÜM kişileri (üstteki bölümdeki gibi sadece ilk 18 değil)
+   alfabetik sırayla listeleyen modal. Bir isme tıklanınca istatistikler
+   kapanır ve ana sayfada, o kişinin filmleri ana ekrandaki oyuncu/yönetmen
+   ismine tıklamışçasına filtrelenir (izlenen listesi üzerinde, çünkü
+   istatistikler sadece izlenen filmlerden hesaplanıyor).
+
+   İsimler harfe göre gruplanıyor; üstte tıklanabilir bir A-Z satırı o harfin
+   grubuna direkt atlıyor, sağ altta sabit duran ▼/▲ düğmesi ise uzun listede
+   hızlı aşağı/yukarı kaydırma sağlıyor. Fotoğraflar (TMDB'den) her isim için
+   PEŞİNEN değil, sadece görünüme girdikçe (IntersectionObserver ile) çekiliyor
+   - yüzlerce kişi olan hesaplarda tek seferde yüzlerce ağ isteği atılmasını
+   önlüyor (bkz. lazyLoadStatsPhotosOnScroll). ---- */
+const TR_ALPHABET=["A","B","C","Ç","D","E","F","G","Ğ","H","I","İ","J","K","L","M","N","O","Ö","P","Q","R","S","Ş","T","U","Ü","V","W","X","Y","Z"];
+function trFirstLetter(name){
+ const ch=(name||"").trim().charAt(0);
+ return ch.toLocaleUpperCase("tr-TR");
+}
+function openAllPeopleList(kind){
+ const map=statsPeopleMoviesMap[kind]||{};
+ const names=Object.keys(map).sort((a,b)=>a.localeCompare(b,"tr"));
+ document.getElementById("statsPeopleListTitle").textContent=`${kind==="actor"?"Oyuncular":"Yönetmenler"} (${names.length})`;
+ const body=document.getElementById("statsPeopleListBody");
+
+ const groups={};
+ names.forEach(name=>{
+   const letter=trFirstLetter(name);
+   const key=TR_ALPHABET.includes(letter)?letter:"#";
+   (groups[key]=groups[key]||[]).push(name);
+ });
+ const presentLetters=TR_ALPHABET.filter(l=>groups[l]);
+ if(groups["#"]) presentLetters.push("#");
+
+ const navHtml = names.length ? `<div class="people-az-nav">`+[...TR_ALPHABET,"#"].filter(l=>l!=="#"||groups["#"]).map(l=>{
+   const has=!!groups[l];
+   return `<span class="people-az-btn${has?"":" people-az-btn--disabled"}"${has?` onclick="statsScrollToLetter('${l}')"`:""}>${l}</span>`;
+ }).join("")+`</div>` : "";
+
+ const listHtml = presentLetters.map(letter=>{
+   const items=groups[letter];
+   return `<div class="people-letter-group" id="people-letter-${letter}">
+    <div class="people-letter-heading">${letter==="#"?"Diğer":letter}</div>
+    <div class="people-grid">`+items.map(name=>{
+      const count=(map[name]||[]).length;
+      return `<div class="people-item" data-kind="${kind}" data-person-name="${escapeHtml(name)}">
+       <div class="people-avatar" data-person-name="${escapeHtml(name)}">${escapeHtml(statsInitials(name))}</div>
+       <div class="people-name">${escapeHtml(name)}</div>
+       <div class="people-count">${count} film</div>
+      </div>`;
+    }).join("")+`</div>
+   </div>`;
+ }).join("");
+
+ body.innerHTML = names.length ? navHtml+listHtml : '<div class="stats-empty">Kişi bulunamadı.</div>';
+ lazyLoadStatsPhotosOnScroll(document.getElementById("statsPeopleOverlay"));
+ document.getElementById("statsPeopleOverlay").classList.add("open");
+ document.getElementById("statsPeopleOverlay").scrollTop=0;
+ positionPeopleAzNav();
+ updateStatsPeopleScrollBtn();
+}
+/* ---- A-Z satırı, üstbardaki başlığın (Oyuncular/Yönetmenler) hemen altına
+   yapışık kalsın diye "sticky" - ama sticky'nin doğru yerde durması için
+   üstbarın gerçek yüksekliği kadar bir "top" boşluğu gerekiyor. Bu yükseklik
+   ekran genişliğine göre değiştiğinden (mobilde farklı padding) sabit bir
+   piksel yazmak yerine her açılışta ve pencere boyutu değiştiğinde ölçülüyor. ---- */
+function positionPeopleAzNav(){
+ const overlay=document.getElementById("statsPeopleOverlay");
+ if(!overlay) return;
+ const topbar=overlay.querySelector(".stats-list-topbar");
+ const nav=overlay.querySelector(".people-az-nav");
+ if(topbar && nav) nav.style.top=topbar.getBoundingClientRect().height+"px";
+}
+window.addEventListener("resize",positionPeopleAzNav);
+/* ---- "Oyuncular"/"Yönetmenler" başlığına tıklanınca listeyi en üste sarar. ---- */
+function scrollStatsPeopleToTop(){
+ const overlay=document.getElementById("statsPeopleOverlay");
+ if(overlay) overlay.scrollTo({top:0,behavior:"smooth"});
+}
+function statsScrollToLetter(letter){
+ const el=document.getElementById(`people-letter-${letter}`);
+ const overlay=document.getElementById("statsPeopleOverlay");
+ if(!el || !overlay) return;
+ const topbar=overlay.querySelector(".stats-list-topbar");
+ const topbarH=topbar?topbar.getBoundingClientRect().height:0;
+ const offset=el.getBoundingClientRect().top-overlay.getBoundingClientRect().top+overlay.scrollTop-topbarH-10;
+ overlay.scrollTo({top:Math.max(offset,0),behavior:"smooth"});
+}
+function closeStatsPeopleList(){
+ document.getElementById("statsPeopleOverlay").classList.remove("open");
+}
+document.getElementById("statsPeopleListBody").addEventListener("click",e=>{
+ const item=e.target.closest(".people-item");
+ if(!item || !item.dataset.personName) return;
+ const kind=item.dataset.kind;
+ const name=item.dataset.personName;
+ closeStatsPeopleList();
+ closeStats();
+ personClick("watched",kind,name);
+});
+document.addEventListener("keydown",e=>{
+ if(e.key!=="Escape") return;
+ if(document.getElementById("statsPeopleOverlay").classList.contains("open")) closeStatsPeopleList();
+});
+
+/* ---- Uzun kişi listesinde sağ altta sabit duran hızlı kaydırma düğmesi:
+   listenin başındaysa aşağı, sonuna yakınsa yukarı ok gösterir. ---- */
+function statsPeopleScrollBtnClick(){
+ const overlay=document.getElementById("statsPeopleOverlay");
+ if(!overlay) return;
+ const nearBottom=overlay.scrollTop+overlay.clientHeight>=overlay.scrollHeight-40;
+ if(nearBottom) overlay.scrollTo({top:0,behavior:"smooth"});
+ else overlay.scrollBy({top:overlay.clientHeight*0.75,behavior:"smooth"});
+}
+function updateStatsPeopleScrollBtn(){
+ const overlay=document.getElementById("statsPeopleOverlay");
+ const btn=document.getElementById("statsPeopleScrollBtn");
+ if(!overlay||!btn) return;
+ const scrollable=overlay.scrollHeight>overlay.clientHeight+40;
+ btn.style.display=scrollable?"flex":"none";
+ const nearBottom=overlay.scrollTop+overlay.clientHeight>=overlay.scrollHeight-40;
+ btn.textContent=nearBottom?"▲":"▼";
+ btn.title=nearBottom?"Yukarı çık":"Aşağı in";
+}
+document.getElementById("statsPeopleOverlay").addEventListener("scroll",updateStatsPeopleScrollBtn);
+
+/* ---- Görünen oyuncu/yönetmen avatarlarına, statsBody'deki (En Çok İzlenen vb.)
+   sınırlı kartların aksine, TÜM kişiler listesinde fotoğrafı PEŞİNEN değil
+   sadece ekrana girdikçe (IntersectionObserver) yüklüyoruz - yüzlerce kişi
+   olan hesaplarda tek seferde yüzlerce TMDB isteği atılmasını önlemek için. ---- */
+function lazyLoadStatsPhotosOnScroll(rootEl){
+ const io=new IntersectionObserver((entries,obs)=>{
+   entries.forEach(entry=>{
+     if(!entry.isIntersecting) return;
+     const el=entry.target;
+     obs.unobserve(el);
+     const name=el.dataset.personName;
+     if(!name) return;
+     if(statsPersonPhotoCache[name]!==undefined){
+       if(statsPersonPhotoCache[name]) el.innerHTML=`<img src="${statsPersonPhotoCache[name]}" loading="lazy">`;
+       return;
+     }
+     fetchJson(`https://api.themoviedb.org/3/search/person?api_key=${TMDB_KEY}&query=${encodeURIComponent(name)}`)
+       .then(d=>{
+         const p=d?.results?.[0];
+         const url=(p && p.profile_path)?`https://image.tmdb.org/t/p/w185${p.profile_path}`:null;
+         statsPersonPhotoCache[name]=url;
+         if(url && el.isConnected) el.innerHTML=`<img src="${url}" loading="lazy">`;
+       })
+       .catch(()=>{ statsPersonPhotoCache[name]=null; });
+   });
+ },{root:rootEl,rootMargin:"300px"});
+ rootEl.querySelectorAll('.people-avatar[data-person-name]').forEach(el=>io.observe(el));
+}
+
 
 const OMDB_API_KEY = "3fe09fcd";
 // Mobil sürüm config.json okuyamıyor (bağımsız statik sayfa), o yüzden PC ile
@@ -2039,7 +2091,12 @@ function searchMain(input,type){
  searchGen[type]++;
  const myGen=searchGen[type];
  const raw=input.value.trim();
- if(raw.length<3){searchActive[type]=false;reload();return;}
+ // Not: burada eskiden reload() çağrılıyordu - bu, kutuya her harf yazıldığında
+ // (kutu 3 karakterin altındayken) Firestore'dan TÜM listeyi yeniden çekip
+ // tekrar çiziyordu. Elimizde zaten güncel veri (allData) varken bu gereksiz
+ // ağ isteği, özellikle mobilde yazarken donmaya sebep oluyordu. Sadece yerel
+ // veriyle normal görünüme dönmek (render) yeterli ve çok daha hızlı.
+ if(raw.length<3){searchActive[type]=false;render();return;}
  searchActive[type]=true;
  searchTimer=setTimeout(()=>searchImmediate(raw,type,myGen),400);
 }
@@ -2220,7 +2277,8 @@ function card(m,i,isWatch){
  <div class="meta"><span class="meta-icon">⭐</span> ${m.imdbRating}</div>
  <div class="meta my-rating-line">${(m.myRating!=null&&m.myRating!=="")?`<span class="meta-icon">${MY_STAR_SVG_SMALL}</span> ${Number(m.myRating).toFixed(1)}`:""}</div>
  <div class="meta"><span class="meta-icon">⏱</span> ${m.Runtime}</div>
-
+ <div class="meta money-budget" data-boxoffice="${(m.BoxOffice&&m.BoxOffice!=='N/A')?m.BoxOffice:''}">${moneyLines(m.BoxOffice,info).budget}</div>
+ <div class="meta money-revenue">${moneyLines(m.BoxOffice,info).revenue}</div>
  <div class="meta"><span class="meta-icon">🎬</span> ${personLinksHtmlList(movieDirectors(m),"director")}</div>
  <div class="meta"><span class="meta-icon">🎭</span> ${personLinksHtmlList(movieActors(m),"actor",5)}</div>
  </div>
@@ -2818,16 +2876,23 @@ function populateDirectorSelect(type){
  sel.value=directorState[type];
 }
 
-function movieActorsVisible(m){
- // Filtre dropdown'ında sadece ana ekranda gösterilen ilk 5 oyuncu kullanılır.
- return movieActors(m).slice(0,5);
-}
-
 function populateActorSelect(type){
  const sel=document.getElementById(type==="watchlist"?"actorWatch":"actorWatched");
  const current=actorState[type];
  const set=new Set();
- allData[type].forEach(m=>movieActorsVisible(m).forEach(a=>set.add(a)));
+ // Performans: filtre listesi TMDB'nin tam kadrosu (bazı filmlerde 30-50+ kişi)
+ // yerine, ana sayfa kartında görünen ilk 5 oyuncuyla sınırlı - aksi halde bu
+ // fonksiyon (arama kutusuna her harf yazıldığında renderColumn üzerinden
+ // tetikleniyor) binlerce ismi topluyor + sıralıyor ve özellikle mobilde
+ // yazarken donmaya sebep oluyordu.
+ allData[type].forEach(m=>movieActors(m).slice(0,5).forEach(a=>set.add(a)));
+ // Aktif filtre ilk 5'e girmeyen ama filmde gerçekten oynayan bir oyuncuysa
+ // (ör. İstatistikler > Oyuncular listesinden tıklanmış olabilir), o ismi de
+ // listeye ekliyoruz - aksi halde birazdan "names.includes(current)" kontrolü
+ // false dönüp filtreyi sessizce "Tümü"ne sıfırlıyordu.
+ if(current!=="all" && !set.has(current) && allData[type].some(m=>movieActors(m).includes(current))){
+   set.add(current);
+ }
  const names=Array.from(set).sort((a,b)=>a.localeCompare(b,"tr"));
  sel.innerHTML='<option value="all">Oyuncu</option>'+names.map(n=>`<option value="${n}">${n}</option>`).join("");
  if(current!=="all" && !names.includes(current)) actorState[type]="all";
@@ -2979,7 +3044,7 @@ function renderColumn(type){
    indexed=indexed.filter(x=>movieDirectors(x.m).includes(directorState[type]));
  }
  if(actorState[type]!=="all"){
-   indexed=indexed.filter(x=>movieActorsVisible(x.m).includes(actorState[type]));
+   indexed=indexed.filter(x=>movieActors(x.m).includes(actorState[type]));
  }
  indexed=sortIndexed(indexed,sortState[type]);
 
@@ -3014,7 +3079,13 @@ function refreshCardsInPlace(){
      const trEl=el.querySelector(".tr-title");
      if(trEl && !trEl.textContent) trEl.textContent=info.title;
    }
-
+   const budgetEl=el.querySelector(".money-budget");
+   if(budgetEl){
+     const lines=moneyLines(budgetEl.dataset.boxoffice,info);
+     if(lines.budget) budgetEl.innerHTML=lines.budget;
+     const revEl=el.querySelector(".money-revenue");
+     if(revEl && lines.revenue) revEl.innerHTML=lines.revenue;
+   }
    // TMDB'den tam kadro/yönetmen geldiyse (castNames/directorNames), kart
    // üzerindeki oyuncu/yönetmen satırlarını da güncelle - böylece OMDb'nin
    // sınırlı listesi yerine (ana kartta 5 oyuncuya kadar) tam liste görünür.
