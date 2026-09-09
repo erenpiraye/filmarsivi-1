@@ -276,9 +276,9 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 }
 
 /* ===================== İSTATİSTİKLER ===================== */
-.stats-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:200;align-items:flex-start;justify-content:center;overflow-y:auto;padding:30px 16px}
+.stats-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:200;align-items:flex-start;justify-content:center;overflow-y:auto;padding:0 16px 30px 16px}
 .stats-overlay.open{display:flex}
-.stats-modal{position:relative;width:100%;max-width:1080px;background:#181818;border:1px solid #3a3222;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,0.6);display:flex;flex-direction:column;max-height:calc(100vh - 60px)}
+.stats-modal{position:relative;width:100%;max-width:1080px;margin-top:30px;background:#181818;border:1px solid #3a3222;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,0.6);display:flex;flex-direction:column;max-height:calc(100vh - 60px)}
 .stats-topbar{position:sticky;top:0;display:flex;align-items:center;justify-content:space-between;padding:18px 24px;background:#181818;border-bottom:1px solid #2a2a2a;border-radius:12px 12px 0 0;z-index:2;flex-shrink:0}
 .stats-topbar h2{margin:0;display:flex;align-items:center;gap:10px;text-align:left;font-size:20px;color:#e8c877}
 .stats-title-icon{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,#3a2f14,#241d0c);color:#e8c877;flex-shrink:0}
@@ -1650,10 +1650,10 @@ document.addEventListener("keydown",e=>{
    PEŞİNEN değil, sadece görünüme girdikçe (IntersectionObserver ile) çekiliyor
    - yüzlerce kişi olan hesaplarda tek seferde yüzlerce ağ isteği atılmasını
    önlüyor (bkz. lazyLoadStatsPhotosOnScroll). ---- */
-const TR_ALPHABET=["A","B","C","Ç","D","E","F","G","Ğ","H","I","İ","J","K","L","M","N","O","Ö","P","Q","R","S","Ş","T","U","Ü","V","W","X","Y","Z"];
+const TR_ALPHABET=["A","B","C","Ç","D","E","F","G","H","I","İ","J","K","L","M","N","O","Ö","P","Q","R","S","Ş","T","U","Ü","V","W","X","Y","Z"];
 function trFirstLetter(name){
- const ch=(name||"").trim().charAt(0);
- return ch.toLocaleUpperCase("tr-TR");
+ const ch=(name||"").trim().charAt(0).toLocaleUpperCase("tr-TR");
+ return ch==="Ğ"?"G":ch;
 }
 function openAllPeopleList(kind){
  const map=statsPeopleMoviesMap[kind]||{};
@@ -2293,6 +2293,14 @@ function card(m,i,isWatch){
    fetchPoster(m.imdbID,imgEl,m.Title,m.Year);
  }
  attachDragHandlers(d,m.imdbID,isWatch?"watchlist":"watched");
+ if(!trTitle){
+   getTurkishInfo(m.imdbID,m.Title,m.Year).then(info=>{
+     if(info.title){
+       const trEl=d.querySelector(".tr-title");
+       if(trEl && !trEl.textContent) trEl.textContent=info.title;
+     }
+   });
+ }
  return d;
 }
 
