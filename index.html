@@ -85,8 +85,6 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 .movie{width:95%;display:flex;align-items:center;margin:0 auto 15px auto;background:#222;padding:12px 16px;border-radius:8px;position:relative}
 .movie img{width:110px;height:165px;object-fit:cover;margin-right:15px;border-radius:4px}
 .movie img.poster-link{cursor:pointer}
-.rank-input{width:100%;font-size:0.55em;text-align:center;background:#222;color:#eee;border:1px solid #d9a441;border-radius:4px;padding:2px 0}
-.rank-input::-webkit-inner-spin-button,.rank-input::-webkit-outer-spin-button{opacity:1}
 .btn{margin-top:6px;padding:6px 12px;background:#555;color:#fff;border:none;border-radius:4px;cursor:pointer}
 .add-poster{cursor:pointer}
 .add-hint{font-size:11px;color:#888;margin-top:4px}
@@ -259,7 +257,20 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 .company-photo-wrap{position:relative;width:140px;height:180px;overflow:hidden;background:#fff;display:flex;align-items:center;justify-content:center;padding:14px;box-sizing:border-box}
 .company-photo{max-width:100%;max-height:100%;object-fit:contain;display:block}
 .company-photo-card:hover .person-photo-name{color:#d9a441}
-.site-link-footer{flex-shrink:0;height:24px;display:flex;align-items:center;justify-content:center;border-top:1px solid #333;font-size:10px;font-weight:800;letter-spacing:.4px;cursor:pointer;transition:filter .15s ease;background:rgba(1,180,228,0.16);color:#01b4e4}
+.similar-movie-card{flex-shrink:0;width:110px;cursor:pointer;background:#202020;border:1px solid #333;border-radius:8px;overflow:hidden;transition:border-color .15s;display:flex;flex-direction:column}
+.similar-movie-card:hover{border-color:#d9a441}
+.similar-movie-poster{width:110px;height:165px;object-fit:cover;display:block}
+.similar-movie-poster-wrap{position:relative}
+.similar-add-btn{position:absolute;top:6px;right:6px;width:26px;height:26px;border-radius:50%;background:rgba(217,164,65,0.95);color:#181818;font-size:16px;font-weight:bold;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;border:none;box-shadow:0 2px 8px rgba(0,0,0,0.55);z-index:3;transition:transform .12s ease,background .15s ease}
+.similar-add-btn:hover{filter:brightness(1.12)}
+.similar-add-btn:active{transform:scale(0.88)}
+.similar-add-btn.added{background:rgba(63,185,80,0.95);color:#fff;cursor:default;transform:scale(1)}
+.similar-add-btn.added:hover{filter:brightness(1)}
+.similar-movie-info{flex:1;padding:6px 8px}
+.similar-movie-title{font-size:11px;color:#eee;font-weight:600;line-height:1.25;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.similar-movie-year{font-size:10px;color:#888;margin-top:2px}
+.similar-movie-rating{font-size:11px;color:#e8c877;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.site-link-footer{flex-shrink:0;height:24px;display:flex;align-items:center;justify-content:center;border-top:1px solid #333;font-size:10px;font-weight:800;letter-spacing:.4px;cursor:pointer;transition:filter .15s ease;background:rgba(1,180,228,0.16);color:#01b4e4;margin-top:auto}
 .site-link-footer:hover{filter:brightness(1.2)}
 .site-link-footer:active{filter:brightness(0.92)}
 .detail-footer{position:relative;z-index:1;display:flex;justify-content:space-between;align-items:center;padding:16px 24px;border-top:1px solid #2a2a2a;background:#151515}
@@ -273,9 +284,12 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
  .detail-people-box{min-width:130px}
  .person-photo-card{width:112px}
  .person-photo-wrap{width:112px;height:148px}
- .company-photo-card{width:112px}
- .company-photo-wrap{width:112px;height:148px}
- /* Poster üstte, başlık altta - dikey diziliş yüzünden bu alan uzuyor;
+.company-photo-card{width:112px}
+  .company-photo-wrap{width:112px;height:148px}
+  .similar-movie-card{width:85px}
+  .similar-movie-poster{width:85px;height:128px}
+  .similar-add-btn{width:22px;height:22px;font-size:14px}
+  /* Poster üstte, başlık altta - dikey diziliş yüzünden bu alan uzuyor;
     arka plan fotoğrafı da orantısını bozmadan (background-size:cover ile
     kırpılarak) aynı oranda büyütülüyor ki kısa kalmasın. */
  .detail-backdrop{height:420px}
@@ -517,6 +531,11 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
    <div class="detail-section" id="detailProductionSection" style="display:none">
     <div class="detail-section-title">🏢 Yapım Şirketleri</div>
     <div class="detail-cast-row" id="detailProductionRow"></div>
+   </div>
+
+   <div class="detail-section" id="detailSimilarSection" style="display:none">
+    <div class="detail-section-title">🎬 Benzer Filmler</div>
+    <div class="detail-cast-row" id="detailSimilarRow"></div>
    </div>
 
    <div class="detail-genres" id="detailGenres"></div>
@@ -2525,55 +2544,6 @@ function reorderInList(type,id,toDisplayIndex){
  persistMovedItem(type,id,newAddedAt);
 }
 
-/* Sıra numarasına çift tıklayınca doğrudan bir pozisyon yazıp o sıraya
-   atlama (PC sürümündeki özelliğin mobil karşılığı). Mevcut sürükle-bırak
-   sıralama altyapısıyla aynı fonksiyonları (computeNeighborAddedAt,
-   applyDisplayOrder, persistMovedItem) kullanır - ayrı bir mekanizma
-   icat etmiyoruz, böylece ikisi asla çakışmaz. */
-function editRank(e,id,type){
- if(!canReorderList(type)) return; // sadece Eklenme tarihine göre sıralıyken ve filtre yokken anlamlı
- const numEl=e.currentTarget;
- if(numEl.querySelector("input")) return; // zaten düzenleniyor
- const currentText=numEl.textContent.trim();
-
- const input=document.createElement("input");
- input.type="number";
- input.min="1";
- input.className="rank-input";
- input.value=currentText;
- numEl.textContent="";
- numEl.appendChild(input);
- input.focus();
- input.select();
-
- let done=false;
- function commit(){
-   if(done) return;
-   done=true;
-   const val=parseInt(input.value,10);
-   numEl.textContent=currentText; // gerçek sayı render()'da tazelenecek
-   if(isNaN(val) || val<1 || String(val)===currentText) return;
-   const ids=getSortedDisplayIds(type);
-   const fromIdx=ids.indexOf(id);
-   if(fromIdx===-1) return;
-   const others=ids.filter(x=>x!==id);
-   const k=Math.max(0,Math.min(val-1,others.length));
-   const newAddedAt=computeNeighborAddedAt(type,others,k);
-   ids.splice(fromIdx,1);
-   ids.splice(k,0,id);
-   applyDisplayOrder(type,ids,id,newAddedAt);
-   render();
-   persistMovedItem(type,id,newAddedAt);
- }
- input.addEventListener("keydown",ke=>{
-   if(ke.key==="Enter"){ ke.preventDefault(); input.blur(); }
-   else if(ke.key==="Escape"){ done=true; numEl.textContent=currentText; }
- });
- input.addEventListener("blur",commit);
- input.addEventListener("pointerdown",ke=>ke.stopPropagation());
- input.addEventListener("click",ke=>ke.stopPropagation());
-}
-
 async function moveToListAt(id,fromType,toType,toDisplayIndex){
  const idx=allData[fromType].findIndex(m=>m.imdbID===id);
  if(idx===-1) return;
@@ -3270,6 +3240,7 @@ function formatTrDate(ms){
 let detailState={id:null,type:null};
 const castCache={};              // tmdbMovieId -> {cast, director, writers}
 const personExternalIdCache={};  // tmdb kişi id -> imdb kişi id ("nm...") ya da null
+const similarMovieCache={};      // tmdbMovieId -> benzer film listesi (en fazla 5)
 
 function fillDetailMoney(movie,info){
  const budget=formatMoney(info&&info.budget);
@@ -3405,12 +3376,20 @@ function openCompanyPage(companyId){
 }
 
 document.querySelector(".detail-body").addEventListener("click",e=>{
+ const addBtn=e.target.closest(".similar-add-btn");
+ if(addBtn){
+   const sc=addBtn.closest(".similar-movie-card");
+   if(sc) addSimilarMovie(sc.dataset.movieId,addBtn);
+   return;
+ }
  const footer=e.target.closest(".site-link-footer");
  if(footer){
    const companyCard0=footer.closest(".company-photo-card");
    if(companyCard0){ openCompanyPage(companyCard0.dataset.companyId); return; }
    const personCard0=footer.closest(".person-photo-card");
    if(personCard0){ openExternalLink(`https://www.themoviedb.org/person/${personCard0.dataset.personId}`); return; }
+   const similarCard0=footer.closest(".similar-movie-card");
+   if(similarCard0){ openSimilarMovieTmdb(similarCard0.dataset.movieId); return; }
    return;
  }
  const personCard=e.target.closest(".person-photo-card");
@@ -3419,7 +3398,109 @@ document.querySelector(".detail-body").addEventListener("click",e=>{
  if(personLink){ openPersonPage(personLink.dataset.personId); return; }
  const companyCard=e.target.closest(".company-photo-card");
  if(companyCard){ openCompanyPage(companyCard.dataset.companyId); return; }
+ const similarCard=e.target.closest(".similar-movie-card");
+ if(similarCard){ openSimilarMovieImdb(similarCard.dataset.movieId); return; }
 });
+
+// Benzer filmler: TMDB recommendations uç noktası (kart başına 1 istek, sonuç
+// bellekte önbelleklenir). En fazla 5 öneri gösterilir; istek sırasında TMDB
+// önbellekten yeniden çıkarılmaz, böylece TMDB kotası minimumda tutulur. Öneri
+// kartının gövdesine/afişine dokununca filmin IMDb sayfası, alttaki "TMDB"
+// bölümüne dokununca TMDB sayfası açılır (imdb_id ve puan, external_ids/OMDb
+// üzerinden bir kereliğine getirilir ve önbelleklenir).
+async function loadSimilarMovies(tmdbId){
+ if(!tmdbId){document.getElementById("detailSimilarSection").style.display="none";return;}
+ if(similarMovieCache[tmdbId]!==undefined){renderSimilarMovies(similarMovieCache[tmdbId]);return;}
+ try{
+   const data=await fetchJson(`https://api.themoviedb.org/3/movie/${tmdbId}/recommendations?api_key=${TMDB_KEY}&language=tr-TR`);
+   const results=(data.results||[]).slice(0,5);
+   similarMovieCache[tmdbId]=results;
+   renderSimilarMovies(results);
+ }catch(e){
+   similarMovieCache[tmdbId]=[];
+   document.getElementById("detailSimilarSection").style.display="none";
+ }
+}
+
+function renderSimilarMovies(movies){
+ const section=document.getElementById("detailSimilarSection");
+ const row=document.getElementById("detailSimilarRow");
+ if(!movies||!movies.length){section.style.display="none";return;}
+ section.style.display="";
+ row.innerHTML=movies.map(m=>{
+   const poster=m.poster_path?`https://image.tmdb.org/t/p/w200${m.poster_path}`:POSTER_PLACEHOLDER;
+   const year=m.release_date?(m.release_date.substring(0,4)):"";
+   return `<div class="similar-movie-card" data-movie-id="${m.id}">
+     <div class="similar-movie-poster-wrap">
+      <img class="similar-movie-poster" src="${poster}" loading="lazy">
+      <button class="similar-add-btn" title="İzleneceklere ekle">+</button>
+     </div>
+     <div class="similar-movie-info">
+      <div class="similar-movie-title">${escapeHtml(m.title||"")}</div>
+      <div class="similar-movie-year">${escapeHtml(year)}</div>
+      <div class="similar-movie-rating">⭐ <span class="similar-rating-val-${m.id}">…</span></div>
+     </div>
+     <div class="site-link-footer">TMDB</div>
+   </div>`;
+ }).join("");
+ movies.forEach(m=>{
+   getSimilarMovieInfo(m.id).then(info=>{
+     const valEl=row.querySelector(`.similar-rating-val-${m.id}`);
+     if(valEl) valEl.textContent=(info&&info.imdbRating)!=null?info.imdbRating:"—";
+   });
+ });
+}
+
+// tmdb film id -> {imdbId, imdbRating}: benzer/öneri kartları için bir kereliğine
+// çekilir ve bellekte saklanır (TMDB external_ids + OMDb puanı). İmkansız
+// durumlar da (null) kaydedilir ki aynı kartı tekrar açınca istek yinelenmesin.
+const similarEnrichCache={};
+async function getSimilarMovieInfo(movieId){
+ if(similarEnrichCache[movieId]!==undefined) return similarEnrichCache[movieId];
+ let info={imdbId:null,imdbRating:null};
+ try{
+   const ext=await fetchJson(`https://api.themoviedb.org/3/movie/${movieId}/external_ids?api_key=${TMDB_KEY}`);
+   info.imdbId=(ext&&ext.imdb_id)?ext.imdb_id:null;
+ }catch(e){ info.imdbId=null; }
+ if(info.imdbId){
+   try{
+     const om=await fetchOmdbById(info.imdbId);
+     if(om && om.imdbRating && om.imdbRating!=="N/A") info.imdbRating=om.imdbRating;
+   }catch(e){ info.imdbRating=null; }
+ }
+ similarEnrichCache[movieId]=info;
+ return info;
+}
+
+// Öneri kartına (afiş/gövde) tıklanınca IMDb sayfası açılır. Önbellekte imdb_id
+// hazırsa senkron tıklama (Safari'nin güvenilir kabul ettiği yol); değilse
+// önce boş sekme, sonra adres (openPersonPage ile aynı desen).
+function openSimilarMovieTmdb(movieId){
+ openExternalLink(`https://www.themoviedb.org/movie/${movieId}`);
+}
+
+async function openSimilarMovieImdb(movieId){
+ if(similarEnrichCache[movieId]!==undefined){
+   const info=similarEnrichCache[movieId];
+   openExternalLink(info&&info.imdbId?`https://www.imdb.com/title/${info.imdbId}/`:`https://www.themoviedb.org/movie/${movieId}`);
+   return;
+ }
+ const win=window.open("about:blank","_blank");
+ const info=await getSimilarMovieInfo(movieId);
+ const url=info&&info.imdbId?`https://www.imdb.com/title/${info.imdbId}/`:`https://www.themoviedb.org/movie/${movieId}`;
+ if(win) win.location.href=url;
+}
+
+// Öneri kartındaki "+" butonu: filmi (imdb_id üzerinden) İZLENECEKLER'e ekler.
+// Tıklama anında buton yeşile döner ve üzerinde "✓" belirir - eklenmeden de
+// kullanıcı tepki alır. Film zaten listedeyse de sonuç aynıdır (üstüne basınca
+// başka işlem yapılmaz).
+async function addSimilarMovie(movieId,btn){
+ const info=await getSimilarMovieInfo(movieId);
+ if(!info || !info.imdbId) return;
+ if(btn){ btn.classList.add("added"); btn.textContent="✓"; btn.disabled=true; btn.title="Eklendi"; }
+ addMovie(info.imdbId,"watchlist");
+}
 
 function openDetail(id,type,fromHistory){
  const movie=(allData[type]||[]).find(m=>m.imdbID===id);
@@ -3450,9 +3531,11 @@ function openDetail(id,type,fromHistory){
 
  document.getElementById("detailDirector").textContent=(movie.Director&&movie.Director!=="N/A")?movie.Director:"—";
  document.getElementById("detailWriter").textContent=(movie.Writer&&movie.Writer!=="N/A")?movie.Writer:"—";
- document.getElementById("detailCastRow").innerHTML="";
- document.getElementById("detailProductionRow").innerHTML="";
- document.getElementById("detailProductionSection").style.display="none";
+document.getElementById("detailCastRow").innerHTML="";
+  document.getElementById("detailProductionRow").innerHTML="";
+  document.getElementById("detailProductionSection").style.display="none";
+
+  document.getElementById("detailSimilarSection").style.display="none";
 
  const genres=movieGenresTr(movie);
  document.getElementById("detailGenres").innerHTML=genres.length?genres.map(g=>`<span class="detail-genre-tag">${escapeHtml(g)}</span>`).join(""):"";
@@ -3489,7 +3572,7 @@ function openDetail(id,type,fromHistory){
    tmdbLinkEl.onclick=()=>{if(freshInfo.tmdbId) openExternalLink(`https://www.themoviedb.org/movie/${freshInfo.tmdbId}`);return false;};
    renderCompanyRow(freshInfo.productionCompanies);
 
-   if(!freshInfo.tmdbId) return;
+   if(!freshInfo.tmdbId){document.getElementById("detailSimilarSection").style.display="none";return;}
    loadCastForDetail(freshInfo.tmdbId).then(castInfo=>{
      if(detailState.id!==id || !castInfo) return;
      renderPersonPhotoRow("detailDirector",castInfo.director,false);
@@ -3497,6 +3580,7 @@ function openDetail(id,type,fromHistory){
      renderCastRow(castInfo.cast);
      prefetchPersonImdbIds(castInfo);
    });
+   loadSimilarMovies(freshInfo.tmdbId);
  }).catch(()=>{});
 }
 
