@@ -210,9 +210,15 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 /* Filmin kendi logosu (TMDB "title treatment" görseli): her filmin afişindeki
    özgün yazı tipiyle hazırlanmış, arka planı şeffaf logo. Varsa düz metin
    başlığın yerine bu gösterilir - Netflix'teki gibi her film kendi fontuyla. */
-.detail-title-logo{display:none;max-width:min(100%,380px);max-height:110px;object-fit:contain;object-position:left bottom;margin:6px 0 4px 0;filter:drop-shadow(0 4px 12px rgba(0,0,0,0.8))}
-.detail-title-logo.show{display:block}
+.detail-title-logo{display:none;max-width:min(100%,380px);max-height:110px;object-fit:contain;object-position:left bottom;margin:6px 0 4px 0;filter:drop-shadow(0 4px 12px rgba(0,0,0,0.8));opacity:0;transition:opacity .3s ease}
+.detail-title-logo.show{display:block;opacity:1}
 .detail-top-info.has-logo .detail-title{display:none}
+/* Logo olup olmadığı BELLİ OLANA KADAR düz metin başlık gizli tutulur (yeri
+   korunur) - eskiden önce normal font görünüp sonra logoya dönüşüyordu ve bu
+   geçiş kötü duruyordu. Logosu olmayan filmlerde metin anında geri gelir;
+   ağ yavaşsa emniyet zamanlayıcısı 2.5 sn sonra metni yine de gösterir. */
+.detail-top-info.logo-pending .detail-title{visibility:hidden}
+.detail-title{min-height:34px}
 .detail-close{position:absolute;top:14px;right:16px;z-index:3;width:34px;height:34px;border-radius:50%;background:rgba(0,0,0,0.55);color:#eee;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px}
 .detail-close:hover{background:rgba(0,0,0,0.8)}
 .detail-top{position:relative;z-index:1;display:flex;align-items:flex-end;gap:20px;padding:24px}
@@ -333,6 +339,12 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 .stats-toggle-btn{padding:5px 12px;font-size:12px;border-radius:4px;color:#999;cursor:pointer;user-select:none;white-space:nowrap}
 .stats-toggle-btn.active{background:#3a3222;color:#e8c877}
 .stats-empty{color:#777;font-size:13px;padding:10px 0}
+.people-toolbar{display:flex;gap:8px;align-items:center;margin:10px 0 8px 0;flex-wrap:wrap}
+.people-search{flex:1;min-width:150px;padding:9px 12px;background:#222;color:#eee;border:1px solid #444;border-radius:8px;font-size:15px}
+.people-search:focus{outline:none;border-color:#d9a441}
+.people-sort{display:flex;gap:6px}
+.people-sort-btn{padding:8px 12px;border-radius:8px;background:#242424;border:1px solid #3a3a3a;color:#bbb;font-size:13px;cursor:pointer;user-select:none;white-space:nowrap}
+.people-sort-btn.active{background:rgba(217,164,65,0.16);border-color:rgba(217,164,65,0.45);color:#e8c877}
 .stats-pending-note{margin:10px 0 4px 0;padding:9px 12px;border-radius:8px;background:rgba(217,164,65,0.12);border:1px solid rgba(217,164,65,0.3);color:#e8c877;font-size:13px;line-height:1.4}
 
 .year-chart{display:flex;align-items:flex-end;gap:2px;height:160px;overflow-x:auto;padding-bottom:4px}
@@ -892,9 +904,19 @@ function renderStats(){
  // TMDB'den tam kadro/yönetmen bilgisi henüz inmemiş film varsa sayılar
  // eksik kalır (ve veri indikçe değişir) - kullanıcıya bunu açıkça söylüyoruz.
  const pending=statsPendingInfoCount(movies);
- const pendingNote = pending
+ // TMDB'de eşleşmeyen filmlerde tam kadro yerine OMDb'nin sadece birkaç
+ // başrol ismini veren listesi kullanılıyor - bu filmlerde küçük roller
+ // (ör. konuk oyuncular) hiç sayılamıyor. Sayılar beklenmedik çıktığında
+ // sebebi genelde budur, o yüzden açıkça yazıyoruz.
+ const limited=movies.filter(m=>{
+   const c=turkishCache[m.imdbID];
+   return !(c && c.castNames && c.castNames.length);
+ }).length;
+ const pendingNote = (pending
    ? `<div class="stats-pending-note">⏳ ${pending} filmin tam kadro/yönetmen bilgisi henüz yükleniyor - sayılar yükleme bitince kendiliğinden güncellenecek.</div>`
-   : "";
+   : "") + ((!pending && limited)
+   ? `<div class="stats-pending-note">ℹ️ ${limited} film TMDB'de eşleşmediği için tam kadrosu yok; bu filmlerde yalnızca başroldeki birkaç oyuncu sayılabiliyor (küçük roller/konuk oyuncular sayılmıyor).</div>`
+   : "");
  body.innerHTML = pendingNote + sections.map(s=>s.html).join("");
  _statsPhotosRunning=false;
  lazyLoadStatsPhotos();
@@ -1810,48 +1832,94 @@ function trFirstLetter(name){
  const ch=(name||"").trim().charAt(0).toLocaleUpperCase("tr-TR");
  return ch==="Ğ"?"G":ch;
 }
+/* Liste artık aranabilir ve iki şekilde sıralanabilir: A-Z (harf grupları) ya
+   da film sayısı (çoktan aza). Böylece "şu oyuncu kaç filmde çıkıyor" sorusu
+   tek tek bakmadan görülebiliyor; isme dokununca o kişinin sayılan filmleri
+   listeleniyor. Arama kutusu yeniden çizilmediği için yazarken odak kaybolmaz. */
+let _peopleListState={kind:"actor",sort:"az",query:""};
 function openAllPeopleList(kind){
+ _peopleListState={kind,sort:"az",query:""};
  const map=statsPeopleMoviesMap[kind]||{};
- const names=Object.keys(map).sort((a,b)=>a.localeCompare(b,"tr"));
- document.getElementById("statsPeopleListTitle").textContent=`${kind==="actor"?"Oyuncular":"Yönetmenler"} (${names.length})`;
+ const total=Object.keys(map).length;
+ document.getElementById("statsPeopleListTitle").textContent=`${kind==="actor"?"Oyuncular":"Yönetmenler"} (${total})`;
  const body=document.getElementById("statsPeopleListBody");
-
- const groups={};
- names.forEach(name=>{
-   const letter=trFirstLetter(name);
-   const key=TR_ALPHABET.includes(letter)?letter:"#";
-   (groups[key]=groups[key]||[]).push(name);
- });
- const presentLetters=TR_ALPHABET.filter(l=>groups[l]);
- if(groups["#"]) presentLetters.push("#");
-
- const navHtml = names.length ? `<div class="people-az-nav">`+[...TR_ALPHABET,"#"].filter(l=>l!=="#"||groups["#"]).map(l=>{
-   const has=!!groups[l];
-   return `<span class="people-az-btn${has?"":" people-az-btn--disabled"}"${has?` onclick="statsScrollToLetter('${l}')"`:""}>${l}</span>`;
- }).join("")+`</div>` : "";
-
- const listHtml = presentLetters.map(letter=>{
-   const items=groups[letter];
-   return `<div class="people-letter-group" id="people-letter-${letter}">
-    <div class="people-letter-heading">${letter==="#"?"Diğer":letter}</div>
-    <div class="people-grid">`+items.map(name=>{
-      const count=(map[name]||[]).length;
-      return `<div class="people-item" data-kind="${kind}" data-person-name="${escapeHtml(name)}">
-       <div class="people-avatar" data-person-name="${escapeHtml(name)}">${escapeHtml(statsInitials(name))}</div>
-       <div class="people-name">${escapeHtml(name)}</div>
-       <div class="people-count">${count} film</div>
-      </div>`;
-    }).join("")+`</div>
-   </div>`;
- }).join("");
-
- body.innerHTML = names.length ? navHtml+listHtml : '<div class="stats-empty">Kişi bulunamadı.</div>';
- lazyLoadStatsPhotosOnScroll(document.getElementById("statsPeopleOverlay"));
+ body.innerHTML=`<div class="people-toolbar">
+   <input class="people-search" id="statsPeopleSearch" type="text" autocomplete="off" placeholder="İsim ara…" oninput="statsPeopleSearchInput(this.value)">
+   <div class="people-sort">
+    <span class="people-sort-btn active" id="peopleSortAz" onclick="statsPeopleSetSort('az')">A-Z</span>
+    <span class="people-sort-btn" id="peopleSortCount" onclick="statsPeopleSetSort('count')">Film sayısı</span>
+   </div>
+  </div>
+  <div id="statsPeopleListInner"></div>`;
+ renderPeopleListInner();
  document.getElementById("statsPeopleOverlay").classList.add("open");
  document.getElementById("statsPeopleOverlay").scrollTop=0;
  positionPeopleAzNav();
  updateStatsPeopleScrollBtn();
  _lockBackgroundScroll();
+}
+function statsPeopleSearchInput(v){
+ _peopleListState.query=v||"";
+ renderPeopleListInner();
+}
+function statsPeopleSetSort(mode){
+ _peopleListState.sort=mode;
+ const azBtn=document.getElementById("peopleSortAz");
+ const cBtn=document.getElementById("peopleSortCount");
+ if(azBtn) azBtn.classList.toggle("active",mode==="az");
+ if(cBtn) cBtn.classList.toggle("active",mode==="count");
+ renderPeopleListInner();
+ const overlay=document.getElementById("statsPeopleOverlay");
+ if(overlay) overlay.scrollTop=0;
+}
+function peopleItemHtml(kind,name,count){
+ return `<div class="people-item" data-kind="${kind}" data-person-name="${escapeHtml(name)}">
+   <div class="people-avatar" data-person-name="${escapeHtml(name)}">${escapeHtml(statsInitials(name))}</div>
+   <div class="people-name">${escapeHtml(name)}</div>
+   <div class="people-count">${count} film</div>
+  </div>`;
+}
+function renderPeopleListInner(){
+ const {kind,sort,query}=_peopleListState;
+ const inner=document.getElementById("statsPeopleListInner");
+ if(!inner) return;
+ const map=statsPeopleMoviesMap[kind]||{};
+ const q=normNameKey(query);
+ let names=Object.keys(map);
+ if(q) names=names.filter(n=>normNameKey(n).indexOf(q)>=0);
+
+ if(!names.length){
+   inner.innerHTML='<div class="stats-empty">'+(q?"Bu isimde kimse bulunamadı.":"Kişi bulunamadı.")+'</div>';
+   return;
+ }
+
+ if(sort==="count"){
+   const items=names.map(n=>({name:n,count:(map[n]||[]).length})).sort(statsByCountThenName);
+   inner.innerHTML=`<div class="people-grid">`+items.map(x=>peopleItemHtml(kind,x.name,x.count)).join("")+`</div>`;
+ }else{
+   names=names.sort((a,b)=>a.localeCompare(b,"tr"));
+   const groups={};
+   names.forEach(name=>{
+     const letter=trFirstLetter(name);
+     const key=TR_ALPHABET.includes(letter)?letter:"#";
+     (groups[key]=groups[key]||[]).push(name);
+   });
+   const presentLetters=TR_ALPHABET.filter(l=>groups[l]);
+   if(groups["#"]) presentLetters.push("#");
+   // A-Z şeridi sadece arama yokken anlamlı (aramada zaten az sonuç kalıyor).
+   const navHtml = q ? "" : `<div class="people-az-nav">`+[...TR_ALPHABET,"#"].filter(l=>l!=="#"||groups["#"]).map(l=>{
+     const has=!!groups[l];
+     return `<span class="people-az-btn${has?"":" people-az-btn--disabled"}"${has?` onclick="statsScrollToLetter('${l}')"`:""}>${l}</span>`;
+   }).join("")+`</div>`;
+   const listHtml=presentLetters.map(letter=>`<div class="people-letter-group" id="people-letter-${letter}">
+     <div class="people-letter-heading">${letter==="#"?"Diğer":letter}</div>
+     <div class="people-grid">`+groups[letter].map(name=>peopleItemHtml(kind,name,(map[name]||[]).length)).join("")+`</div>
+    </div>`).join("");
+   inner.innerHTML=navHtml+listHtml;
+   positionPeopleAzNav();
+ }
+ lazyLoadStatsPhotosOnScroll(document.getElementById("statsPeopleOverlay"));
+ updateStatsPeopleScrollBtn();
 }
 /* ---- A-Z satırı, üstbardaki başlığın (Oyuncular/Yönetmenler) hemen altına
    yapışık kalsın diye "sticky" - ama sticky'nin doğru yerde durması için
@@ -2140,7 +2208,7 @@ async function getTurkishInfo(imdbID,title,year){
  // kısa (3-4 kişilik) "Actors" listesine sınırlı kalıyordu. _v8, credits isteği
  // gerçekten başarılı olduğunda set edilir; eksikse bir kereliğine yeniden denenir.
  if(cached && cached._checked && cached._v7 && cached._v8) return cached;
- const info={title:null,poster:null,genres:[],genreIds:[],budget:null,revenue:null,overview:null,backdrop:null,tmdbId:null,productionCompanies:[],castNames:[],directorNames:[],countryNames:[]};
+ const info={title:null,poster:null,genres:[],genreIds:[],budget:null,revenue:null,overview:null,backdrop:null,tmdbId:null,productionCompanies:[],castNames:[],directorNames:[],countryNames:[],originalLanguage:null};
  if(cached) Object.assign(info,cached); // eski önbellekte olan (başlık/poster/tür) alanları koru, eksikleri tamamlayacağız
  try{
    const data=await fetchJson(`https://api.themoviedb.org/3/find/${imdbID}?api_key=${TMDB_KEY}&external_source=imdb_id&language=tr-TR`);
@@ -2184,6 +2252,7 @@ async function getTurkishInfo(imdbID,title,year){
 
    if(movie){
      info.tmdbId=movie.id;
+     if(movie.original_language) info.originalLanguage=movie.original_language; // logo seçiminde filmin kendi dili tercih edilsin
      if(movie.title) info.title=movie.title;
      if(movie.poster_path) info.poster=`https://image.tmdb.org/t/p/w200${movie.poster_path}`;
      if(movie.overview) info.overview=movie.overview;
@@ -3735,57 +3804,93 @@ function setDetailBackdrop(backdrop,posterFallback){
 }
 
 /* TMDB'nin images uç noktasındaki "logos" listesi, filmin afişindeki özgün
-   yazı tipiyle hazırlanmış şeffaf arka planlı başlık görselini verir. Türkçe
-   sürüm varsa o, yoksa İngilizce, o da yoksa dilsiz (null) sürüm seçilir. */
+   yazı tipiyle hazırlanmış şeffaf arka planlı başlık görselini verir.
+   ÖNCELİK: filmin KENDİ (orijinal) dilindeki logo - yani afişteki özgün hali;
+   yoksa İngilizce, o da yoksa dilsiz (null) sürüm. Türkçe yerelleştirilmiş
+   logolar bilerek tercih edilmiyor (kullanıcı isteği: orijinal hali). */
 function titleLogoUrl(path){
  if(!path) return null;
  return /\.svg$/i.test(path)
    ? `https://image.tmdb.org/t/p/original${path}`
    : `https://image.tmdb.org/t/p/w500${path}`;
 }
-async function fetchTitleLogo(tmdbId){
+async function fetchTitleLogo(tmdbId,originalLang){
+ const orig=originalLang||"en";
  try{
-   const d=await fetchJson(`https://api.themoviedb.org/3/movie/${tmdbId}/images?api_key=${TMDB_KEY}&include_image_language=tr,en,null`);
+   const langs=[orig,"en","null"].filter((v,i,a)=>a.indexOf(v)===i).join(",");
+   const d=await fetchJson(`https://api.themoviedb.org/3/movie/${tmdbId}/images?api_key=${TMDB_KEY}&include_image_language=${langs}`);
    const logos=(d&&d.logos)||[];
    if(!logos.length) return null;
-   const rank=l=>l.iso_639_1==="tr"?0:(l.iso_639_1==="en"?1:2);
+   const rank=l=>{
+     const lang=l.iso_639_1;
+     if(lang===orig) return 0;   // filmin orijinal dili - afişteki hali
+     if(lang==="en") return 1;
+     if(!lang) return 2;         // dilsiz (yazısız/evrensel) sürüm
+     return 3;
+   };
    const best=logos.slice().sort((a,b)=>
      rank(a)-rank(b) || (b.vote_average||0)-(a.vote_average||0) || (b.width||0)-(a.width||0)
    )[0];
    return best?best.file_path:null;
  }catch(e){ return null; }
 }
+let _logoPendingTimer=null;
 function clearDetailTitleLogo(){
  const img=document.getElementById("detailTitleLogo");
  const box=document.getElementById("detailTopInfo");
  if(img){ img.classList.remove("show"); img.removeAttribute("src"); }
- if(box) box.classList.remove("has-logo");
+ if(box) box.classList.remove("has-logo","logo-pending");
+ clearTimeout(_logoPendingTimer);
+}
+// Logo olup olmadığı henüz bilinmiyorsa metin başlığı geçici olarak gizle -
+// böylece "önce yazı, sonra logo" şeklindeki çirkin geçiş hiç yaşanmaz.
+function markDetailTitlePending(){
+ const box=document.getElementById("detailTopInfo");
+ if(!box) return;
+ box.classList.add("logo-pending");
+ clearTimeout(_logoPendingTimer);
+ _logoPendingTimer=setTimeout(resolveDetailTitlePending,2500); // ağ yavaşsa yazı yine de gelsin
+}
+function resolveDetailTitlePending(){
+ const box=document.getElementById("detailTopInfo");
+ if(box) box.classList.remove("logo-pending");
+ clearTimeout(_logoPendingTimer);
 }
 function showDetailTitleLogo(path,title){
  const url=titleLogoUrl(path);
- if(!url) return;
+ if(!url){ resolveDetailTitlePending(); return; }
  const img=document.getElementById("detailTitleLogo");
  const box=document.getElementById("detailTopInfo");
  if(!img||!box) return;
  const probe=new Image();
- probe.onload=()=>{ img.src=url; img.alt=title||""; img.classList.add("show"); box.classList.add("has-logo"); };
+ probe.onload=()=>{
+   img.src=url; img.alt=title||"";
+   box.classList.add("has-logo");      // metin başlık tamamen gizlenir
+   box.classList.remove("logo-pending");
+   clearTimeout(_logoPendingTimer);
+   requestAnimationFrame(()=>img.classList.add("show"));
+ };
  probe.onerror=()=>{ clearDetailTitleLogo(); }; // logo inmezse düz metin başlık kalır
  probe.src=url;
 }
-// Logo adresi önbelleğe yazılır (_logoChecked), böylece aynı film ikinci kez
-// açıldığında ek istek atılmadan ANINDA görünür; logosu olmayan filmler için
-// de bir daha sorulmaz.
-async function ensureDetailTitleLogo(imdbId,tmdbId,title){
+// Logo adresi önbelleğe yazılır (_logoV2), böylece aynı film ikinci kez
+// açıldığında ek istek atılmadan ANINDA görünür (geçiş de olmaz); logosu
+// olmayan filmler için de bir daha sorulmaz. _logoV2: önceki sürümde Türkçe
+// logo tercih ediliyordu - o kayıtlar bir kereliğine yeniden seçiliyor.
+async function ensureDetailTitleLogo(imdbId,tmdbId,title,originalLang){
  const cached=turkishCache[imdbId];
- if(cached && cached._logoChecked){
+ if(cached && cached._logoV2){
    if(cached.logo) showDetailTitleLogo(cached.logo,title);
+   else resolveDetailTitlePending();
    return;
  }
- if(!tmdbId) return;
- const path=await fetchTitleLogo(tmdbId);
+ if(!tmdbId){ resolveDetailTitlePending(); return; }
+ const path=await fetchTitleLogo(tmdbId,originalLang);
  const rec=turkishCache[imdbId];
- if(rec){ rec.logo=path||null; rec._logoChecked=true; persistTmdbCacheSoon(); }
- if(path && detailState && detailState.id===imdbId) showDetailTitleLogo(path,title);
+ if(rec){ rec.logo=path||null; rec._logoV2=true; delete rec._logoChecked; persistTmdbCacheSoon(); }
+ if(!detailState || detailState.id!==imdbId) return;
+ if(path) showDetailTitleLogo(path,title);
+ else resolveDetailTitlePending();
 }
 // Önbelleği diske yazma yolu iki sürümde farklı (tarayıcıda localStorage,
 // masaüstünde pywebview) - hangisi varsa o kullanılır.
@@ -3807,7 +3912,10 @@ function openDetail(id,type,fromHistory){
  const posterForBackdrop=(movie.Poster&&movie.Poster!=="N/A")?movie.Poster:(info.poster||null);
  setDetailBackdrop(info.backdrop||null,posterForBackdrop);
  clearDetailTitleLogo();
- if(info.logo) showDetailTitleLogo(info.logo,movie.Title);
+ // Önbellekte logo bilgisi varsa doğrudan doğru hâlde açılır (hiç geçiş yok);
+ // yoksa logo bilgisi gelene kadar metin başlık geçici gizlenir.
+ if(info._logoV2){ if(info.logo) showDetailTitleLogo(info.logo,movie.Title); }
+ else markDetailTitlePending();
  document.getElementById("detailPoster").src=(movie.Poster&&movie.Poster!=="N/A")?movie.Poster:(info.poster||POSTER_PLACEHOLDER);
  document.getElementById("detailYear").textContent=movie.Year||"";
  document.getElementById("detailRuntime").textContent=(movie.Runtime&&movie.Runtime!=="N/A")?movie.Runtime:"";
@@ -3863,7 +3971,7 @@ document.getElementById("detailCastRow").innerHTML="";
  infoPromise.then(freshInfo=>{
    if(detailState.id!==id) return; // kullanıcı bu arada kapattı/başka filme geçti
    if(freshInfo.backdrop) setDetailBackdrop(freshInfo.backdrop,posterForBackdrop);
-   ensureDetailTitleLogo(id,freshInfo.tmdbId,movie.Title);
+   ensureDetailTitleLogo(id,freshInfo.tmdbId,movie.Title,freshInfo.originalLanguage);
    if(freshInfo.overview) document.getElementById("detailPlot").textContent=freshInfo.overview;
    if(freshInfo.title && freshInfo.title!==movie.Title) document.getElementById("detailTrTitle").textContent=freshInfo.title;
      fillDetailMoney(movie,freshInfo);
