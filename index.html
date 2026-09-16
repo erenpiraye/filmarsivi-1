@@ -200,12 +200,19 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
    renk hafif doygunlaştırıldı; karartma yerine Netflix'teki gibi alta ve
    kenarlara doğru yumuşak geçişli degradeler var (yazı okunurluğu korunuyor).
    Görsel indiğinde yumuşakça belirip çok yavaş bir yakınlaşma yapıyor. */
-.detail-backdrop{position:absolute;top:0;left:0;right:0;height:420px;background-size:cover;background-position:center 20%;z-index:0;opacity:0;transform:scale(1.07);transition:opacity .55s ease,transform 9s ease-out;filter:saturate(1.15) contrast(1.04)}
-.detail-backdrop.loaded{opacity:1;transform:scale(1)}
+.detail-backdrop{position:absolute;top:0;left:0;right:0;height:380px;background-size:cover;background-position:center 20%;z-index:0;opacity:0;transform:scale(1.07);transition:opacity .6s ease;filter:saturate(1.15) contrast(1.04)}
+/* Görsel yüklenince belirir ve durmadan çok yavaş şekilde ileri-geri
+   (yakınlaşıp uzaklaşarak) hareket eder - "nefes alan" bir arka plan hissi. */
+.detail-backdrop.loaded{opacity:1;animation:detailBackdropBreathe 22s ease-in-out infinite}
+@keyframes detailBackdropBreathe{
+ 0%,100%{transform:scale(1)}
+ 50%{transform:scale(1.08)}
+}
 /* TMDB'de geniş görsel yoksa afişin kendisine düşülüyor; dikey afiş enine
-   gerilince çirkin durduğu için SADECE o durumda güçlü bulanıklık uygulanır. */
+   gerilince çirkin durduğu için SADECE o durumda güçlü bulanıklık uygulanır -
+   bu sürümde nefes animasyonu yok, sabit büyütülmüş kalır. */
 .detail-backdrop--poster{filter:blur(26px) saturate(1.25) brightness(.72)}
-.detail-backdrop--poster,.detail-backdrop--poster.loaded{transform:scale(1.18)}
+.detail-backdrop--poster.loaded{animation:none;transform:scale(1.18)}
 .detail-backdrop::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(24,24,24,0) 0%,rgba(24,24,24,0.30) 42%,rgba(24,24,24,0.82) 78%,#181818 100%),linear-gradient(90deg,rgba(24,24,24,0.72) 0%,rgba(24,24,24,0.10) 48%,rgba(24,24,24,0.50) 100%)}
 /* Filmin kendi logosu (TMDB "title treatment" görseli): her filmin afişindeki
    özgün yazı tipiyle hazırlanmış, arka planı şeffaf logo. Varsa düz metin
@@ -223,13 +230,18 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
    görselin üstünde çıplak kalmasın diye hafif bulanık/camsı bir zemin var. */
 .detail-close{position:absolute;top:14px;right:16px;z-index:3;width:34px;height:34px;border-radius:50%;background:rgba(0,0,0,0.4);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);color:#eee;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;transition:background .15s ease}
 .detail-close:hover{background:rgba(0,0,0,0.7)}
-/* Üst blok: afiş kaldırıldı (ana sayfada zaten görünüyor) - backdrop'un
-   kendisi artık tam bir "hero" alanı, başlık/logo ve meta bilgiler onun
-   altına, sola yaslı şekilde oturuyor. */
-.detail-top{position:relative;z-index:1;display:flex;flex-direction:column;align-items:flex-start;gap:14px;padding:22px 24px 20px 24px}
+/* Üst blok: afiş kaldırıldı (ana sayfada zaten görünüyor). SADECE film adı
+   (ve varsa logosu) görselin üstünde, en altına yaslı duruyor - tıpkı
+   eskiden olduğu gibi. .detail-hero, backdrop ile AYNI yükseklikte ve normal
+   akışta (position:relative) olduğu için kendinden sonra gelen içeriği
+   (yıl/süre/butonlar, puanlar vb.) görselin ALTINA iter; hiçbir şey görselin
+   üzerine bindirilmez. */
+.detail-hero{position:relative;z-index:1;height:380px;display:flex;align-items:flex-end;padding:0 24px 22px 24px}
 .detail-top-info{width:100%;min-width:0}
-.detail-meta-row{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:14px}
-.detail-badge{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.16);color:#ddd;padding:5px 11px;border-radius:5px;font-size:12px;font-weight:bold;display:flex;align-items:center;justify-content:center;text-align:center}
+/* Yıl/süre/Fragman/IMDb/TMDB satırı artık görselin DIŞINDA, normal koyu
+   gövde renginde - .detail-body içine taşındı (bkz. HTML). */
+.detail-meta-row{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:18px 0 4px 0}
+.detail-badge{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.14);color:#ccc;padding:5px 11px;border-radius:5px;font-size:12px;font-weight:bold;display:flex;align-items:center;justify-content:center;text-align:center}
 /* Fragman: birincil "oynat" hissi veren dolu buton. IMDb/TMDB ise onun
    yanında daha sakin, ikincil ikon-metin butonlar olarak duruyor. */
 .detail-link-btn{text-decoration:none;cursor:pointer;display:flex;align-items:center;gap:6px;padding:8px 16px;border-radius:6px;font-size:13px;font-weight:bold;border:1px solid transparent;transition:filter .15s ease,transform .1s ease}
@@ -309,7 +321,6 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 .detail-save-btn{background:linear-gradient(135deg,#d9a441,#c98f2b);color:#181818;border:none;padding:10px 18px;border-radius:6px;font-weight:bold;cursor:pointer;font-size:14px}
 .detail-save-btn:hover{filter:brightness(1.08)}
 @media (max-width:600px){
- .detail-top{flex-direction:column;align-items:flex-start}
  .detail-ratings-row{flex-direction:column}
  .detail-people-box{min-width:130px}
  .person-photo-card{width:112px}
@@ -319,10 +330,10 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
   .similar-movie-card{width:85px}
   .similar-movie-poster{width:85px;height:128px}
   .similar-add-btn{width:22px;height:22px;font-size:14px}
-  /* Poster üstte, başlık altta - dikey diziliş yüzünden bu alan uzuyor;
-    arka plan fotoğrafı da orantısını bozmadan (background-size:cover ile
-    kırpılarak) aynı oranda büyütülüyor ki kısa kalmasın. */
- .detail-backdrop{height:420px}
+  /* Mobilde dar ekranda başlık/logo için biraz daha alan bırakılıyor -
+    backdrop ve hero yüksekliği birlikte artıyor ki taşma olmasın. */
+ .detail-backdrop{height:300px}
+ .detail-hero{height:300px}
  .detail-title-logo{max-width:100%;max-height:84px}
 }
 
@@ -496,22 +507,22 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
  <div class="detail-modal" id="detailModalBox">
   <div class="detail-backdrop" id="detailBackdrop"></div>
   <span class="detail-close" onclick="closeDetail()">✕</span>
-  <div class="detail-top">
+  <div class="detail-hero">
    <div class="detail-top-info" id="detailTopInfo">
     <img class="detail-title-logo" id="detailTitleLogo" alt="">
     <h2 class="detail-title" id="detailTitle"></h2>
     <div class="detail-tr-title" id="detailTrTitle"></div>
-    <div class="detail-meta-row">
-     <span class="detail-badge" id="detailYear"></span>
-     <span class="detail-badge" id="detailRuntime"></span>
-     <a class="detail-link-btn detail-trailer-link" id="detailTrailerLink" href="#" onclick="return false;">▶ Fragman</a>
-     <a class="detail-link-btn detail-imdb-link" id="detailImdbLink" href="#" onclick="return false;">IMDb</a>
-     <a class="detail-link-btn detail-tmdb-link" id="detailTmdbLink" href="#" onclick="return false;">TMDB</a>
-    </div>
    </div>
   </div>
 
   <div class="detail-body">
+   <div class="detail-meta-row">
+    <span class="detail-badge" id="detailYear"></span>
+    <span class="detail-badge" id="detailRuntime"></span>
+    <a class="detail-link-btn detail-trailer-link" id="detailTrailerLink" href="#" onclick="return false;">▶ Fragman</a>
+    <a class="detail-link-btn detail-imdb-link" id="detailImdbLink" href="#" onclick="return false;">IMDb</a>
+    <a class="detail-link-btn detail-tmdb-link" id="detailTmdbLink" href="#" onclick="return false;">TMDB</a>
+   </div>
    <div class="detail-ratings-row">
     <div class="detail-rating-box imdb-box">
      <span class="detail-rating-icon">⭐</span>
