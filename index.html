@@ -194,8 +194,25 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 .detail-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:200;align-items:flex-start;justify-content:center;overflow-y:auto;padding:30px 16px;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
 .detail-overlay.open{display:flex}
 .detail-modal{position:relative;width:100%;max-width:820px;background:#181818;border:1px solid #3a3222;border-radius:12px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.6);touch-action:pan-y}
-.detail-backdrop{position:absolute;top:0;left:0;right:0;height:300px;background-size:cover;background-position:center;filter:blur(2px) brightness(0.5);z-index:0}
-.detail-backdrop::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(24,24,24,0.2) 0%,#181818 95%)}
+/* Arka plan görseli: eskiden TMDB'nin w780 sürümü blur(2px)+brightness(0.5)
+   ile hem bulanıklaştırılıp hem karartılıyordu - sonuç soluk ve netliksizdi.
+   Artık yüksek çözünürlüklü (w1280) sürüm çekiliyor, bulanıklık kaldırıldı,
+   renk hafif doygunlaştırıldı; karartma yerine Netflix'teki gibi alta ve
+   kenarlara doğru yumuşak geçişli degradeler var (yazı okunurluğu korunuyor).
+   Görsel indiğinde yumuşakça belirip çok yavaş bir yakınlaşma yapıyor. */
+.detail-backdrop{position:absolute;top:0;left:0;right:0;height:360px;background-size:cover;background-position:center 18%;z-index:0;opacity:0;transform:scale(1.07);transition:opacity .55s ease,transform 9s ease-out;filter:saturate(1.15) contrast(1.04)}
+.detail-backdrop.loaded{opacity:1;transform:scale(1)}
+/* TMDB'de geniş görsel yoksa afişin kendisine düşülüyor; dikey afiş enine
+   gerilince çirkin durduğu için SADECE o durumda güçlü bulanıklık uygulanır. */
+.detail-backdrop--poster{filter:blur(26px) saturate(1.25) brightness(.72)}
+.detail-backdrop--poster,.detail-backdrop--poster.loaded{transform:scale(1.18)}
+.detail-backdrop::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(24,24,24,0) 0%,rgba(24,24,24,0.30) 42%,rgba(24,24,24,0.82) 78%,#181818 100%),linear-gradient(90deg,rgba(24,24,24,0.72) 0%,rgba(24,24,24,0.10) 48%,rgba(24,24,24,0.50) 100%)}
+/* Filmin kendi logosu (TMDB "title treatment" görseli): her filmin afişindeki
+   özgün yazı tipiyle hazırlanmış, arka planı şeffaf logo. Varsa düz metin
+   başlığın yerine bu gösterilir - Netflix'teki gibi her film kendi fontuyla. */
+.detail-title-logo{display:none;max-width:min(100%,380px);max-height:110px;object-fit:contain;object-position:left bottom;margin:6px 0 4px 0;filter:drop-shadow(0 4px 12px rgba(0,0,0,0.8))}
+.detail-title-logo.show{display:block}
+.detail-top-info.has-logo .detail-title{display:none}
 .detail-close{position:absolute;top:14px;right:16px;z-index:3;width:34px;height:34px;border-radius:50%;background:rgba(0,0,0,0.55);color:#eee;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px}
 .detail-close:hover{background:rgba(0,0,0,0.8)}
 .detail-top{position:relative;z-index:1;display:flex;align-items:flex-end;gap:20px;padding:24px}
@@ -293,6 +310,7 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
     arka plan fotoğrafı da orantısını bozmadan (background-size:cover ile
     kırpılarak) aynı oranda büyütülüyor ki kısa kalmasın. */
  .detail-backdrop{height:420px}
+ .detail-title-logo{max-width:100%;max-height:84px}
 }
 
 /* ===================== İSTATİSTİKLER ===================== */
@@ -315,6 +333,7 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 .stats-toggle-btn{padding:5px 12px;font-size:12px;border-radius:4px;color:#999;cursor:pointer;user-select:none;white-space:nowrap}
 .stats-toggle-btn.active{background:#3a3222;color:#e8c877}
 .stats-empty{color:#777;font-size:13px;padding:10px 0}
+.stats-pending-note{margin:10px 0 4px 0;padding:9px 12px;border-radius:8px;background:rgba(217,164,65,0.12);border:1px solid rgba(217,164,65,0.3);color:#e8c877;font-size:13px;line-height:1.4}
 
 .year-chart{display:flex;align-items:flex-end;gap:2px;height:160px;overflow-x:auto;padding-bottom:4px}
 .year-bar-wrap{flex:1 0 auto;min-width:4px;height:100%;display:flex;align-items:flex-end;cursor:pointer}
@@ -460,7 +479,8 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
   <span class="detail-close" onclick="closeDetail()">✕</span>
   <div class="detail-top">
    <img class="detail-poster" id="detailPoster" src="">
-   <div class="detail-top-info">
+   <div class="detail-top-info" id="detailTopInfo">
+    <img class="detail-title-logo" id="detailTitleLogo" alt="">
     <h2 class="detail-title" id="detailTitle"></h2>
     <div class="detail-tr-title" id="detailTrTitle"></div>
    </div>
@@ -763,6 +783,25 @@ function openStats(){
  renderStats();
  document.getElementById("statsOverlay").classList.add("open");
  _lockBackgroundScroll();
+ // Eksik TMDB bilgisi (tam kadro/yönetmen) varsa hemen tamamlanmaya çalışılır;
+ // bitince istatistikler kaydırma konumu korunarak yeniden çizilir. İstatistik
+ // sayılarının her açılışta farklı çıkmasının asıl sebebi buydu: veri yavaş
+ // yavaş (ve bazen eksik) geliyordu.
+ if(statsPendingInfoCount(statsUniqueMovies(allData.watched||[]))>0){
+   preloadInfo().then(()=>{ refreshStatsIfOpen(); }).catch(()=>{});
+ }
+}
+/* İstatistik penceresi açıkken veriler tamamlandığında, kullanıcının baktığı
+   yeri kaybetmeden yeniden çizer. */
+function refreshStatsIfOpen(){
+ const overlay=document.getElementById("statsOverlay");
+ if(!overlay || !overlay.classList.contains("open")) return;
+ const body=document.getElementById("statsBody");
+ const bodyTop=body?body.scrollTop:0;
+ const overlayTop=overlay.scrollTop;
+ renderStats();
+ if(body) body.scrollTop=bodyTop;
+ overlay.scrollTop=overlayTop;
 }
 function closeStats(){
  document.getElementById("statsOverlay").classList.remove("open");
@@ -794,8 +833,8 @@ function statsInitials(name){
 // (eski kayıtlar) böyle filmler ülkeyle ilgili istatistiklerde sessizce atlanır.
 function movieCountries(m){
  const info=turkishCache[m.imdbID];
- if(info && info.countryNames && info.countryNames.length) return info.countryNames;
- return (m.Country||"").split(",").map(s=>s.trim()).filter(s=>s&&s!=="N/A");
+ if(info && info.countryNames && info.countryNames.length) return uniqueNames(info.countryNames);
+ return uniqueNames((m.Country||"").split(","));
 }
 function imdbVotesNum(m){
  if(!m.imdbVotes||m.imdbVotes==="N/A") return null;
@@ -818,7 +857,9 @@ function statsScrollTo(id){
 }
 
 function renderStats(){
- const movies=allData.watched||[];
+ // İstatistikler AYNI filmi iki kez saymasın diye izlenen listesi imdbID'ye
+ // göre tekilleştirilir (yanlışlıkla iki kez eklenmiş kayıtlar vardı).
+ const movies=statsUniqueMovies(allData.watched||[]);
  const body=document.getElementById("statsBody");
  if(!movies.length){
    body.innerHTML='<div class="stats-empty">Henüz izlenen film yok - istatistikler burada görünecek.</div>';
@@ -848,7 +889,13 @@ function renderStats(){
    : "";
  const navWrap=document.getElementById("statsNavWrap");
  if(navWrap) navWrap.innerHTML=nav;
- body.innerHTML = sections.map(s=>s.html).join("");
+ // TMDB'den tam kadro/yönetmen bilgisi henüz inmemiş film varsa sayılar
+ // eksik kalır (ve veri indikçe değişir) - kullanıcıya bunu açıkça söylüyoruz.
+ const pending=statsPendingInfoCount(movies);
+ const pendingNote = pending
+   ? `<div class="stats-pending-note">⏳ ${pending} filmin tam kadro/yönetmen bilgisi henüz yükleniyor - sayılar yükleme bitince kendiliğinden güncellenecek.</div>`
+   : "";
+ body.innerHTML = pendingNote + sections.map(s=>s.html).join("");
  _statsPhotosRunning=false;
  lazyLoadStatsPhotos();
  lazyLoadStatsPosterImgs(body);
@@ -872,7 +919,7 @@ function lazyLoadStatsPosterImgs(container){
 function statsSectionYears(movies){
  const counts={};
  statsYearMoviesMap={};
- movies.forEach(m=>{
+ statsUniqueMovies(movies).forEach(m=>{
    const y=statsYearOf(m);
    if(!y) return;
    counts[y]=(counts[y]||0)+1;
@@ -918,7 +965,7 @@ function selectDecadeTab(d){
 
 function statsSectionDecades(movies){
  const byDecade={};
- movies.forEach(m=>{
+ statsUniqueMovies(movies).forEach(m=>{
    const y=statsYearOf(m);
    if(!y) return;
    const r=statsRatingOf(m);
@@ -974,8 +1021,8 @@ function statsSectionDecades(movies){
 /* ---- Türler ---- */
 function statsBreakdownData(movies,field){
  const counts={}, ratingSums={}, moviesMap={};
- movies.forEach(m=>{
-   const items = field==="genre" ? movieGenresTr(m) : [];
+ statsUniqueMovies(movies).forEach(m=>{
+   const items = uniqueNames(field==="genre" ? movieGenresTr(m) : []);
    const r=statsRatingOf(m);
    items.forEach(it=>{
      counts[it]=(counts[it]||0)+1;
@@ -992,8 +1039,8 @@ function statsBreakdownList(data,mode){
    avg: (ratingSums[k]&&ratingSums[k].n)?ratingSums[k].sum/ratingSums[k].n:null
  }));
  items = mode==="rating"
-   ? items.filter(x=>x.avg!=null && x.count>=2).sort((a,b)=>b.avg-a.avg || b.count-a.count)
-   : items.sort((a,b)=>b.count-a.count);
+   ? items.filter(x=>x.avg!=null && x.count>=2).sort((a,b)=>b.avg-a.avg || b.count-a.count || a.name.localeCompare(b.name,"tr"))
+   : items.sort(statsByCountThenName);
  return items; // ana sayfadaki Kategori açılır menüsünde kaç tür varsa burada da hepsi listelensin - üst sınır yok
 }
 function statsBarListHtml(items,mode,colorClass,field){
@@ -1028,15 +1075,36 @@ function statsSectionBreakdown(movies){
 
 /* ---- Oyuncular / Yönetmenler ---- */
 function statsPeopleData(movies,kind){
- const counts={}, ratingSums={}, moviesMap={};
- movies.forEach(m=>{
+ // Sayım ÖNCE normalize edilmiş isim anahtarı (küçük harf + tek boşluk)
+ // üzerinden yapılır; aynı kişinin farklı yazımları (TMDB vs OMDb kaynaklı)
+ // tek kişide toplanır. Ekranda gösterilecek isim olarak o kişi için en sık
+ // geçen yazım seçilir. Böylece "kaç film" sayısı ile isme tıklayınca açılan
+ // film listesinin uzunluğu HER ZAMAN birbirini tutar.
+ const byKey={};
+ statsUniqueMovies(movies).forEach(m=>{
    const items = kind==="actor" ? movieActors(m) : movieDirectors(m);
    const r=statsRatingOf(m);
-   items.forEach(name=>{
-     counts[name]=(counts[name]||0)+1;
-     if(r!=null){ ratingSums[name]=ratingSums[name]||{sum:0,n:0}; ratingSums[name].sum+=r; ratingSums[name].n++; }
-     (moviesMap[name]=moviesMap[name]||[]).push(m);
+   uniqueNames(items).forEach(name=>{
+     const key=normNameKey(name);
+     if(!key) return;
+     const rec = byKey[key] || (byKey[key]={variants:{},count:0,sum:0,n:0,movies:[],seen:new Set()});
+     rec.variants[name]=(rec.variants[name]||0)+1;
+     // Aynı film aynı kişi için (mükerrer kayıt vb.) ikinci kez sayılmasın.
+     const movieKey=m.imdbID||(m.Title+"|"+(m.Year||""));
+     if(rec.seen.has(movieKey)) return;
+     rec.seen.add(movieKey);
+     rec.count++;
+     rec.movies.push(m);
+     if(r!=null){ rec.sum+=r; rec.n++; }
    });
+ });
+ const counts={}, ratingSums={}, moviesMap={};
+ Object.keys(byKey).forEach(key=>{
+   const rec=byKey[key];
+   const display=Object.keys(rec.variants).sort((a,b)=>(rec.variants[b]-rec.variants[a])||a.localeCompare(b,"tr"))[0];
+   counts[display]=rec.count;
+   moviesMap[display]=rec.movies;
+   if(rec.n) ratingSums[display]={sum:rec.sum,n:rec.n};
  });
  return {counts,ratingSums,moviesMap};
 }
@@ -1047,12 +1115,12 @@ function statsPeopleList(data,mode){
    avg: (ratingSums[k]&&ratingSums[k].n)?ratingSums[k].sum/ratingSums[k].n:null
  }));
  items = mode==="rating"
-   ? items.filter(x=>x.avg!=null && x.count>=3).sort((a,b)=>b.avg-a.avg || b.count-a.count)
-   : items.sort((a,b)=>b.count-a.count);
+   ? items.filter(x=>x.avg!=null && x.count>=3).sort((a,b)=>b.avg-a.avg || b.count-a.count || a.name.localeCompare(b.name,"tr"))
+   : items.sort(statsByCountThenName);
  return items.slice(0,18);
 }
 function statsPeopleHtml(items,mode,kind){
- if(!items.length) return '<div class="stats-empty">Yeterli veri yok (en yüksek derecelendirme için en az 3 film gerekir)</div>';
+ if(!items.length) return '<div class="stats-empty">'+(mode==="rating"?"Yeterli veri yok (ortalama puan sıralaması için en az 3 film gerekir)":"Henüz kişi bilgisi yok - TMDB verisi yüklendikçe burası dolacak.")+'</div>';
  return `<div class="people-grid">`+items.map(x=>{
    const label = mode==="rating" ? `★ ${x.avg.toFixed(2)}` : `${x.count} film`;
    return `<div class="people-item" data-kind="${kind}" data-person-name="${escapeHtml(x.name)}">
@@ -1083,14 +1151,21 @@ function statsSectionPeople(movies,kind){
    aynı kaynak. ---- */
 function statsCompanyData(movies){
  const counts={}, moviesMap={}, logos={};
- movies.forEach(m=>{
+ statsUniqueMovies(movies).forEach(m=>{
    const c=turkishCache[m.imdbID];
    const companies=(c&&c.productionCompanies)||[];
+   // Aynı şirket TMDB verisinde bazen iki kez listeleniyor - film başına tek sayılır.
+   const seenHere=new Set();
    companies.forEach(co=>{
      if(!co||!co.name) return;
-     counts[co.name]=(counts[co.name]||0)+1;
-     (moviesMap[co.name]=moviesMap[co.name]||[]).push(m);
-     if(co.logo_path && !logos[co.name]) logos[co.name]=co.logo_path;
+     const name=cleanName(co.name);
+     if(!name) return;
+     const key=normNameKey(name);
+     if(seenHere.has(key)) return;
+     seenHere.add(key);
+     counts[name]=(counts[name]||0)+1;
+     (moviesMap[name]=moviesMap[name]||[]).push(m);
+     if(co.logo_path && !logos[name]) logos[name]=co.logo_path;
    });
  });
  return {counts,moviesMap,logos};
@@ -1100,7 +1175,7 @@ function statsSectionCompanies(movies){
  statsPeopleMoviesMap.company=data.moviesMap;
  const items=Object.keys(data.counts)
    .map(k=>({name:k,count:data.counts[k],logo:data.logos[k]||null}))
-   .sort((a,b)=>b.count-a.count || a.name.localeCompare(b.name,"tr"))
+   .sort(statsByCountThenName)
    .slice(0,18);
  if(!items.length) return "";
  return `<div class="stats-section" id="stats-sec-companies">
@@ -1172,16 +1247,16 @@ function statsSectionSuperlatives(movies){
    }
  }
  if(withRuntime.length){
-   const longest=withRuntime.slice().sort((a,b)=>b.min-a.min)[0];
-   const shortest=withRuntime.slice().sort((a,b)=>a.min-b.min)[0];
+   const longest=withRuntime.slice().sort((a,b)=>b.min-a.min || a.m.Title.localeCompare(b.m.Title,"tr"))[0];
+   const shortest=withRuntime.slice().sort((a,b)=>a.min-b.min || a.m.Title.localeCompare(b.m.Title,"tr"))[0];
    cards.push(statsHighlightMovieCard("⏱","En Uzun Film",longest.m,formatTime(longest.min)));
    if(shortest.m.imdbID!==longest.m.imdbID){
      cards.push(statsHighlightMovieCard("⏳","En Kısa Film",shortest.m,formatTime(shortest.min)));
    }
  }
  if(withYear.length){
-   const oldest=withYear.slice().sort((a,b)=>a.y-b.y)[0];
-   const newest=withYear.slice().sort((a,b)=>b.y-a.y)[0];
+   const oldest=withYear.slice().sort((a,b)=>a.y-b.y || a.m.Title.localeCompare(b.m.Title,"tr"))[0];
+   const newest=withYear.slice().sort((a,b)=>b.y-a.y || a.m.Title.localeCompare(b.m.Title,"tr"))[0];
    cards.push(statsHighlightMovieCard("🕰","En Eski Film",oldest.m,String(oldest.y)));
    if(newest.m.imdbID!==oldest.m.imdbID){
      cards.push(statsHighlightMovieCard("✨","En Yeni Film",newest.m,String(newest.y)));
@@ -1195,8 +1270,8 @@ function statsSectionSuperlatives(movies){
    return {m,b:(c&&c.budget)||null};
  }).filter(x=>x.b>0);
  if(withBudget.length){
-   const highestB=withBudget.slice().sort((a,b)=>b.b-a.b)[0];
-   const lowestB=withBudget.slice().sort((a,b)=>a.b-b.b)[0];
+   const highestB=withBudget.slice().sort((a,b)=>b.b-a.b || a.m.Title.localeCompare(b.m.Title,"tr"))[0];
+   const lowestB=withBudget.slice().sort((a,b)=>a.b-b.b || a.m.Title.localeCompare(b.m.Title,"tr"))[0];
    cards.push(statsHighlightMovieCard("💰","En Yüksek Bütçeli Film",highestB.m,formatMoney(highestB.b)));
    if(lowestB.m.imdbID!==highestB.m.imdbID){
      cards.push(statsHighlightMovieCard("💸","En Düşük Bütçeli Film",lowestB.m,formatMoney(lowestB.b)));
@@ -1208,8 +1283,8 @@ function statsSectionSuperlatives(movies){
    return {m,r};
  }).filter(x=>x.r>0);
  if(withRevenue.length){
-   const highestR=withRevenue.slice().sort((a,b)=>b.r-a.r)[0];
-   const lowestR=withRevenue.slice().sort((a,b)=>a.r-b.r)[0];
+   const highestR=withRevenue.slice().sort((a,b)=>b.r-a.r || a.m.Title.localeCompare(b.m.Title,"tr"))[0];
+   const lowestR=withRevenue.slice().sort((a,b)=>a.r-b.r || a.m.Title.localeCompare(b.m.Title,"tr"))[0];
    cards.push(statsHighlightMovieCard("🎟","En Çok Hasılat Yapan Film",highestR.m,formatMoney(highestR.r)));
    if(lowestR.m.imdbID!==highestR.m.imdbID){
      cards.push(statsHighlightMovieCard("📉","En Az Hasılat Yapan Film",lowestR.m,formatMoney(lowestR.r)));
@@ -1217,30 +1292,30 @@ function statsSectionSuperlatives(movies){
  }
 
  const dirData=statsPeopleData(movies,"director");
- const dirTop=Object.keys(dirData.counts).map(k=>({name:k,count:dirData.counts[k]})).sort((a,b)=>b.count-a.count)[0];
+ const dirTop=Object.keys(dirData.counts).map(k=>({name:k,count:dirData.counts[k]})).sort(statsByCountThenName)[0];
  if(dirTop && dirTop.count>=2){
    cards.push(statsHighlightNameCard("🎬","En Çok İzlenen Yönetmen","director",dirTop.name,`${dirTop.count} film`));
  }
  const actData=statsPeopleData(movies,"actor");
- const actTop=Object.keys(actData.counts).map(k=>({name:k,count:actData.counts[k]})).sort((a,b)=>b.count-a.count)[0];
+ const actTop=Object.keys(actData.counts).map(k=>({name:k,count:actData.counts[k]})).sort(statsByCountThenName)[0];
  if(actTop && actTop.count>=2){
    cards.push(statsHighlightNameCard("🎭","En Çok İzlenen Oyuncu","actor",actTop.name,`${actTop.count} film`));
  }
  const genreData=statsBreakdownData(movies,"genre");
- const genreTop=Object.keys(genreData.counts).map(k=>({name:k,count:genreData.counts[k]})).sort((a,b)=>b.count-a.count)[0];
+ const genreTop=Object.keys(genreData.counts).map(k=>({name:k,count:genreData.counts[k]})).sort(statsByCountThenName)[0];
  if(genreTop){
    cards.push(statsHighlightNameCard("🎞","En Çok İzlenen Tür","genre",genreTop.name,`${genreTop.count} film`));
  }
  // Ülke bilgisi her filmde olmayabilir - varsa gösterilir, hiç yoksa bu kart hiç eklenmez.
  const countryCounts={}, countryMoviesMap={};
- movies.forEach(m=>{
-   movieCountries(m).forEach(c=>{
+ statsUniqueMovies(movies).forEach(m=>{
+   uniqueNames(movieCountries(m)).forEach(c=>{
      countryCounts[c]=(countryCounts[c]||0)+1;
      (countryMoviesMap[c]=countryMoviesMap[c]||[]).push(m);
    });
  });
  statsBreakdownMoviesMap.country=countryMoviesMap;
- const countryTop=Object.keys(countryCounts).map(k=>({name:k,count:countryCounts[k]})).sort((a,b)=>b.count-a.count)[0];
+ const countryTop=Object.keys(countryCounts).map(k=>({name:k,count:countryCounts[k]})).sort(statsByCountThenName)[0];
  if(countryTop){
    cards.push(statsHighlightNameCard("🌍","En Çok İzlenen Ülke","country",countryTop.name,`${countryTop.count} film`));
  }
@@ -1348,13 +1423,16 @@ function statsSectionTasteInsights(movies){
  const insights=[];
 
  const genreData=statsBreakdownData(movies,"genre");
- const genreEntries=Object.keys(genreData.counts).map(k=>({name:k,count:genreData.counts[k]})).sort((a,b)=>b.count-a.count);
+ const genreEntries=Object.keys(genreData.counts).map(k=>({name:k,count:genreData.counts[k]})).sort(statsByCountThenName);
+ // Yüzdeler, türü BİLİNEN film sayısına göre hesaplanır - aksi halde tür
+ // bilgisi olmayan filmler yüzdeleri sessizce aşağı çekiyordu.
+ const genreTagged=movies.filter(m=>movieGenresTr(m).length).length || movies.length;
  if(genreEntries.length){
    const top=genreEntries[0];
-   const pct=Math.round(top.count/movies.length*100);
+   const pct=Math.round(top.count/genreTagged*100);
    let text=`En çok izlediğiniz tür <b>${escapeHtml(top.name)}</b> (%${pct}).`;
    if(genreEntries[1]){
-     const p2=Math.round(genreEntries[1].count/movies.length*100);
+     const p2=Math.round(genreEntries[1].count/genreTagged*100);
      text+=` Onu <b>${escapeHtml(genreEntries[1].name)}</b> (%${p2}) izliyor.`;
    }
    insights.push({icon:"🎞",text});
@@ -1362,7 +1440,7 @@ function statsSectionTasteInsights(movies){
  }
 
  const dirData=statsPeopleData(movies,"director");
- const dirEntries=Object.keys(dirData.counts).map(k=>({name:k,count:dirData.counts[k]})).sort((a,b)=>b.count-a.count);
+ const dirEntries=Object.keys(dirData.counts).map(k=>({name:k,count:dirData.counts[k]})).sort(statsByCountThenName);
  if(dirEntries.length && dirEntries[0].count>=3){
    insights.push({icon:"🎬",text:`En sadık olduğunuz yönetmen <b>${escapeHtml(dirEntries[0].name)}</b> - filmlerinden <b>${dirEntries[0].count}</b> tanesini izlediniz.`});
  }
@@ -1392,7 +1470,7 @@ function statsSectionTasteInsights(movies){
 
  const countryCounts={};
  let countryTagged=0;
- movies.forEach(m=>{ const cs=movieCountries(m); if(cs.length) countryTagged++; cs.forEach(c=>{countryCounts[c]=(countryCounts[c]||0)+1;}); });
+ statsUniqueMovies(movies).forEach(m=>{ const cs=uniqueNames(movieCountries(m)); if(cs.length) countryTagged++; cs.forEach(c=>{countryCounts[c]=(countryCounts[c]||0)+1;}); });
  if(countryTagged>=5){
    const topCountry=Object.keys(countryCounts).sort((a,b)=>countryCounts[b]-countryCounts[a])[0];
    const pct=Math.round(countryCounts[topCountry]/countryTagged*100);
@@ -1483,7 +1561,8 @@ function statsSectionDNA(movies){
    </div>`;
  }
  const genreData=statsBreakdownData(movies,"genre");
- const genreEntries=Object.keys(genreData.counts).map(k=>({name:k,count:genreData.counts[k]})).sort((a,b)=>b.count-a.count).slice(0,6);
+ const genreEntries=Object.keys(genreData.counts).map(k=>({name:k,count:genreData.counts[k]})).sort(statsByCountThenName).slice(0,6);
+ const genreTagged=movies.filter(m=>movieGenresTr(m).length).length || movies.length;
  const radarSvg = genreEntries.length>=3 ? statsBuildRadarSvg(genreEntries.map(g=>({label:g.name,value:g.count}))) : "";
 
  const badges=[];
@@ -1499,7 +1578,7 @@ function statsSectionDNA(movies){
    badges.push({label:"Ortalama Yapım Yılı",value:String(avgYear)});
  }
  const dirData=statsPeopleData(movies,"director");
- const dirEntries=Object.keys(dirData.counts).map(k=>({name:k,count:dirData.counts[k]})).sort((a,b)=>b.count-a.count);
+ const dirEntries=Object.keys(dirData.counts).map(k=>({name:k,count:dirData.counts[k]})).sort(statsByCountThenName);
  if(dirEntries.length && dirEntries[0].count>=2){
    const pct=Math.round(dirEntries[0].count/movies.length*100);
    badges.push({label:"Yönetmen Sadakati",value:`${escapeHtml(dirEntries[0].name)} (%${pct})`});
@@ -1513,7 +1592,7 @@ function statsSectionDNA(movies){
 
  const parts=[`${movies.length} film izlediniz.`];
  if(genreEntries.length){
-   const top2=genreEntries.slice(0,2).map(g=>`${g.name} (%${Math.round(g.count/movies.length*100)})`).join(" ve ");
+   const top2=genreEntries.slice(0,2).map(g=>`${g.name} (%${Math.round(g.count/genreTagged*100)})`).join(" ve ");
    parts.push(`En çok ${top2} türlerini tercih ediyorsunuz.`);
  }
  if(topDec!=null) parts.push(`Ağırlıklı olarak ${decadeLabel(topDec)} yapımı filmler izliyorsunuz.`);
@@ -1677,8 +1756,11 @@ statsBodyEl.addEventListener("click",e=>{
    Başlığın yanına, hangi sekmeden açıldığına bakılmaksızın (yıl/tür/oyuncu/
    yönetmen), kaç film bulunduğu her zaman ekleniyor. */
 function openStatsList(title,movies){
- document.getElementById("statsListTitle").textContent=`${title} (${movies.length})`;
- const sorted=movies.slice().sort((a,b)=>(statsYearOf(b)||0)-(statsYearOf(a)||0));
+ // Başlıktaki sayı ile aşağıdaki afiş sayısı her zaman aynı olsun diye liste
+ // burada da tekilleştirilir; sıralama eşitliklerde başlığa göre sabitlenir.
+ const unique=statsUniqueMovies(movies);
+ document.getElementById("statsListTitle").textContent=`${title} (${unique.length})`;
+ const sorted=unique.slice().sort((a,b)=>((statsYearOf(b)||0)-(statsYearOf(a)||0)) || String(a.Title||"").localeCompare(String(b.Title||""),"tr"));
  const body=document.getElementById("statsListBody");
  body.innerHTML = sorted.length
    ? `<div class="stats-movie-grid">`+sorted.map(m=>{
@@ -2150,23 +2232,75 @@ async function getTurkishInfo(imdbID,title,year){
  if(info.title || info.poster || info.genres.length || info.overview || info.backdrop || info.tmdbId){
    info._checked=true;
    turkishCache[imdbID]=info;
+   scheduleTmdbCacheSave(); // toplu yükleme dışında (ör. film detayı açılırken) gelen bilgiler de diske yazılsın
  }
  return info;
 }
 
-async function preloadInfo(){
- await loadGenreMap();
- const all=[...allData.watched,...allData.watchlist].filter(m=>{
-   const c=turkishCache[m.imdbID];
-   return !c || !c._checked || !c._v7 || !c._v8;
- });
- const batchSize=5;
- for(let i=0;i<all.length;i+=batchSize){
-   const batch=all.slice(i,i+batchSize);
-   await Promise.all(batch.map(m=>getTurkishInfo(m.imdbID,m.Title,m.Year)));
-   refreshCardsInPlace();
-   if(i+batchSize<all.length) await new Promise(res=>setTimeout(res,150));
+/* ---- TMDB bilgilerinin (tür/kadro/yönetmen/ülke/bütçe) tarayıcıda kalıcı
+   önbelleği. Eskiden turkishCache sadece bellekte tutuluyordu: sayfa her
+   yenilendiğinde sıfırlanıp TMDB'den yeniden çekiliyordu ve veri henüz
+   tamamlanmadan istatistik açılınca sayılar eksik çıkıyordu. İstatistiklerin
+   "her seferinde farklı" görünmesinin ana sebebi buydu. Artık önbellek diske
+   (localStorage) yazılıyor, bir sonraki açılışta sayılar ANINDA ve aynı çıkıyor. ---- */
+const TMDB_CACHE_KEY="filmarsivi_tmdb_cache";
+function saveTmdbCache(){
+ try{
+   localStorage.setItem(TMDB_CACHE_KEY, JSON.stringify(turkishCache));
+ }catch(e){
+   // Kota dolduysa: yer kaplayan ama istatistikler için gerekmeyen alanları
+   // (özet/arka plan görseli) atıp daha küçük bir sürümü yazmayı dene.
+   try{
+     const slim={};
+     Object.keys(turkishCache).forEach(id=>{
+       const c=turkishCache[id]||{};
+       slim[id]=Object.assign({},c,{overview:null,backdrop:null});
+     });
+     localStorage.setItem(TMDB_CACHE_KEY, JSON.stringify(slim));
+   }catch(e2){
+     try{ localStorage.removeItem(TMDB_CACHE_KEY); }catch(e3){}
+   }
  }
+}
+let _tmdbCacheSaveTimer=null;
+function scheduleTmdbCacheSave(){
+ clearTimeout(_tmdbCacheSaveTimer);
+ _tmdbCacheSaveTimer=setTimeout(saveTmdbCache,1500); // arka arkaya çağrılarda tek yazma
+}
+function loadTmdbCache(){
+ try{
+   const raw=localStorage.getItem(TMDB_CACHE_KEY);
+   if(!raw) return;
+   const obj=JSON.parse(raw);
+   if(obj && typeof obj==="object") turkishCache=obj;
+ }catch(e){}
+}
+
+// Aynı anda birden fazla preloadInfo() çalışırsa (ör. yenileme sürerken
+// istatistik penceresi açılırsa) aynı filmler için mükerrer TMDB isteği
+// atılıyor ve sonuçlar birbirini eziyordu; tek bir çalışma paylaşılıyor.
+let _preloadPromise=null;
+async function preloadInfo(){
+ if(_preloadPromise) return _preloadPromise;
+ const run=(async()=>{
+   await loadGenreMap();
+   const all=[...allData.watched,...allData.watchlist].filter(m=>{
+     const c=turkishCache[m.imdbID];
+     return !c || !c._checked || !c._v7 || !c._v8;
+   });
+   if(!all.length) return;
+   const batchSize=5;
+   for(let i=0;i<all.length;i+=batchSize){
+     const batch=all.slice(i,i+batchSize);
+     await Promise.all(batch.map(m=>getTurkishInfo(m.imdbID,m.Title,m.Year)));
+     refreshCardsInPlace();
+     if(i+batchSize<all.length) await new Promise(res=>setTimeout(res,150));
+   }
+   saveTmdbCache();
+ })();
+ _preloadPromise=run.then(()=>{ refreshStatsIfOpen(); }).catch(()=>{});
+ _preloadPromise.finally(()=>{ _preloadPromise=null; });
+ return _preloadPromise;
 }
 
 /* ===================== ARAMA ===================== */
@@ -2853,6 +2987,62 @@ function sortIndexed(indexed,mode){
  return arr;
 }
 
+/* ---- ORTAK YARDIMCILAR: isim/etiket tekilleştirme ----
+   TMDB kadro listesinde aynı kişi iki kez geçebiliyor (çift rol, "Director"
+   görevinin iki kez yazılması vb.) ve aynı isim bazen farklı boşluk/büyük-küçük
+   harfle geliyor. Bu yüzden istatistikler aynı filmi bir kişi için iki kez
+   sayabiliyor ("5 film" yazan bir oyuncunun listesinde 4 film çıkıyordu) veya
+   aynı kişi iki ayrı isimmiş gibi bölünüyordu. Aşağıdaki fonksiyonlar tüm
+   sayımların TEK bir tekilleştirme kuralı kullanmasını sağlar. ---- */
+function cleanName(s){
+ return String(s==null?"":s).replace(/[\u00A0\u2007\u202F]/g," ").replace(/\s+/g," ").trim();
+}
+function normNameKey(s){
+ return cleanName(s).toLocaleLowerCase("tr-TR");
+}
+function uniqueNames(list){
+ const seen=new Set(), out=[];
+ (list||[]).forEach(raw=>{
+   const name=cleanName(raw);
+   if(!name || name==="N/A") return;
+   const key=normNameKey(name);
+   if(seen.has(key)) return;
+   seen.add(key); out.push(name);
+ });
+ return out;
+}
+function nameListHas(list,name){
+ const key=normNameKey(name);
+ return (list||[]).some(x=>normNameKey(x)===key);
+}
+/* Aynı film listeye iki kez eklenmişse (aynı imdbID) bütün istatistikleri
+   şişiriyordu - sayımlardan önce tekilleştiriliyor. */
+function statsUniqueMovies(list){
+ const seen=new Set(), out=[];
+ (list||[]).forEach(m=>{
+   if(!m) return;
+   const id=m.imdbID;
+   if(id){ if(seen.has(id)) return; seen.add(id); }
+   out.push(m);
+ });
+ return out;
+}
+/* Sayım listelerinde sıralama her zaman aynı çıksın diye ortak karşılaştırma:
+   önce sayı (çoktan aza), eşitlikte isim (Türkçe alfabetik). Böylece "En'ler"
+   bölümündeki "En Çok İzlenen Oyuncu/Yönetmen/Tür" kartı ile aşağıdaki
+   listelerin ilk sırası HER ZAMAN aynı kişiyi gösterir. */
+function statsByCountThenName(a,b){
+ return (b.count-a.count) || a.name.localeCompare(b.name,"tr");
+}
+/* TMDB bilgisi (tam kadro) henüz inmemiş izlenen film sayısı - istatistikler
+   eksik veriyle hesaplanıyorsa kullanıcıya bunu söylemek için. */
+function statsPendingInfoCount(movies){
+ return (movies||[]).filter(m=>{
+   const c=turkishCache[m.imdbID];
+   return !c || !c._checked || !c._v7 || !c._v8;
+ }).length;
+}
+
 function movieGenres(m){
  return (m.Genre||"").split(",").map(g=>g.trim()).filter(g=>g&&g!=="N/A");
 }
@@ -2877,11 +3067,11 @@ function movieGenresTr(m){
  // Türkçe kategoriye düşer; kalıcı olarak İngilizce (OMDb) isme takılıp
  // kalmaz ve aynı tür iki farklı adla (örn. "Komedi" / "Comedy") bölünmez.
  if(info && info.genreIds && info.genreIds.length){
-   const names=info.genreIds.map(id=>genreMap[id]).filter(Boolean);
+   const names=uniqueNames(info.genreIds.map(id=>genreMap[id]).filter(Boolean));
    if(names.length) return names;
  }
- if(info && info.genres && info.genres.length) return info.genres; // eski önbellek (genreIds'siz) için yedek
- return movieGenres(m).map(g=>GENRE_EN_TR[g]||g);
+ if(info && info.genres && info.genres.length) return uniqueNames(info.genres); // eski önbellek (genreIds'siz) için yedek
+ return uniqueNames(movieGenres(m).map(g=>GENRE_EN_TR[g]||g));
 }
 // TMDB'den çekilen tam kadro/yönetmen listesi (turkishCache) varsa o kullanılır -
 // bu, OMDb'nin sınırlı Actors/Director alanından farklı olarak başrolde
@@ -2889,13 +3079,13 @@ function movieGenresTr(m){
 // önbellekte yoksa (ör. ilk yükleme sırasında) OMDb alanına geri düşülür.
 function movieDirectors(m){
  const info=turkishCache[m.imdbID];
- if(info && info.directorNames && info.directorNames.length) return info.directorNames;
- return (m.Director||"").split(",").map(s=>s.trim()).filter(s=>s&&s!=="N/A");
+ if(info && info.directorNames && info.directorNames.length) return uniqueNames(info.directorNames);
+ return uniqueNames((m.Director||"").split(","));
 }
 function movieActors(m){
  const info=turkishCache[m.imdbID];
- if(info && info.castNames && info.castNames.length) return info.castNames;
- return (m.Actors||"").split(",").map(s=>s.trim()).filter(s=>s&&s!=="N/A");
+ if(info && info.castNames && info.castNames.length) return uniqueNames(info.castNames);
+ return uniqueNames((m.Actors||"").split(","));
 }
 
 function populateGenreSelect(type){
@@ -2914,9 +3104,14 @@ function populateDirectorSelect(type){
  const current=directorState[type];
  const set=new Set();
  allData[type].forEach(m=>movieDirectors(m).forEach(dName=>set.add(dName)));
- const names=Array.from(set).sort((a,b)=>a.localeCompare(b,"tr"));
+ const names=uniqueNames(Array.from(set)).sort((a,b)=>a.localeCompare(b,"tr"));
  sel.innerHTML='<option value="all">Yönetmen</option>'+names.map(n=>`<option value="${n}">${n}</option>`).join("");
- if(current!=="all" && !names.includes(current)) directorState[type]="all";
+ // Seçili isim, listedeki yazımdan sadece boşluk/büyük-küçük harf olarak
+ // farklıysa filtre sessizce sıfırlanmasın - listedeki yazıma eşitlenir.
+ if(current!=="all"){
+   const match=names.find(n=>normNameKey(n)===normNameKey(current));
+   directorState[type]=match||"all";
+ }
  sel.value=directorState[type];
 }
 
@@ -2934,12 +3129,15 @@ function populateActorSelect(type){
  // (ör. İstatistikler > Oyuncular listesinden tıklanmış olabilir), o ismi de
  // listeye ekliyoruz - aksi halde birazdan "names.includes(current)" kontrolü
  // false dönüp filtreyi sessizce "Tümü"ne sıfırlıyordu.
- if(current!=="all" && !set.has(current) && allData[type].some(m=>movieActors(m).includes(current))){
+ if(current!=="all" && !nameListHas(Array.from(set),current) && allData[type].some(m=>nameListHas(movieActors(m),current))){
    set.add(current);
  }
- const names=Array.from(set).sort((a,b)=>a.localeCompare(b,"tr"));
+ const names=uniqueNames(Array.from(set)).sort((a,b)=>a.localeCompare(b,"tr"));
  sel.innerHTML='<option value="all">Oyuncu</option>'+names.map(n=>`<option value="${n}">${n}</option>`).join("");
- if(current!=="all" && !names.includes(current)) actorState[type]="all";
+ if(current!=="all"){
+   const match=names.find(n=>normNameKey(n)===normNameKey(current));
+   actorState[type]=match||"all";
+ }
  sel.value=actorState[type];
 }
 
@@ -3085,10 +3283,10 @@ function renderColumn(type){
    indexed=indexed.filter(x=>movieGenresTr(x.m).includes(genreState[type]));
  }
  if(directorState[type]!=="all"){
-   indexed=indexed.filter(x=>movieDirectors(x.m).includes(directorState[type]));
+   indexed=indexed.filter(x=>nameListHas(movieDirectors(x.m),directorState[type]));
  }
  if(actorState[type]!=="all"){
-   indexed=indexed.filter(x=>movieActors(x.m).includes(actorState[type]));
+   indexed=indexed.filter(x=>nameListHas(movieActors(x.m),actorState[type]));
  }
  indexed=sortIndexed(indexed,sortState[type]);
 
@@ -3502,14 +3700,114 @@ async function addSimilarMovie(movieId,btn){
  addMovie(info.imdbId,"watchlist");
 }
 
+/* ---- Detay kartının arka plan görseli ve film logosu ----
+   upgradeBackdropUrl: önbellekte adres w780 olarak tutuluyor; ekranda çok
+   daha net dursun diye w1280 sürümü isteniyor (inmezse w780'e geri dönülür).
+   setDetailBackdrop: görsel önce arka planda indirilir, ancak indikten sonra
+   yerine konup yumuşakça açılır - böylece yarım inmiş/bozuk görsel görünmez. */
+function upgradeBackdropUrl(url){
+ return url ? String(url).replace("/t/p/w780","/t/p/w1280") : url;
+}
+let _detailBackdropToken=0;
+function setDetailBackdrop(backdrop,posterFallback){
+ const el=document.getElementById("detailBackdrop");
+ if(!el) return;
+ const isPoster=!backdrop;
+ const url=isPoster?posterFallback:upgradeBackdropUrl(backdrop);
+ if(url && el.dataset.src===url && el.classList.contains("loaded")) return; // aynı görsel - baştan açma
+ const token=++_detailBackdropToken;
+ el.classList.remove("loaded");
+ el.classList.toggle("detail-backdrop--poster",!!isPoster);
+ el.dataset.src=url||"";
+ if(!url){ el.style.backgroundImage="none"; return; }
+ const probe=new Image();
+ probe.onload=()=>{
+   if(token!==_detailBackdropToken) return;
+   el.style.backgroundImage=`url('${url}')`;
+   requestAnimationFrame(()=>{ if(token===_detailBackdropToken) el.classList.add("loaded"); });
+ };
+ probe.onerror=()=>{
+   if(token!==_detailBackdropToken) return;
+   if(backdrop && url!==backdrop){ el.style.backgroundImage=`url('${backdrop}')`; el.dataset.src=backdrop; el.classList.add("loaded"); }
+   else { el.style.backgroundImage="none"; el.dataset.src=""; }
+ };
+ probe.src=url;
+}
+
+/* TMDB'nin images uç noktasındaki "logos" listesi, filmin afişindeki özgün
+   yazı tipiyle hazırlanmış şeffaf arka planlı başlık görselini verir. Türkçe
+   sürüm varsa o, yoksa İngilizce, o da yoksa dilsiz (null) sürüm seçilir. */
+function titleLogoUrl(path){
+ if(!path) return null;
+ return /\.svg$/i.test(path)
+   ? `https://image.tmdb.org/t/p/original${path}`
+   : `https://image.tmdb.org/t/p/w500${path}`;
+}
+async function fetchTitleLogo(tmdbId){
+ try{
+   const d=await fetchJson(`https://api.themoviedb.org/3/movie/${tmdbId}/images?api_key=${TMDB_KEY}&include_image_language=tr,en,null`);
+   const logos=(d&&d.logos)||[];
+   if(!logos.length) return null;
+   const rank=l=>l.iso_639_1==="tr"?0:(l.iso_639_1==="en"?1:2);
+   const best=logos.slice().sort((a,b)=>
+     rank(a)-rank(b) || (b.vote_average||0)-(a.vote_average||0) || (b.width||0)-(a.width||0)
+   )[0];
+   return best?best.file_path:null;
+ }catch(e){ return null; }
+}
+function clearDetailTitleLogo(){
+ const img=document.getElementById("detailTitleLogo");
+ const box=document.getElementById("detailTopInfo");
+ if(img){ img.classList.remove("show"); img.removeAttribute("src"); }
+ if(box) box.classList.remove("has-logo");
+}
+function showDetailTitleLogo(path,title){
+ const url=titleLogoUrl(path);
+ if(!url) return;
+ const img=document.getElementById("detailTitleLogo");
+ const box=document.getElementById("detailTopInfo");
+ if(!img||!box) return;
+ const probe=new Image();
+ probe.onload=()=>{ img.src=url; img.alt=title||""; img.classList.add("show"); box.classList.add("has-logo"); };
+ probe.onerror=()=>{ clearDetailTitleLogo(); }; // logo inmezse düz metin başlık kalır
+ probe.src=url;
+}
+// Logo adresi önbelleğe yazılır (_logoChecked), böylece aynı film ikinci kez
+// açıldığında ek istek atılmadan ANINDA görünür; logosu olmayan filmler için
+// de bir daha sorulmaz.
+async function ensureDetailTitleLogo(imdbId,tmdbId,title){
+ const cached=turkishCache[imdbId];
+ if(cached && cached._logoChecked){
+   if(cached.logo) showDetailTitleLogo(cached.logo,title);
+   return;
+ }
+ if(!tmdbId) return;
+ const path=await fetchTitleLogo(tmdbId);
+ const rec=turkishCache[imdbId];
+ if(rec){ rec.logo=path||null; rec._logoChecked=true; persistTmdbCacheSoon(); }
+ if(path && detailState && detailState.id===imdbId) showDetailTitleLogo(path,title);
+}
+// Önbelleği diske yazma yolu iki sürümde farklı (tarayıcıda localStorage,
+// masaüstünde pywebview) - hangisi varsa o kullanılır.
+function persistTmdbCacheSoon(){
+ try{ if(typeof scheduleTmdbCacheSave==="function"){ scheduleTmdbCacheSave(); return; } }catch(e){}
+ try{
+   if(window.pywebview && window.pywebview.api && window.pywebview.api.save_turkish_cache){
+     window.pywebview.api.save_turkish_cache(turkishCache).catch(()=>{});
+   }
+ }catch(e){}
+}
+
 function openDetail(id,type,fromHistory){
  const movie=(allData[type]||[]).find(m=>m.imdbID===id);
  if(!movie) return;
  detailState={id,type};
  const info=turkishCache[id]||{};
 
- const backdropUrl=info.backdrop||(movie.Poster&&movie.Poster!=="N/A"?movie.Poster:null);
- document.getElementById("detailBackdrop").style.backgroundImage=backdropUrl?`url('${backdropUrl}')`:"none";
+ const posterForBackdrop=(movie.Poster&&movie.Poster!=="N/A")?movie.Poster:(info.poster||null);
+ setDetailBackdrop(info.backdrop||null,posterForBackdrop);
+ clearDetailTitleLogo();
+ if(info.logo) showDetailTitleLogo(info.logo,movie.Title);
  document.getElementById("detailPoster").src=(movie.Poster&&movie.Poster!=="N/A")?movie.Poster:(info.poster||POSTER_PLACEHOLDER);
  document.getElementById("detailYear").textContent=movie.Year||"";
  document.getElementById("detailRuntime").textContent=(movie.Runtime&&movie.Runtime!=="N/A")?movie.Runtime:"";
@@ -3564,7 +3862,8 @@ document.getElementById("detailCastRow").innerHTML="";
 
  infoPromise.then(freshInfo=>{
    if(detailState.id!==id) return; // kullanıcı bu arada kapattı/başka filme geçti
-   if(freshInfo.backdrop) document.getElementById("detailBackdrop").style.backgroundImage=`url('${freshInfo.backdrop}')`;
+   if(freshInfo.backdrop) setDetailBackdrop(freshInfo.backdrop,posterForBackdrop);
+   ensureDetailTitleLogo(id,freshInfo.tmdbId,movie.Title);
    if(freshInfo.overview) document.getElementById("detailPlot").textContent=freshInfo.overview;
    if(freshInfo.title && freshInfo.title!==movie.Title) document.getElementById("detailTrTitle").textContent=freshInfo.title;
      fillDetailMoney(movie,freshInfo);
@@ -3838,6 +4137,9 @@ function toggleView(type){
 // dokunmadan. Firestore okuma kotasını boşuna tüketmemek için otomatik
 // yenileme tamamen kaldırıldı; buluta sadece 🔄'ye basınca dokunuluyor.
 // (Hiç önbellek yoksa - ilk açılış - bir kereliğine buluttan çekiyoruz.)
+// TMDB bilgilerini diskten (localStorage) yükle - film listesinden ÖNCE,
+// böylece ilk çizimde ve istatistiklerde tam kadro/tür bilgisi hazır olur.
+loadTmdbCache();
 if(!loadFromCache()){
  reload().then(()=>{ syncOverlaysToHistory(); });
 }else{
