@@ -482,26 +482,10 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 .dna-badge-value{font-size:13px;color:#e8c877;font-weight:bold;text-align:right}
 .dna-summary{margin-top:18px;background:#1e1e1e;border:1px solid #303030;border-left:3px solid #d9a441;border-radius:8px;padding:14px 16px;font-size:13px;color:#ddd;line-height:1.55}
 
-/* ---- Yeni istatistik bölümleri: İzlenecekler Karşılaştırması, İzleme Serisi,
-   Puan Farkı Dağılımı, Oyuncu-Yönetmen İkilileri, Film DNA tıklanabilir eksenler ---- */
-.compare-rows{display:flex;flex-direction:column;gap:16px}
-.compare-row{padding:2px 0}
-.compare-row-top{font-size:13px;color:#ddd;margin-bottom:7px;font-weight:600}
-.compare-bar-line{display:flex;align-items:center;gap:9px;margin-bottom:5px}
-.compare-bar-line:last-child{margin-bottom:0}
-.compare-bar-tag{font-size:11px;color:#999;width:108px;flex-shrink:0}
-.compare-bar-track{flex:1;height:7px;border-radius:4px;background:#262626;overflow:hidden}
-.compare-bar-fill{height:100%;border-radius:4px;transition:width .2s ease}
-.compare-bar-fill.c-watched{background:#5ec86a}
-.compare-bar-fill.c-watchlist{background:#d9a441}
-@media (max-width:700px){
- .compare-bar-tag{width:82px;font-size:10px}
-}
-
+/* ---- Yeni istatistik bölümleri: Puan Farkı Dağılımı, Oyuncu-Yönetmen
+   İkilileri, Film DNA tıklanabilir eksenler ---- */
 .rating-hist-bar.diff-bar{background:linear-gradient(180deg,#cbb3f0,#9b6fd9)}
 .rating-hist-bar-wrap:hover .diff-bar{background:linear-gradient(180deg,#ddc8fa,#b98be0)}
-
-.streak-card .stat-highlight-value{font-size:18px}
 
 .pair-card{cursor:pointer}
 .pair-card .stat-highlight-title{margin-top:4px;font-size:14px}
@@ -509,6 +493,10 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 
 .dna-radar-wedge{fill:transparent;cursor:pointer}
 .dna-radar-wedge:hover{fill:rgba(217,164,65,0.14)}
+.dna-radar-legend{display:flex;justify-content:center;flex-wrap:wrap;gap:14px;margin-top:6px;font-size:11px;color:#999}
+.dna-legend-item{display:inline-flex;align-items:center}
+.dna-legend-swatch{display:inline-block;width:14px;height:0;border-top:2.5px solid #d9a441;margin-right:5px;vertical-align:middle}
+.dna-legend-swatch.dna-legend-ref{border-top:2px dashed #999}
 
 
 @media (max-width:700px){
@@ -842,7 +830,6 @@ let statsYearMoviesMap={};                                  // yıl -> [film,...
 let statsBreakdownMoviesMap={genre:{}};                     // tür -> [film,...]
 let statsPeopleMoviesMap={actor:{},director:{}};             // tür -> {isim: [film,...]}
 let statsDiffBinMoviesMap={};                                // puan farkı kutusu -> [film,...]
-let statsStreakMoviesMap={longest:[]};                        // en uzun izleme serisindeki filmler
 let statsPairsMoviesMap={};                                   // oyuncu-yönetmen ikili index -> [film,...]
 let statsDnaGenreMoviesMap={};                                // Film DNA radar ekseni (tür) -> [film,...]
 
@@ -958,10 +945,8 @@ function renderStats(){
    {id:"stats-sec-ratingdist",label:"Puan Dağılımı",html:statsSectionRatingDistribution(movies)},
    {id:"stats-sec-years",label:"Yıllar",html:statsSectionYears(movies)},
    {id:"stats-sec-decades",label:"On Yıllar",html:statsSectionDecades(movies)},
-   {id:"stats-sec-streak",label:"İzleme Serisi",html:statsSectionStreak(movies)},
    {id:"stats-sec-runtime",label:"Süre",html:statsSectionRuntime(movies)},
    {id:"stats-sec-genres",label:"Türler",html:statsSectionBreakdown(movies)},
-   {id:"stats-sec-compare",label:"İzlenecekler",html:statsSectionWatchlistCompare(movies)},
    {id:"stats-sec-taste",label:"Zevk Analizi",html:statsSectionTasteInsights(movies)},
    {id:"stats-sec-dna",label:"Film DNA",html:statsSectionDNA(movies)},
    {id:"stats-sec-directors",label:"Yönetmenler",html:statsSectionPeople(movies,"director")},
@@ -1500,16 +1485,6 @@ function statsSectionRatingDistribution(movies){
 }
 
 /* ---- Film Süresi: toplam/ortalama/medyan, süre kategorileri, süre-puan ilişkisi ---- */
-const STATS_RUNTIME_CATS=[
- {label:"Kısa (<90dk)",test:m=>m<90},
- {label:"Standart (90-120dk)",test:m=>m>=90&&m<120},
- {label:"Uzun (120-150dk)",test:m=>m>=120&&m<150},
- {label:"Epik (150dk+)",test:m=>m>=150}
-];
-function statsRuntimeCatOf(min){
- const c=STATS_RUNTIME_CATS.find(c=>c.test(min));
- return c?c.label:null;
-}
 function statsSectionRuntime(movies){
  const withRuntime=movies.map(m=>({m,min:runtimeMin(m.Runtime)})).filter(x=>x.min>0);
  if(!withRuntime.length){
@@ -1522,24 +1497,12 @@ function statsSectionRuntime(movies){
  const total=mins.reduce((s,v)=>s+v,0);
  const avg=total/mins.length;
 
- const catMoviesMap={};
- withRuntime.forEach(x=>{
-   const cat=statsRuntimeCatOf(x.min);
-   if(!cat) return;
-   (catMoviesMap[cat]=catMoviesMap[cat]||[]).push(x.m);
- });
- statsBreakdownMoviesMap.runtimeCategory=catMoviesMap;
- const catItems=STATS_RUNTIME_CATS.map(c=>({name:c.label,count:(catMoviesMap[c.label]||[]).length})).filter(x=>x.count>0);
- const catBarsHtml = catItems.length ? statsBarListHtml(catItems,"count","c-runtime","runtimeCategory") : '<div class="stats-empty">Yeterli veri yok</div>';
-
  return `<div class="stats-section" id="stats-sec-runtime">
   <div class="stats-section-head"><span class="stats-section-title">Film Süresi</span></div>
   <div class="stat-pill-row">
    <div class="stat-pill"><div class="stat-pill-value">${formatTime(total)}</div><div class="stat-pill-label">Toplam Süre</div></div>
    <div class="stat-pill"><div class="stat-pill-value">${formatTime(Math.round(avg))}</div><div class="stat-pill-label">Ortalama</div></div>
   </div>
-  <div class="stats-section-head"><span class="stats-section-title">Süre Kategorileri</span></div>
-  ${catBarsHtml}
  </div>`;
 }
 
@@ -1629,96 +1592,6 @@ function statsSectionTasteInsights(movies){
  return `<div class="stats-section" id="stats-sec-taste">
   <div class="stats-section-head"><span class="stats-section-title">Film Zevki Analizi</span></div>
   <div class="insight-grid">${insights.map(x=>`<div class="insight-card"><div class="insight-icon">${x.icon}</div><div class="insight-text">${x.text}</div></div>`).join("")}</div>
- </div>`;
-}
-
-/* ---- İzlenecekler Listesi Karşılaştırması: izlediğiniz türlerin dağılımı
-   ile izleyecekler listenizdeki tür dağılımını yan yana gösterir - izleme
-   alışkanlığınızla planlarınız ne kadar örtüşüyor sorusuna cevap verir. ---- */
-function statsSectionWatchlistCompare(movies){
- const watchlist=statsUniqueMovies(allData.watchlist||[]);
- if(watchlist.length<3) return "";
- const wGenre=statsBreakdownData(movies,"genre");
- const plGenre=statsBreakdownData(watchlist,"genre");
- const wTagged=movies.filter(m=>movieGenresTr(m).length).length||movies.length;
- const plTagged=watchlist.filter(m=>movieGenresTr(m).length).length||watchlist.length;
- if(!wTagged||!plTagged) return "";
- const allGenres=new Set([...Object.keys(wGenre.counts),...Object.keys(plGenre.counts)]);
- let items=[...allGenres].map(name=>({
-   name,
-   wPct:Math.round((wGenre.counts[name]||0)/wTagged*100),
-   plPct:Math.round((plGenre.counts[name]||0)/plTagged*100)
- }));
- items.sort((a,b)=>(b.wPct+b.plPct)-(a.wPct+a.plPct) || a.name.localeCompare(b.name,"tr"));
- items=items.slice(0,10);
- if(!items.length) return "";
- // Örtüşme skoru: her tür için iki yüzdeden küçük olanının toplamı - iki
- // liste ne kadar benzer dağılıyorsa 100'e o kadar yaklaşır.
- const overlapScore=Math.min(100,items.reduce((s,x)=>s+Math.min(x.wPct,x.plPct),0));
- const rows=items.map(x=>`
-  <div class="compare-row">
-   <div class="compare-row-top">${escapeHtml(x.name)}</div>
-   <div class="compare-bar-line"><span class="compare-bar-tag">İzlenen %${x.wPct}</span><div class="compare-bar-track"><div class="compare-bar-fill c-watched" style="width:${Math.max(x.wPct,2)}%"></div></div></div>
-   <div class="compare-bar-line"><span class="compare-bar-tag">İzlenecek %${x.plPct}</span><div class="compare-bar-track"><div class="compare-bar-fill c-watchlist" style="width:${Math.max(x.plPct,2)}%"></div></div></div>
-  </div>`).join("");
- return `<div class="stats-section" id="stats-sec-compare">
-  <div class="stats-section-head"><span class="stats-section-title">İzlenecekler ile Karşılaştırma</span></div>
-  <div class="stat-pill-row">
-   <div class="stat-pill"><div class="stat-pill-value">%${overlapScore}</div><div class="stat-pill-label">Tür Örtüşmesi</div></div>
-  </div>
-  <div class="compare-rows">${rows}</div>
- </div>`;
-}
-
-/* ---- En Uzun İzleme Serisi: _addedAt alanına göre art arda film izlenen
-   gün sayısı (GitHub katkı takvimi mantığına benzer, ama tek bir "en uzun
-   seri" kartı olarak özetlenir). Tıklanınca o serideki filmler listelenir. ---- */
-function statsComputeStreaks(movies){
- const dayMovies={};
- movies.forEach(m=>{
-   if(typeof m._addedAt!=="number") return;
-   const d=new Date(m._addedAt);
-   const key=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
-   (dayMovies[key]=dayMovies[key]||[]).push(m);
- });
- const days=Object.keys(dayMovies).sort();
- if(!days.length) return null;
- let bestStart=days[0], bestEnd=days[0], bestLen=1;
- let curStart=days[0], curLen=1;
- for(let i=1;i<days.length;i++){
-   const prev=new Date(days[i-1]+"T00:00:00");
-   const cur=new Date(days[i]+"T00:00:00");
-   const diff=Math.round((cur-prev)/86400000);
-   if(diff===1){ curLen++; } else { curLen=1; curStart=days[i]; }
-   if(curLen>bestLen){ bestLen=curLen; bestStart=curStart; bestEnd=days[i]; }
- }
- const streakDays=[];
- let d=new Date(bestStart+"T00:00:00");
- const end=new Date(bestEnd+"T00:00:00");
- while(d<=end){
-   streakDays.push(d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"));
-   d.setDate(d.getDate()+1);
- }
- const streakMovies=streakDays.flatMap(k=>dayMovies[k]||[]);
- return {bestLen,bestStart,bestEnd,streakMovies,activeDays:days.length};
-}
-function statsSectionStreak(movies){
- const res=statsComputeStreaks(movies);
- statsStreakMoviesMap.longest=res?res.streakMovies:[];
- if(!res || res.bestLen<2) return "";
- const startMs=new Date(res.bestStart+"T00:00:00").getTime();
- const endMs=new Date(res.bestEnd+"T00:00:00").getTime();
- const title=`En Uzun İzleme Serisi (${res.bestLen} gün)`;
- return `<div class="stats-section" id="stats-sec-streak">
-  <div class="stats-section-head"><span class="stats-section-title">İzleme Serisi</span></div>
-  <div class="stat-highlight-grid">
-   <div class="stat-highlight-card streak-card" data-streak-title="${escapeHtml(title)}">
-    <div class="stat-highlight-label">🔥 En Uzun Seri</div>
-    <div class="stat-highlight-value">${res.bestLen} gün üst üste</div>
-    <div class="stat-highlight-sub">${formatTrDate(startMs)} – ${formatTrDate(endMs)}</div>
-   </div>
-   <div class="stat-pill"><div class="stat-pill-value">${res.activeDays}</div><div class="stat-pill-label">Film İzlenen Gün</div></div>
-  </div>
  </div>`;
 }
 
@@ -1820,8 +1693,17 @@ function statsBuildRadarSvg(axes,clickable){
  });
  const dataPts=axes.map((a,i)=>pointFor(i,a.value).join(",")).join(" ");
  const dots=axes.map((a,i)=>{ const [x,y]=pointFor(i,a.value); return `<circle cx="${x}" cy="${y}" r="3" fill="#d9a441"/>`; }).join("");
+ // Kendi ortalama profiliniz: grafikteki eksenlerin (en çok izlediğiniz
+ // türlerin) ortalama değerine denk gelen kesikli referans çizgisi - hangi
+ // türde ortalamanızın belirgin şekilde üstünde/altında olduğunuzu gösterir.
+ // Eksenler eşit açılarla yerleştiği için sabit bir değer, düzenli bir
+ // çokgen (görsel olarak neredeyse bir daire) oluşturur.
+ const avgVal=axes.reduce((s,a)=>s+a.value,0)/n;
+ const refPts=axes.map((a,i)=>{ const ang=angleFor(i); const r=maxVal?(avgVal/maxVal)*R:0; return `${cx+r*Math.cos(ang)},${cy+r*Math.sin(ang)}`; }).join(" ");
+ const refPolygon=`<polygon points="${refPts}" fill="none" stroke="#999" stroke-width="1.3" stroke-dasharray="4 3" opacity="0.85"/>`;
  return `<svg viewBox="0 0 ${size} ${size}" width="100%" height="auto">
   ${rings}${axisLines}
+  ${refPolygon}
   <polygon points="${dataPts}" fill="rgba(217,164,65,0.28)" stroke="#d9a441" stroke-width="2"/>
   ${dots}
   ${labels}
@@ -1888,7 +1770,7 @@ function statsSectionDNA(movies){
  return `<div class="stats-section" id="stats-sec-dna">
   <div class="stats-section-head"><span class="stats-section-title">Film DNA</span></div>
   <div class="dna-wrap">
-   ${radarSvg?`<div class="dna-radar-box">${radarSvg}</div>`:""}
+   ${radarSvg?`<div class="dna-radar-box">${radarSvg}<div class="dna-radar-legend"><span class="dna-legend-item"><span class="dna-legend-swatch dna-legend-actual"></span>Profiliniz</span><span class="dna-legend-item"><span class="dna-legend-swatch dna-legend-ref"></span>Ortalamanız</span></div></div>`:""}
    <div class="dna-badges">${badges.map(b=>`<div class="dna-badge"><span class="dna-badge-label">${escapeHtml(b.label)}</span><span class="dna-badge-value">${b.value}</span></div>`).join("")}</div>
   </div>
   <div class="dna-summary">${parts.join(" ")}</div>
@@ -2032,12 +1914,6 @@ statsBodyEl.addEventListener("click",e=>{
    const label=dnaWedge.dataset.genre;
    const movies=(statsDnaGenreMoviesMap&&statsDnaGenreMoviesMap[label])||[];
    if(movies.length) openStatsList(label,movies);
-   return;
- }
- const streakCard=e.target.closest(".streak-card");
- if(streakCard){
-   const movies=statsStreakMoviesMap.longest||[];
-   if(movies.length) openStatsList(streakCard.dataset.streakTitle||"İzleme Serisi",movies);
    return;
  }
  const pairCard=e.target.closest(".pair-card");
