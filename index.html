@@ -330,6 +330,22 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
   .similar-movie-card{width:85px}
   .similar-movie-poster{width:85px;height:128px}
   .similar-add-btn{width:22px;height:22px;font-size:14px}
+  /* Önerilen filmler (Benzer Filmler): mobilde TAM OLARAK 4 kart tek satırda,
+     konteynerin tamamını dolduran eşit sütunlu bir "kutu" düzeni - üstteki
+     kadro/yapım şirketi kutularıyla aynı hizada, aynı oranda görünsün diye
+     sabit piksel genişlik yerine oransal (1fr) genişlik kullanılıyor. TMDB'den
+     gelen fazladan öneri (5.+) varsa sadece görsel olarak gizleniyor - veri
+     hâlâ çekiliyor, yani cihaz genişlik eşiğini aşarsa (masaüstü) hepsi
+     görünmeye devam eder, burada hiçbir şey silinmiyor/bozulmuyor. */
+  #detailSimilarRow{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  #detailSimilarRow .similar-movie-card{width:100%}
+  #detailSimilarRow .similar-movie-card:nth-child(n+5){display:none}
+  #detailSimilarRow .similar-movie-poster{width:100%;height:auto;aspect-ratio:2/3}
+  #detailSimilarRow .similar-movie-info{padding:5px 6px}
+  #detailSimilarRow .similar-movie-title{font-size:10px}
+  #detailSimilarRow .similar-movie-year{font-size:9px}
+  #detailSimilarRow .similar-movie-rating{font-size:9px}
+  #detailSimilarRow .similar-add-btn{width:20px;height:20px;font-size:12px;top:4px;right:4px}
   /* Mobilde dar ekranda başlık/logo için biraz daha alan bırakılıyor -
     backdrop ve hero yüksekliği birlikte artıyor ki taşma olmasın. */
  .detail-backdrop{height:300px}
