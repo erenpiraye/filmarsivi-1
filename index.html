@@ -2435,9 +2435,13 @@ async function getTurkishInfo(imdbID,title,year){
        info.genreIds=movie.genre_ids;
        info.genres=movie.genre_ids.map(id=>genreMap[id]).filter(Boolean);
      }
-     // Bütçe/hasılat (ve overview/backdrop find sonucunda gelmediyse onlar da) ayrı bir detay isteği gerektirir.
+     // Bütçe/hasılat/kadro: eskiden ayrı iki istek (detay + credits) sırayla
+     // atılıyordu - her film için ekstra bir tam ağ gidiş-dönüşü demekti ve
+     // özellikle oyuncu/yönetmen sayılarının tamamlanmasını yavaşlatıyordu.
+     // TMDB'nin append_to_response desteğiyle ikisi TEK istekte birleştirildi -
+     // aynı bilgi artık yarı sürede (bir istek daha az) geliyor.
      try{
-       const det=await fetchJson(`https://api.themoviedb.org/3/movie/${movie.id}?api_key=${TMDB_KEY}&language=tr-TR`);
+       const det=await fetchJson(`https://api.themoviedb.org/3/movie/${movie.id}?api_key=${TMDB_KEY}&language=tr-TR&append_to_response=credits`);
        if(det){
          if(det.budget) info.budget=det.budget;
          if(det.revenue) info.revenue=det.revenue;
@@ -2451,18 +2455,15 @@ async function getTurkishInfo(imdbID,title,year){
          if(det.production_countries && det.production_countries.length){
            info.countryNames=det.production_countries.map(c=>c.name).filter(Boolean);
          }
-       }
-     }catch(e){}
-     // Tam oyuncu kadrosu + yönetmen(ler): ana sayfa kartında ve istatistiklerde
-     // OMDb'nin sınırlı "Actors"/"Director" alanı yerine bunlar kullanılır -
-     // böylece başrolde olmayan ama filmde oynayan oyuncular da (TMDB'nin
-     // billing sırasına göre geniş bir listesi) istatistiklere dahil olur.
-     try{
-       const credits=await fetchJson(`https://api.themoviedb.org/3/movie/${movie.id}/credits?api_key=${TMDB_KEY}`);
-       if(credits){
-         info.castNames=(credits.cast||[]).map(c=>c.name).filter(Boolean);
-         info.directorNames=(credits.crew||[]).filter(c=>c.job==="Director").map(c=>c.name).filter(Boolean);
-         info._v8=true; // tam kadro isteği bu sefer başarıyla tamamlandı
+         // Tam oyuncu kadrosu + yönetmen(ler): ana sayfa kartında ve istatistiklerde
+         // OMDb'nin sınırlı "Actors"/"Director" alanı yerine bunlar kullanılır -
+         // böylece başrolde olmayan ama filmde oynayan oyuncular da (TMDB'nin
+         // billing sırasına göre geniş bir listesi) istatistiklere dahil olur.
+         if(det.credits){
+           info.castNames=(det.credits.cast||[]).map(c=>c.name).filter(Boolean);
+           info.directorNames=(det.credits.crew||[]).filter(c=>c.job==="Director").map(c=>c.name).filter(Boolean);
+           info._v8=true; // tam kadro isteği bu sefer başarıyla tamamlandı
+         }
        }
      }catch(e){}
    }
@@ -2519,29 +2520,62 @@ function loadTmdbCache(){
  }catch(e){}
 }
 
+// İstatistik ekranı her partide (throttle'lı) yeniden çizilsin diye - tüm
+// yükleme bitene kadar beklemek yerine, oyuncu/yönetmen sayıları veri
+// geldikçe adım adım güncellenir. Her partide yeniden çizmek (büyük
+// kitaplıklarda yüzlerce kez) gereksiz yere ağır olacağından en fazla
+// ~900ms'de bir çalışır.
+let _lastStatsRefreshAt=0;
+function throttledRefreshStats(force){
+ const now=Date.now();
+ if(!force && now-_lastStatsRefreshAt<900) return;
+ _lastStatsRefreshAt=now;
+ refreshStatsIfOpen();
+}
+
 // Aynı anda birden fazla preloadInfo() çalışırsa (ör. yenileme sürerken
 // istatistik penceresi açılırsa) aynı filmler için mükerrer TMDB isteği
 // atılıyor ve sonuçlar birbirini eziyordu; tek bir çalışma paylaşılıyor.
 let _preloadPromise=null;
+function _pendingTmdbInfo(list){
+ return (list||[]).filter(m=>{
+   const c=turkishCache[m.imdbID];
+   return !c || !c._checked || !c._v7 || !c._v8;
+ });
+}
+async function _preloadRunList(list,batchSize){
+ for(let i=0;i<list.length;i+=batchSize){
+   const batch=list.slice(i,i+batchSize);
+   await Promise.all(batch.map(m=>getTurkishInfo(m.imdbID,m.Title,m.Year)));
+   refreshCardsInPlace();
+   throttledRefreshStats();
+   if(i+batchSize<list.length) await new Promise(res=>setTimeout(res,60));
+ }
+}
 async function preloadInfo(){
  if(_preloadPromise) return _preloadPromise;
  const run=(async()=>{
    await loadGenreMap();
-   const all=[...allData.watched,...allData.watchlist].filter(m=>{
-     const c=turkishCache[m.imdbID];
-     return !c || !c._checked || !c._v7 || !c._v8;
-   });
-   if(!all.length) return;
-   const batchSize=5;
-   for(let i=0;i<all.length;i+=batchSize){
-     const batch=all.slice(i,i+batchSize);
-     await Promise.all(batch.map(m=>getTurkishInfo(m.imdbID,m.Title,m.Year)));
-     refreshCardsInPlace();
-     if(i+batchSize<all.length) await new Promise(res=>setTimeout(res,150));
+   // Önce SADECE "İzlenen" listesi çekilir - istatistikler yalnızca bu
+   // listeden besleniyor, "İzlenecek" listesi ne kadar büyük olursa olsun
+   // istatistik sayılarını bekletmemesi gerekiyor. Eskiden iki liste
+   // birlikte (tek kuyrukta) işleniyordu; büyük bir izlenecekler listesi
+   // varsa oyuncu/yönetmen sayıları TAMAMEN o da bitene kadar (dakikalarca)
+   // hiç güncellenmiyordu. Artık izlenenler bitince sayılar hemen kesinleşir.
+   const batchSize=8; // eskiden 5'ti - istek başına artık tek TMDB çağrısı (bkz. getTurkishInfo) olduğu için daha güvenli
+   const watchedPending=_pendingTmdbInfo(allData.watched);
+   if(watchedPending.length){
+     await _preloadRunList(watchedPending,batchSize);
+     saveTmdbCache();
+     throttledRefreshStats(true); // izlenenler bitti - istatistikler artık kesin doğru, hemen göster
    }
-   saveTmdbCache();
+   const watchlistPending=_pendingTmdbInfo(allData.watchlist);
+   if(watchlistPending.length){
+     await _preloadRunList(watchlistPending,batchSize);
+     saveTmdbCache();
+   }
  })();
- _preloadPromise=run.then(()=>{ refreshStatsIfOpen(); }).catch(()=>{});
+ _preloadPromise=run.then(()=>{ throttledRefreshStats(true); }).catch(()=>{});
  _preloadPromise.finally(()=>{ _preloadPromise=null; });
  return _preloadPromise;
 }
