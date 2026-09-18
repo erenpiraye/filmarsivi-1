@@ -246,14 +246,13 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
    yanında daha sakin, ikincil ikon-metin butonlar olarak duruyor. */
 .detail-link-btn{text-decoration:none;cursor:pointer;display:flex;align-items:center;gap:6px;padding:8px 16px;border-radius:6px;font-size:13px;font-weight:bold;border:1px solid transparent;transition:filter .15s ease,transform .1s ease}
 .detail-link-btn:active{transform:scale(0.97)}
-.detail-trailer-link{background:#e8c877;color:#181818;box-shadow:0 4px 14px rgba(217,164,65,0.28)}
-.detail-trailer-link:hover{filter:brightness(1.08)}
+.detail-trailer-link{background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.18);color:#e8c877}
+.detail-trailer-link:hover{background:rgba(255,255,255,0.14)}
 .detail-imdb-link{background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.18);color:#e8c877}
 .detail-imdb-link:hover{background:rgba(255,255,255,0.14)}
 .detail-tmdb-link{background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.18);color:#5fc8ee}
 .detail-tmdb-link:hover{background:rgba(255,255,255,0.14)}
 .detail-title{margin:0 0 2px 0;font-size:30px;color:#fff;text-shadow:0 2px 10px rgba(0,0,0,0.7);text-align:left}
-.detail-tr-title{color:#cfcfcf;font-size:17px;margin-top:2px;min-height:21px;line-height:1.3;text-shadow:0 1px 6px rgba(0,0,0,0.6)}
 .detail-body{position:relative;z-index:1;padding:0 24px 24px 24px}
 .detail-ratings-row{display:flex;gap:14px;margin-bottom:16px}
 .detail-rating-box{flex:1;display:flex;align-items:center;gap:10px;background:#222;border:1px solid #3a3222;border-radius:8px;padding:10px 14px}
@@ -548,7 +547,6 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
    <div class="detail-top-info" id="detailTopInfo">
     <img class="detail-title-logo" id="detailTitleLogo" alt="">
     <h2 class="detail-title" id="detailTitle"></h2>
-    <div class="detail-tr-title" id="detailTrTitle"></div>
    </div>
   </div>
 
@@ -3981,9 +3979,9 @@ function setDetailBackdrop(backdrop,posterFallback){
 
 /* TMDB'nin images uç noktasındaki "logos" listesi, filmin afişindeki özgün
    yazı tipiyle hazırlanmış şeffaf arka planlı başlık görselini verir.
-   ÖNCELİK: filmin KENDİ (orijinal) dilindeki logo - yani afişteki özgün hali;
-   yoksa İngilizce, o da yoksa dilsiz (null) sürüm. Türkçe yerelleştirilmiş
-   logolar bilerek tercih edilmiyor (kullanıcı isteği: orijinal hali). */
+   ÖNCELİK: Türkçe logo (varsa) - Netflix'teki gibi kendi özel yazı tipiyle
+   Türkçe başlık; yoksa filmin orijinal dilindeki logo, o da yoksa İngilizce,
+   o da yoksa dilsiz (null) sürüm. */
 function titleLogoUrl(path){
  if(!path) return null;
  return /\.svg$/i.test(path)
@@ -3993,16 +3991,17 @@ function titleLogoUrl(path){
 async function fetchTitleLogo(tmdbId,originalLang){
  const orig=originalLang||"en";
  try{
-   const langs=[orig,"en","null"].filter((v,i,a)=>a.indexOf(v)===i).join(",");
+   const langs=["tr",orig,"en","null"].filter((v,i,a)=>a.indexOf(v)===i).join(",");
    const d=await fetchJson(`https://api.themoviedb.org/3/movie/${tmdbId}/images?api_key=${TMDB_KEY}&include_image_language=${langs}`);
    const logos=(d&&d.logos)||[];
    if(!logos.length) return null;
    const rank=l=>{
      const lang=l.iso_639_1;
-     if(lang===orig) return 0;   // filmin orijinal dili - afişteki hali
-     if(lang==="en") return 1;
-     if(!lang) return 2;         // dilsiz (yazısız/evrensel) sürüm
-     return 3;
+     if(lang==="tr") return 0;   // Türkçe logo - öncelikli
+     if(lang===orig) return 1;   // filmin orijinal dili - afişteki hali
+     if(lang==="en") return 2;
+     if(!lang) return 3;         // dilsiz (yazısız/evrensel) sürüm
+     return 4;
    };
    const best=logos.slice().sort((a,b)=>
      rank(a)-rank(b) || (b.vote_average||0)-(a.vote_average||0) || (b.width||0)-(a.width||0)
@@ -4049,13 +4048,13 @@ function showDetailTitleLogo(path,title){
  probe.onerror=()=>{ clearDetailTitleLogo(); }; // logo inmezse düz metin başlık kalır
  probe.src=url;
 }
-// Logo adresi önbelleğe yazılır (_logoV2), böylece aynı film ikinci kez
+// Logo adresi önbelleğe yazılır (_logoV3), böylece aynı film ikinci kez
 // açıldığında ek istek atılmadan ANINDA görünür (geçiş de olmaz); logosu
-// olmayan filmler için de bir daha sorulmaz. _logoV2: önceki sürümde Türkçe
+// olmayan filmler için de bir daha sorulmaz. _logoV3: önceki sürümde Türkçe
 // logo tercih ediliyordu - o kayıtlar bir kereliğine yeniden seçiliyor.
 async function ensureDetailTitleLogo(imdbId,tmdbId,title,originalLang){
  const cached=turkishCache[imdbId];
- if(cached && cached._logoV2){
+ if(cached && cached._logoV3){
    if(cached.logo) showDetailTitleLogo(cached.logo,title);
    else resolveDetailTitlePending();
    return;
@@ -4063,7 +4062,7 @@ async function ensureDetailTitleLogo(imdbId,tmdbId,title,originalLang){
  if(!tmdbId){ resolveDetailTitlePending(); return; }
  const path=await fetchTitleLogo(tmdbId,originalLang);
  const rec=turkishCache[imdbId];
- if(rec){ rec.logo=path||null; rec._logoV2=true; delete rec._logoChecked; persistTmdbCacheSoon(); }
+ if(rec){ rec.logo=path||null; rec._logoV3=true; delete rec._logoChecked; persistTmdbCacheSoon(); }
  if(!detailState || detailState.id!==imdbId) return;
  if(path) showDetailTitleLogo(path,title);
  else resolveDetailTitlePending();
@@ -4090,7 +4089,7 @@ function openDetail(id,type,fromHistory){
  clearDetailTitleLogo();
  // Önbellekte logo bilgisi varsa doğrudan doğru hâlde açılır (hiç geçiş yok);
  // yoksa logo bilgisi gelene kadar metin başlık geçici gizlenir.
- if(info._logoV2){ if(info.logo) showDetailTitleLogo(info.logo,movie.Title); }
+ if(info._logoV3){ if(info.logo) showDetailTitleLogo(info.logo,movie.Title); }
  else markDetailTitlePending();
  document.getElementById("detailYear").textContent=movie.Year||"";
  document.getElementById("detailRuntime").textContent=(movie.Runtime&&movie.Runtime!=="N/A")?movie.Runtime:"";
@@ -4099,7 +4098,6 @@ function openDetail(id,type,fromHistory){
  tmdbLinkEl.style.display=info.tmdbId?"":"none";
  tmdbLinkEl.onclick=()=>{if(info.tmdbId) openExternalLink(`https://www.themoviedb.org/movie/${info.tmdbId}`);return false;};
  document.getElementById("detailTitle").textContent=movie.Title||"";
- document.getElementById("detailTrTitle").textContent=(info.title&&info.title!==movie.Title)?info.title:"";
  document.getElementById("detailMyRatingIcon").innerHTML=MY_STAR_SVG_BIG;
  document.getElementById("detailImdbRating").textContent=(movie.imdbRating&&movie.imdbRating!=="N/A")?`${movie.imdbRating} / 10`:"—";
  document.getElementById("detailTrailerLink").onclick=()=>{openTrailer(id);return false;};
@@ -4148,7 +4146,6 @@ document.getElementById("detailCastRow").innerHTML="";
    if(freshInfo.backdrop) setDetailBackdrop(freshInfo.backdrop,posterForBackdrop);
    ensureDetailTitleLogo(id,freshInfo.tmdbId,movie.Title,freshInfo.originalLanguage);
    if(freshInfo.overview) document.getElementById("detailPlot").textContent=freshInfo.overview;
-   if(freshInfo.title && freshInfo.title!==movie.Title) document.getElementById("detailTrTitle").textContent=freshInfo.title;
      fillDetailMoney(movie,freshInfo);
    tmdbLinkEl.style.display=freshInfo.tmdbId?"":"none";
    tmdbLinkEl.onclick=()=>{if(freshInfo.tmdbId) openExternalLink(`https://www.themoviedb.org/movie/${freshInfo.tmdbId}`);return false;};
