@@ -201,12 +201,15 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
    kenarlara doğru yumuşak geçişli degradeler var (yazı okunurluğu korunuyor).
    Görsel indiğinde yumuşakça belirip çok yavaş bir yakınlaşma yapıyor. */
 .detail-backdrop{position:absolute;top:0;left:0;right:0;height:380px;background-size:cover;background-position:center 20%;z-index:0;opacity:0;transform:scale(1.07);transition:opacity .6s ease;filter:saturate(1.15) contrast(1.04)}
-/* Görsel yüklenince belirir ve durmadan çok yavaş şekilde ileri-geri
-   (yakınlaşıp uzaklaşarak) hareket eder - "nefes alan" bir arka plan hissi. */
-.detail-backdrop.loaded{opacity:1;animation:detailBackdropBreathe 22s ease-in-out infinite}
+/* Görsel yüklenince belirir ve GIF gibi durmadan, göz ardı edilemeyecek
+   kadar belirgin biçimde yavaşça yakınlaşıp-uzaklaşır ve hafifçe kayar -
+   "canlı" bir arka plan hissi. Öncekinden (22s, %8) daha hızlı ve daha
+   geniş bir harekete çekildi çünkü eski hâli neredeyse fark edilmiyordu. */
+.detail-backdrop.loaded{opacity:1;animation:detailBackdropBreathe 13s ease-in-out infinite}
 @keyframes detailBackdropBreathe{
- 0%,100%{transform:scale(1)}
- 50%{transform:scale(1.08)}
+ 0%{transform:scale(1) translate(0,0)}
+ 50%{transform:scale(1.13) translate(-1.6%,-1.1%)}
+ 100%{transform:scale(1) translate(0,0)}
 }
 /* TMDB'de geniş görsel yoksa afişin kendisine düşülüyor; dikey afiş enine
    gerilince çirkin durduğu için SADECE o durumda güçlü bulanıklık uygulanır -
@@ -244,7 +247,10 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 .detail-badge{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.14);color:#ccc;padding:5px 11px;border-radius:5px;font-size:12px;font-weight:bold;display:flex;align-items:center;justify-content:center;text-align:center}
 /* Fragman: birincil "oynat" hissi veren dolu buton. IMDb/TMDB ise onun
    yanında daha sakin, ikincil ikon-metin butonlar olarak duruyor. */
-.detail-link-btn{text-decoration:none;cursor:pointer;display:flex;align-items:center;gap:6px;padding:8px 16px;border-radius:6px;font-size:13px;font-weight:bold;border:1px solid transparent;transition:filter .15s ease,transform .1s ease}
+/* Fragman metni ("▶ Fragman") IMDb/TMDB'den daha uzun olduğu için, aynı
+   padding olsa bile kutu doğal olarak daha geniş çıkıyordu. Üçü de sabit
+   min-width ile ortalanmış metinle aynı boyuta getirildi. */
+.detail-link-btn{text-decoration:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;padding:8px 16px;border-radius:6px;font-size:13px;font-weight:bold;border:1px solid transparent;transition:filter .15s ease,transform .1s ease;min-width:92px}
 .detail-link-btn:active{transform:scale(0.97)}
 .detail-trailer-link{background:rgba(255,255,255,0.08);border-color:rgba(255,255,255,0.18);color:#e8c877}
 .detail-trailer-link:hover{background:rgba(255,255,255,0.14)}
@@ -481,10 +487,8 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 .dna-badge-value{font-size:13px;color:#e8c877;font-weight:bold;text-align:right}
 .dna-summary{margin-top:18px;background:#1e1e1e;border:1px solid #303030;border-left:3px solid #d9a441;border-radius:8px;padding:14px 16px;font-size:13px;color:#ddd;line-height:1.55}
 
-/* ---- Yeni istatistik bölümleri: Puan Farkı Dağılımı, Oyuncu-Yönetmen
-   İkilileri, Film DNA tıklanabilir eksenler ---- */
-.rating-hist-bar.diff-bar{background:linear-gradient(180deg,#cbb3f0,#9b6fd9)}
-.rating-hist-bar-wrap:hover .diff-bar{background:linear-gradient(180deg,#ddc8fa,#b98be0)}
+/* ---- Yeni istatistik bölümleri: Oyuncu-Yönetmen İkilileri, Film DNA
+   tıklanabilir eksenler ---- */
 
 .pair-card{cursor:pointer}
 .pair-card .stat-highlight-title{margin-top:4px;font-size:14px}
@@ -941,7 +945,6 @@ function renderStats(){
  const sections=[
    {id:"stats-sec-super",label:"En'ler",html:statsSectionSuperlatives(movies)},
    {id:"stats-sec-ratingdist",label:"Puan Dağılımı",html:statsSectionRatingDistribution(movies)},
-   {id:"stats-sec-years",label:"Yıllar",html:statsSectionYears(movies)},
    {id:"stats-sec-decades",label:"On Yıllar",html:statsSectionDecades(movies)},
    {id:"stats-sec-runtime",label:"Süre",html:statsSectionRuntime(movies)},
    {id:"stats-sec-genres",label:"Türler",html:statsSectionBreakdown(movies)},
@@ -1412,7 +1415,6 @@ let statsRatingBinMoviesMap={};
 function statsSectionRatingDistribution(movies){
  const rated=movies.map(m=>({m,r:statsRatingOf(m)})).filter(x=>x.r!=null);
  statsRatingBinMoviesMap={};
- statsDiffBinMoviesMap={};
  if(rated.length<3){
    return `<div class="stats-section" id="stats-sec-ratingdist">
     <div class="stats-section-head"><span class="stats-section-title">Puan Dağılımı</span></div>
@@ -1440,45 +1442,12 @@ function statsSectionRatingDistribution(movies){
    </div>`;
  }
 
- // Puan Farkı Dağılımı: Kendi puanınız ile IMDb puanı arasındaki farkın
- // histogramı - hem cömert/eleştirel olduğunuz genel eğilimi hem de en çok
- // ayrıştığınız filmleri (tıklanınca) gösterir.
- let diffHtml="";
- const bothRated=movies.filter(m=>m.myRating!=null&&m.myRating!==""&&m.imdbRating&&m.imdbRating!=="N/A");
- if(bothRated.length>=5){
-   const diffs=bothRated.map(m=>({m,diff:Number(m.myRating)-parseFloat(m.imdbRating)}));
-   const diffBins={};
-   diffs.forEach(x=>{
-     const b=Math.max(-4,Math.min(4,Math.round(x.diff)));
-     diffBins[b]=(diffBins[b]||0)+1;
-     (statsDiffBinMoviesMap[b]=statsDiffBinMoviesMap[b]||[]).push(x.m);
-   });
-   const maxDiffCount=Math.max(...Object.values(diffBins));
-   let diffBars="";
-   for(let b=-4;b<=4;b++){
-     const c=diffBins[b]||0;
-     const h=maxDiffCount?(c?Math.max(c/maxDiffCount*100,4):0):0;
-     const label=b>0?`+${b}`:String(b);
-     diffBars+=`<div class="rating-hist-bar-wrap" data-diffbin="${b}" data-count="${c}">
-      <div class="rating-hist-bar diff-bar" style="height:${h}%"></div>
-      <div class="rating-hist-label">${label}</div>
-     </div>`;
-   }
-   const avgDiff=diffs.reduce((s,x)=>s+x.diff,0)/diffs.length;
-   diffHtml=`<div class="stats-section-head" style="margin-top:26px"><span class="stats-section-title">Puan Farkı Dağılımı (Ben − IMDb)</span></div>
-    <div class="stat-pill-row">
-     <div class="stat-pill"><div class="stat-pill-value">${avgDiff>=0?"+":""}${avgDiff.toFixed(2)}</div><div class="stat-pill-label">Ortalama Fark</div></div>
-    </div>
-    <div class="rating-hist">${diffBars}</div>`;
- }
-
  return `<div class="stats-section" id="stats-sec-ratingdist">
   <div class="stats-section-head"><span class="stats-section-title">Puan Dağılımı</span></div>
   <div class="stat-pill-row">
    <div class="stat-pill"><div class="stat-pill-value">${mean.toFixed(2)}</div><div class="stat-pill-label">Ortalama</div></div>
   </div>
   <div class="rating-hist">${bars}</div>
-  ${diffHtml}
  </div>`;
 }
 
@@ -1895,13 +1864,6 @@ statsBodyEl.addEventListener("click",e=>{
  }
  const ratingBar=e.target.closest(".rating-hist-bar-wrap");
  if(ratingBar){
-   if(ratingBar.dataset.diffbin!==undefined){
-     const bin=ratingBar.dataset.diffbin;
-     const movies=statsDiffBinMoviesMap[bin]||[];
-     const label=Number(bin)>0?`+${bin}`:bin;
-     if(movies.length) openStatsList(`Puan Farkı ${label}`,movies);
-     return;
-   }
    const bin=ratingBar.dataset.bin;
    const movies=statsRatingBinMoviesMap[bin]||[];
    if(movies.length) openStatsList(`${bin} Yıldız`,movies);
@@ -2526,9 +2488,15 @@ function loadTmdbCache(){
 // kitaplıklarda yüzlerce kez) gereksiz yere ağır olacağından en fazla
 // ~900ms'de bir çalışır.
 let _lastStatsRefreshAt=0;
+let _lastFilterSelectRefreshAt=0;
 function throttledRefreshStats(force){
  const now=Date.now();
- if(!force && now-_lastStatsRefreshAt<900) return;
+ // İstatistik penceresi TMDB verisi akarken her partide (saniyede birkaç
+ // kez) baştan çiziliyordu - bu, ekranın "sürekli yenileniyormuş" gibi
+ // görünmesine ve büyük kütüphanelerde donmaya sebep oluyordu. Aralık
+ // 900ms'den 2500ms'ye çıkarıldı; akış bittiğinde (force=true) yine de
+ // hemen ve kesin doğru sayılarla güncellenir.
+ if(!force && now-_lastStatsRefreshAt<2500) return;
  _lastStatsRefreshAt=now;
  refreshStatsIfOpen();
 }
@@ -3589,7 +3557,7 @@ function render(){
  renderColumn("watchlist");
 }
 
-function refreshCardsInPlace(){
+function refreshCardsInPlace(force){
  document.querySelectorAll(".movie[data-id]").forEach(el=>{
    const id=el.dataset.id;
    const info=turkishCache[id];
@@ -3621,12 +3589,24 @@ function refreshCardsInPlace(){
      });
    }
  });
- populateGenreSelect("watched");
- populateGenreSelect("watchlist");
- populateDirectorSelect("watched");
- populateDirectorSelect("watchlist");
- populateActorSelect("watched");
- populateActorSelect("watchlist");
+ // Kategori/Yönetmen/Oyuncu açılır listelerini yeniden kurmak listenin
+ // TAMAMINI tarayıp sıralamayı gerektirdiği için ucuz değil. TMDB verisi
+ // akış hâlinde gelirken (preloadInfo döngüsü) bu HER partide - saniyede
+ // birkaç kez - tetikleniyordu; büyük kütüphanelerde donma/"sürekli
+ // yenileniyormuş gibi görünme" hissinin asıl kaynaklarından biri buydu.
+ // Artık en fazla ~1.5 saniyede bir çalışır; veri akışı bittiğinde
+ // (force=true, bkz. preloadInfo) son hâlin eksik kalmaması için her zaman
+ // çalıştırılır.
+ const now=Date.now();
+ if(force || now-_lastFilterSelectRefreshAt>1500){
+   _lastFilterSelectRefreshAt=now;
+   populateGenreSelect("watched");
+   populateGenreSelect("watchlist");
+   populateDirectorSelect("watched");
+   populateDirectorSelect("watchlist");
+   populateActorSelect("watched");
+   populateActorSelect("watchlist");
+ }
 }
 
 async function fetchOmdbById(imdbId){
@@ -3664,7 +3644,7 @@ function loadFromCache(){
      if(cached && Array.isArray(cached.watched) && Array.isArray(cached.watchlist)){
        allData=cached;
        render();
-       preloadInfo().then(()=>{ refreshCardsInPlace(); });
+       preloadInfo().then(()=>{ refreshCardsInPlace(true); });
        return true;
      }
    }
@@ -3694,7 +3674,7 @@ async function reload(){
    render();
    if(statusEl) statusEl.textContent="";
    saveToCache();
-   preloadInfo().then(()=>{ refreshCardsInPlace(); });
+   preloadInfo().then(()=>{ refreshCardsInPlace(true); });
    backfillGenres();
  }catch(e){
    console.error(e);
