@@ -928,6 +928,16 @@ function statsScrollTo(id){
 }
 
 function renderStats(){
+ // statsPeopleData/statsBreakdownData önbellekleri HER renderStats() çağrısının
+ // başında sıfırlanır: bu veriler turkishCache'e (TMDB'den akan oyuncu/yönetmen/
+ // tür bilgisi) bağlıdır ve turkishCache, allData.watched'ın dizi referansı
+ // DEĞİŞMEDEN de arka planda güncellenebilir (preloadInfo). Önbellek renderStats
+ // çağrıları ARASINDA taşınırsa sayılar bayatlar/güncellenmez; bu yüzden sadece
+ // AYNI render içindeki tekrarlı çağrılar (En'ler + Oyuncular/Yönetmenler/Türler
+ // bölümlerinin aynı veriyi 2'şer kez hesaplaması) paylaşılır, sonraki render
+ // her zaman taze veriyle çalışır.
+ _statsPeopleDataCache=new WeakMap();
+ _statsBreakdownDataCache=new WeakMap();
  // İstatistikler AYNI filmi iki kez saymasın diye izlenen listesi imdbID'ye
  // göre tekilleştirilir (yanlışlıkla iki kez eklenmiş kayıtlar vardı).
  const movies=statsUniqueMovies(allData.watched||[]);
@@ -1102,7 +1112,10 @@ function statsSectionDecades(movies){
 }
 
 /* ---- Türler ---- */
+let _statsBreakdownDataCache=new WeakMap();
 function statsBreakdownData(movies,field){
+ let byField=_statsBreakdownDataCache.get(movies);
+ if(byField && byField[field]) return byField[field];
  const counts={}, ratingSums={}, moviesMap={};
  statsUniqueMovies(movies).forEach(m=>{
    const items = uniqueNames(field==="genre" ? movieGenresTr(m) : []);
@@ -1113,7 +1126,10 @@ function statsBreakdownData(movies,field){
      (moviesMap[it]=moviesMap[it]||[]).push(m);
    });
  });
- return {counts,ratingSums,moviesMap};
+ const result={counts,ratingSums,moviesMap};
+ if(!byField){ byField={}; _statsBreakdownDataCache.set(movies,byField); }
+ byField[field]=result;
+ return result;
 }
 function statsBreakdownList(data,mode){
  const {counts,ratingSums}=data;
@@ -1157,12 +1173,16 @@ function statsSectionBreakdown(movies){
 }
 
 /* ---- Oyuncular / Yönetmenler ---- */
+// Performans: "En'ler" bölümü (statsSectionSuperlatives) director/actor
+// sayımını statsPeopleData ile hesaplıyor, SONRA "Oyuncular"/"Yönetmenler"
+// bölümü (statsSectionPeople) AYNI movies dizisi için AYNI hesaplamayı
+// tekrar yapıyordu (her renderStats çağrısında 2 kez director + 2 kez
+// actor = 4 tam geçiş). Aynı dizi referansı + kind için sonuç önbelleğe
+// alınıyor; içerik/davranış birebir aynı kalıyor, sadece tekrar hesaplanmıyor.
+let _statsPeopleDataCache=new WeakMap();
 function statsPeopleData(movies,kind){
- // Sayım ÖNCE normalize edilmiş isim anahtarı (küçük harf + tek boşluk)
- // üzerinden yapılır; aynı kişinin farklı yazımları (TMDB vs OMDb kaynaklı)
- // tek kişide toplanır. Ekranda gösterilecek isim olarak o kişi için en sık
- // geçen yazım seçilir. Böylece "kaç film" sayısı ile isme tıklayınca açılan
- // film listesinin uzunluğu HER ZAMAN birbirini tutar.
+ let byKind=_statsPeopleDataCache.get(movies);
+ if(byKind && byKind[kind]) return byKind[kind];
  const byKey={};
  statsUniqueMovies(movies).forEach(m=>{
    const items = kind==="actor" ? movieActors(m) : movieDirectors(m);
@@ -1189,7 +1209,10 @@ function statsPeopleData(movies,kind){
    moviesMap[display]=rec.movies;
    if(rec.n) ratingSums[display]={sum:rec.sum,n:rec.n};
  });
- return {counts,ratingSums,moviesMap};
+ const result={counts,ratingSums,moviesMap};
+ if(!byKind){ byKind={}; _statsPeopleDataCache.set(movies,byKind); }
+ byKind[kind]=result;
+ return result;
 }
 function statsPeopleList(data,mode){
  const {counts,ratingSums}=data;
@@ -3261,15 +3284,27 @@ function nameListHas(list,name){
  return (list||[]).some(x=>normNameKey(x)===key);
 }
 /* Aynı film listeye iki kez eklenmişse (aynı imdbID) bütün istatistikleri
-   şişiriyordu - sayımlardan önce tekilleştiriliyor. */
+   şişiriyordu - sayımlardan önce tekilleştiriliyor.
+   Performans: renderStats() içindeki AYNI "movies" dizisi 10'dan fazla bölüm
+   fonksiyonuna geçiliyor ve her biri bu fonksiyonu TEKRAR çağırıyordu - aynı
+   tekilleştirme işini istatistik penceresi her açıldığında/yenilendiğinde
+   10 kez yapmak gereksiz yavaşlığa sebep oluyordu. Aynı dizi referansı için
+   sonuç WeakMap'te önbelleğe alınır (içerik hiç değişmez, sadece tekrar
+   hesaplanmaz); veri güncellenip yeni bir dizi oluşturulduğunda otomatik
+   olarak yeniden hesaplanır. Hiçbir film/veri eksiltilmez ya da değiştirilmez. */
+const _statsUniqueCache=new WeakMap();
 function statsUniqueMovies(list){
+ if(!list) return [];
+ const cached=_statsUniqueCache.get(list);
+ if(cached) return cached;
  const seen=new Set(), out=[];
- (list||[]).forEach(m=>{
+ list.forEach(m=>{
    if(!m) return;
    const id=m.imdbID;
    if(id){ if(seen.has(id)) return; seen.add(id); }
    out.push(m);
  });
+ _statsUniqueCache.set(list,out);
  return out;
 }
 /* Sayım listelerinde sıralama her zaman aynı çıksın diye ortak karşılaştırma:
@@ -3437,10 +3472,21 @@ function applyFindFilter(type){
  updateFindCount(type);
 }
 
+// Performans: eskiden kutuya yazılan HER harfte, o anki listedeki TÜM
+// kartlar (querySelectorAll(".movie")) taranıp başlık metni karşılaştırılıyor
+// ve eşleşmeyenler classList.toggle ile gizleniyordu - büyük listelerde bu
+// tam tarama + toplu görünürlük değişikliği (reflow) her tuş vuruşunda
+// tekrarlandığı için hızlı yazarken kutuya yazının GERİDEN gelmesine
+// (girdinin gecikmeli görünmesine) sebep oluyordu. Artık gerçek filtreleme
+// kullanıcı yazmayı ~140ms durdurunca çalışıyor (arama sonucu yine de anlık
+// hissettiriyor); kutunun kendisi (değerin görünmesi) tarayıcının normal,
+// anında input davranışına bırakılıyor - hiçbir filtreleme/veri kaybı yok.
+let findDebounceTimer={watched:null,watchlist:null};
 function findInList(input,type){
  const q=input.value.trim().toLowerCase();
  const st=findState[type];
  const listEl=type==="watchlist"?watchList:watchedList;
+ clearTimeout(findDebounceTimer[type]);
  if(!q){
    st.matches=[];
    st.index=-1;
@@ -3451,19 +3497,35 @@ function findInList(input,type){
    return;
  }
 
- let changed=false;
- if(genreState[type]!=="all"){genreState[type]="all";changed=true;}
- if(directorState[type]!=="all"){directorState[type]="all";changed=true;}
- if(actorState[type]!=="all"){actorState[type]="all";changed=true;}
- if(changed) renderColumn(type);
+ findDebounceTimer[type]=setTimeout(()=>{
+   let changed=false;
+   if(genreState[type]!=="all"){genreState[type]="all";changed=true;}
+   if(directorState[type]!=="all"){directorState[type]="all";changed=true;}
+   if(actorState[type]!=="all"){actorState[type]="all";changed=true;}
+   if(changed) renderColumn(type);
 
- applyFindFilter(type);
- goToFindMatch(type);
+   applyFindFilter(type);
+   goToFindMatch(type);
+ },140);
 }
 
 function findKeydown(e,type){
  if(e.key==="Enter"){
    e.preventDefault();
+   // Kullanıcı yazdıktan hemen sonra (140ms'lik gecikme dolmadan) Enter'a
+   // basarsa, filtre henüz o anki metne göre güncellenmemiş olabilir - bu
+   // yüzden bekleyen filtrelemeyi burada hemen (gecikmesiz) tamamlıyoruz,
+   // ki "Enter = ilk eşleşmeye git" her zaman DOĞRU sonuca göre çalışsın.
+   if(findDebounceTimer[type]){
+     clearTimeout(findDebounceTimer[type]);
+     findDebounceTimer[type]=null;
+     let changed=false;
+     if(genreState[type]!=="all"){genreState[type]="all";changed=true;}
+     if(directorState[type]!=="all"){directorState[type]="all";changed=true;}
+     if(actorState[type]!=="all"){actorState[type]="all";changed=true;}
+     if(changed) renderColumn(type);
+     applyFindFilter(type);
+   }
    findNext(type,e.shiftKey?-1:1);
  }
 }
@@ -3558,6 +3620,18 @@ function render(){
 }
 
 function refreshCardsInPlace(force){
+ // Performans düzeltmesi: eskiden HER kart için allData.watched+watchlist
+ // baştan BİRLEŞTİRİLİP (concat, yeni dizi kopyası) baştan sona TARANIYORDU
+ // (find). Bu, kart sayısı * film sayısı kadar işlem demekti (karesel
+ // büyüme) - TMDB verisi arka planda akarken bu fonksiyon saniyede birkaç
+ // kez çalıştığından, büyük kütüphanelerde ana thread'i uzun süre kilitleyip
+ // TÜM arayüzü (arama kutularına yazmak dahil) dondurmasının asıl
+ // sebeplerinden biri buydu. Artık film->kart eşleşmesi TEK SEFERDE bir
+ // Map'e kuruluyor, her kart için bakış O(1); toplamda karesel değil
+ // doğrusal (O(n)) çalışıyor. Davranış ve sonuçlar birebir aynı.
+ const movieById=new Map();
+ (allData.watched||[]).forEach(m=>{ if(m && m.imdbID) movieById.set(m.imdbID,m); });
+ (allData.watchlist||[]).forEach(m=>{ if(m && m.imdbID) movieById.set(m.imdbID,m); });
  document.querySelectorAll(".movie[data-id]").forEach(el=>{
    const id=el.dataset.id;
    const info=turkishCache[id];
@@ -3576,7 +3650,7 @@ function refreshCardsInPlace(force){
    // TMDB'den tam kadro/yönetmen geldiyse (castNames/directorNames), kart
    // üzerindeki oyuncu/yönetmen satırlarını da güncelle - böylece OMDb'nin
    // sınırlı listesi yerine (ana kartta 5 oyuncuya kadar) tam liste görünür.
-   const m=(allData.watched||[]).concat(allData.watchlist||[]).find(x=>x.imdbID===id);
+   const m=movieById.get(id);
    if(m){
      const metas=el.querySelectorAll(".meta .meta-icon");
      metas.forEach(iconEl=>{
