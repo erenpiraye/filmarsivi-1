@@ -273,6 +273,11 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 .detail-my-rating::placeholder{color:#4a6a80;font-weight:normal}
 .detail-my-rating::-webkit-inner-spin-button,.detail-my-rating::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
 .detail-my-rating-suffix{font-size:16px;font-weight:bold;color:#6fa8cc}
+.detail-providers{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:-4px 0 16px}
+.detail-provider-label{color:#d9a441;font-size:11px;font-weight:bold;text-transform:uppercase;letter-spacing:.5px;margin-right:2px}
+.detail-provider-tag{background:#2a2a2a;border:1px solid #444;color:#ccc;padding:4px 10px;border-radius:14px;font-size:12px}
+.detail-provider-credit{width:100%;color:#666;font-size:10px}
+.detail-provider-credit a{color:#888;text-decoration:underline;cursor:pointer}
 .detail-added-date{color:#aaa;font-size:13px;margin-bottom:16px}
 .detail-section{margin-bottom:22px}
 .detail-section-title{font-size:12px;color:#d9a441;font-weight:bold;margin-bottom:9px;text-transform:uppercase;letter-spacing:.6px}
@@ -582,6 +587,10 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
     </div>
    </div>
 
+   <div class="detail-genres" id="detailGenres"></div>
+
+   <div class="detail-providers" id="detailProviders" style="display:none"></div>
+
    <div class="detail-added-date">📅 Eklenme Tarihi: <span id="detailAddedDate"></span></div>
 
    <div class="detail-section">
@@ -626,7 +635,6 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
     <div class="detail-cast-row" id="detailSimilarRow"></div>
    </div>
 
-   <div class="detail-genres" id="detailGenres"></div>
   </div>
 
   <div class="detail-footer">
@@ -2294,6 +2302,50 @@ function isTmdbKeyError(status,data){
  if(status===429) return true; // TMDB hız sınırı - bu anahtarla devam etmenin anlamı yok, sıradakine geç
  if(data && data.success===false && (data.status_code===7 || /invalid api key/i.test(data.status_message||""))) return true;
  return false;
+}
+
+// Türkiye'de nerede izlenebilir: TMDB'nin watch/providers uç noktası (veriyi
+// JustWatch sağlar). Sonuç tmdbId başına bellekte önbelleklenir; film kartı
+// her açıldığında tekrar istek atılmaz.
+const watchProviderCache={};
+function resetWatchProviders(){
+ const el=document.getElementById("detailProviders");
+ if(el){ el.style.display="none"; el.innerHTML=""; }
+}
+async function loadWatchProviders(tmdbId,imdbId){
+ if(!tmdbId) return;
+ let tr=watchProviderCache[tmdbId];
+ if(tr===undefined){
+   try{
+     const d=await fetchJson(`https://api.themoviedb.org/3/movie/${tmdbId}/watch/providers?api_key=${TMDB_KEY}`);
+     tr=(d&&d.results&&d.results.TR)||null;
+     watchProviderCache[tmdbId]=tr;
+   }catch(e){ return; } // ağ hatası: önbelleğe yazma, sonra tekrar denenebilsin
+ }
+ if(detailState.id!==imdbId) return; // kullanıcı bu arada kartı kapattı/değiştirdi
+ renderWatchProviders(tr);
+}
+function renderWatchProviders(tr){
+ const el=document.getElementById("detailProviders");
+ if(!el) return;
+ const groups=[["flatrate","Abonelik"],["free","Ücretsiz"],["ads","Reklamlı"],["rent","Kirala"],["buy","Satın Al"]];
+ const seen=new Set();
+ let html="";
+ groups.forEach(([key,label])=>{
+   const list=((tr&&tr[key])||[]).filter(p=>{
+     if(!p||!p.provider_name||seen.has(p.provider_name)) return false;
+     seen.add(p.provider_name); return true;
+   });
+   if(!list.length) return;
+   html+=`<span class="detail-provider-label">${label}:</span>`+
+         list.map(p=>`<span class="detail-provider-tag">${escapeHtml(p.provider_name)}</span>`).join("");
+ });
+ if(!html){
+   html='<span class="detail-provider-label">Türkiye\'de izlenebilecek platform bilgisi bulunamadı</span>';
+ }
+ html+='<span class="detail-provider-credit">Veri: JustWatch (TMDB aracılığıyla)</span>';
+ el.innerHTML=html;
+ el.style.display="";
 }
 
 async function fetchJson(url,timeoutMs=12000){
@@ -4206,6 +4258,7 @@ document.getElementById("detailCastRow").innerHTML="";
 
  const genres=movieGenresTr(movie);
  document.getElementById("detailGenres").innerHTML=genres.length?genres.map(g=>`<span class="detail-genre-tag">${escapeHtml(g)}</span>`).join(""):"";
+ resetWatchProviders();
 
  document.getElementById("detailModalBox").style.transform="";
  document.getElementById("detailOverlay").classList.add("open");
@@ -4240,6 +4293,7 @@ document.getElementById("detailCastRow").innerHTML="";
    renderCompanyRow(freshInfo.productionCompanies);
 
    if(!freshInfo.tmdbId){document.getElementById("detailSimilarSection").style.display="none";return;}
+   loadWatchProviders(freshInfo.tmdbId,id);
    loadCastForDetail(freshInfo.tmdbId).then(castInfo=>{
      if(detailState.id!==id || !castInfo) return;
      renderPersonPhotoRow("detailDirector",castInfo.director,false);
