@@ -273,6 +273,13 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 .detail-my-rating::placeholder{color:#4a6a80;font-weight:normal}
 .detail-my-rating::-webkit-inner-spin-button,.detail-my-rating::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
 .detail-my-rating-suffix{font-size:16px;font-weight:bold;color:#6fa8cc}
+.platform-row{width:95%;margin:0 auto 10px auto;display:flex;flex-wrap:nowrap;align-items:center;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.platform-row::-webkit-scrollbar{display:none}
+.platform-btn{flex:0 0 auto;background:#2a2a2a;border:1px solid #444;color:#ccc;padding:4px 10px;border-radius:14px;font-size:12px;cursor:pointer;white-space:nowrap;user-select:none;-webkit-user-select:none}
+.platform-btn i{font-style:normal;color:#888;margin-left:5px;font-size:11px}
+.platform-btn.active{background:#d9a441;border-color:#d9a441;color:#111;font-weight:bold}
+.platform-btn.active i{color:#333}
+.platform-progress{flex:0 0 auto;color:#888;font-size:11px;white-space:nowrap}
 .detail-providers{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:-4px 0 16px}
 .detail-provider-label{color:#d9a441;font-size:11px;font-weight:bold;text-transform:uppercase;letter-spacing:.5px;margin-right:2px}
 .detail-provider-tag{background:#2a2a2a;border:1px solid #444;color:#ccc;padding:4px 10px;border-radius:14px;font-size:12px}
@@ -751,6 +758,7 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
  <span class="find-nav-btn" onclick="findNext('watchlist',1)">›</span>
  <span class="find-count" id="findCountWatch"></span>
 </div>
+<div class="platform-row" id="platformRow" style="display:none" onclick="onPlatformClick(event)"></div>
 </div>
 <div class="list-wrap"><div id="watchList"></div></div>
 </div>
@@ -2308,20 +2316,36 @@ function isTmdbKeyError(status,data){
 // JustWatch sağlar). Sonuç tmdbId başına bellekte önbelleklenir; film kartı
 // her açıldığında tekrar istek atılmaz.
 const watchProviderCache={};
+// Google Play Filmler listelenmesin; "... with Ads" / "... Amazon Channel"
+// gibi varyantlar ana platform adına indirgenir (Netflix, Netflix Standard with
+// Ads -> tek "Netflix").
+function isHiddenProvider(name){ return /google\s*play/i.test(name||""); }
+function normProviderName(name){
+ return String(name||"")
+   .replace(/\s+(?:Standard|Basic)?\s*with\s+Ads$/i,"")
+   .replace(/\s+(?:Amazon|Apple TV|Apple)\s+Channel$/i,"")
+   .trim();
+}
 function resetWatchProviders(){
  const el=document.getElementById("detailProviders");
  if(el){ el.style.display="none"; el.innerHTML=""; }
 }
+// undefined: istek başarısız (tekrar denenebilir), null: Türkiye için kayıt yok
+async function getWatchProvidersTR(tmdbId){
+ if(watchProviderCache[tmdbId]!==undefined) return watchProviderCache[tmdbId];
+ try{
+   const d=await fetchJson(`https://api.themoviedb.org/3/movie/${tmdbId}/watch/providers?api_key=${TMDB_KEY}`);
+   const tr=(d&&d.results&&d.results.TR)||null;
+   watchProviderCache[tmdbId]=tr;
+   return tr;
+ }catch(e){ return undefined; }
+}
 async function loadWatchProviders(tmdbId,imdbId){
  if(!tmdbId) return;
- let tr=watchProviderCache[tmdbId];
- if(tr===undefined){
-   try{
-     const d=await fetchJson(`https://api.themoviedb.org/3/movie/${tmdbId}/watch/providers?api_key=${TMDB_KEY}`);
-     tr=(d&&d.results&&d.results.TR)||null;
-     watchProviderCache[tmdbId]=tr;
-   }catch(e){ return; } // ağ hatası: önbelleğe yazma, sonra tekrar denenebilsin
- }
+ const tr=await getWatchProvidersTR(tmdbId);
+ if(tr===undefined) return;
+ providerStore[tmdbId]={n:providerNamesFromTR(tr),t:Date.now()};
+ saveProviderStore();
  if(detailState.id!==imdbId) return; // kullanıcı bu arada kartı kapattı/değiştirdi
  renderWatchProviders(tr);
 }
@@ -2332,19 +2356,131 @@ function renderWatchProviders(tr){
  const seen=new Set();
  let html="";
  groups.forEach(([key,label])=>{
-   const list=((tr&&tr[key])||[]).filter(p=>{
-     if(!p||!p.provider_name||seen.has(p.provider_name)) return false;
-     seen.add(p.provider_name); return true;
-   });
+   const list=((tr&&tr[key])||[]).map(p=>p&&p.provider_name).filter(n=>{
+     if(!n||isHiddenProvider(n)) return false;
+     const k=normProviderName(n);
+     if(seen.has(k)) return false;
+     seen.add(k); return true;
+   }).map(normProviderName);
    if(!list.length) return;
    html+=`<span class="detail-provider-label">${label}:</span>`+
-         list.map(p=>`<span class="detail-provider-tag">${escapeHtml(p.provider_name)}</span>`).join("");
+         list.map(n=>`<span class="detail-provider-tag">${escapeHtml(n)}</span>`).join("");
  });
  if(!html){
    html='<span class="detail-provider-label">Türkiye\'de izlenebilecek platform bilgisi bulunamadı</span>';
  }
-  el.innerHTML=html;
+ el.innerHTML=html;
  el.style.display="";
+}
+
+/* ===== İzlenecekler: platform filtresi (Netflix, Disney+ ...) =====
+   Her izlenecek filmin Türkiye'deki abonelik/ücretsiz/reklamlı platformları
+   arka planda (4 paralel istek) TMDB'den çekilir, tarayıcıda 3 gün saklanır.
+   Kirala/Satın Al seçenekleri filtreye dahil değildir. */
+const PROVIDER_TTL_MS=3*24*3600*1000;
+const PROVIDER_LS_KEY="filmarsivi_providers_v1";
+let providerStore={};
+try{ providerStore=JSON.parse(localStorage.getItem(PROVIDER_LS_KEY)||"{}")||{}; }catch(e){ providerStore={}; }
+let providerSaveTimer=null;
+function saveProviderStore(){
+ clearTimeout(providerSaveTimer);
+ providerSaveTimer=setTimeout(()=>{ try{ localStorage.setItem(PROVIDER_LS_KEY,JSON.stringify(providerStore)); }catch(e){} },800);
+}
+let platformState={watchlist:"all"};
+let platformProgress=null;
+function providerNamesFromTR(tr){
+ const out=new Set();
+ ["flatrate","free","ads"].forEach(k=>((tr&&tr[k])||[]).forEach(p=>{
+   if(!p||!p.provider_name||isHiddenProvider(p.provider_name)) return;
+   out.add(normProviderName(p.provider_name));
+ }));
+ return Array.from(out);
+}
+function providerNamesOfMovie(m){
+ const info=turkishCache[m.imdbID];
+ const tid=info&&info.tmdbId;
+ const rec=tid&&providerStore[tid];
+ return rec?rec.n:[];
+}
+function renderPlatformRow(){
+ const row=document.getElementById("platformRow");
+ if(!row) return;
+ const counts={};
+ (allData.watchlist||[]).forEach(m=>providerNamesOfMovie(m).forEach(n=>{ counts[n]=(counts[n]||0)+1; }));
+ const active=platformState.watchlist;
+ const names=Object.keys(counts).sort((a,b)=>counts[b]-counts[a]||a.localeCompare(b,"tr"));
+ if(active!=="all" && !counts[active]){ names.unshift(active); counts[active]=0; }
+ if(!names.length && !platformProgress){ row.style.display="none"; row.innerHTML=""; return; }
+ let html=names.map(n=>`<span class="platform-btn${n===active?" active":""}" data-p="${escapeHtml(n)}">${escapeHtml(n)}<i>${counts[n]}</i></span>`).join("");
+ if(platformProgress && platformProgress.total){
+   html+=`<span class="platform-progress">⏳ ${platformProgress.done}/${platformProgress.total}</span>`;
+ }
+ row.innerHTML=html;
+ row.style.display="";
+}
+function onPlatformClick(ev){
+ const btn=ev.target.closest(".platform-btn");
+ if(!btn) return;
+ const p=btn.dataset.p;
+ platformState.watchlist=(platformState.watchlist===p)?"all":p;
+ renderColumn("watchlist");
+}
+(function(){
+ const row=document.getElementById("platformRow");
+ if(!row) return;
+ // Fareyle tekerlek kaydırması yatay kaydırmaya çevrilir (masaüstü).
+ row.addEventListener("wheel",e=>{
+   if(row.scrollWidth<=row.clientWidth) return;
+   if(Math.abs(e.deltaY)>Math.abs(e.deltaX)){ row.scrollLeft+=e.deltaY; e.preventDefault(); }
+ },{passive:false});
+})();
+let providerScanTimer=null, providerScanRunning=false;
+function scheduleProviderScan(delay){
+ clearTimeout(providerScanTimer);
+ providerScanTimer=setTimeout(runProviderScan,delay==null?2500:delay);
+}
+function missingProviderIds(){
+ const ids=new Set();
+ (allData.watchlist||[]).forEach(m=>{
+   const info=turkishCache[m.imdbID];
+   const tid=info&&info.tmdbId;
+   if(!tid) return;
+   const rec=providerStore[tid];
+   if(!rec||Date.now()-rec.t>PROVIDER_TTL_MS) ids.add(tid);
+ });
+ return Array.from(ids);
+}
+async function runProviderScan(){
+ if(providerScanRunning) return;
+ providerScanRunning=true;
+ let fetched=0, hadError=false;
+ try{
+   const uniq=missingProviderIds();
+   if(uniq.length){
+     platformProgress={done:0,total:uniq.length};
+     renderPlatformRow();
+     let i=0, sinceRender=0;
+     const worker=async()=>{
+       while(i<uniq.length){
+         const tid=uniq[i++];
+         const tr=await getWatchProvidersTR(tid);
+         if(tr===undefined){ hadError=true; }
+         else{ providerStore[tid]={n:providerNamesFromTR(tr),t:Date.now()}; fetched++; }
+         platformProgress.done++;
+         if(++sinceRender>=8){ sinceRender=0; renderPlatformRow(); }
+       }
+     };
+     await Promise.all([worker(),worker(),worker(),worker()]);
+     saveProviderStore();
+   }
+ }catch(e){ hadError=true; }
+ providerScanRunning=false;
+ platformProgress=null;
+ renderPlatformRow();
+ // Filtre açıkken yeni gelen veriyle liste de tazelensin (yalnızca veri geldiyse).
+ if(fetched && platformState.watchlist!=="all") renderColumn("watchlist");
+ // Bu sırada yeni TMDB kimlikleri geldiyse bir kez daha tara.
+ if(!hadError && missingProviderIds().length) scheduleProviderScan(1500);
 }
 
 async function fetchJson(url,timeoutMs=12000){
@@ -2873,7 +3009,7 @@ const TOUCH_CANCEL_THRESHOLD=20; // (artık kullanılmıyor, dokunmatik sürükl
 
 function canReorderList(type){
  if(sortState[type]!=="added-desc" && sortState[type]!=="added-asc") return false;
- if(genreState[type]!=="all" || directorState[type]!=="all" || actorState[type]!=="all") return false;
+ if(genreState[type]!=="all" || directorState[type]!=="all" || actorState[type]!=="all" || platformState.watchlist!=="all") return false;
  if(searchActive[type]) return false;
  return true;
 }
@@ -3646,6 +3782,10 @@ function renderColumn(type){
  if(actorState[type]!=="all"){
    indexed=indexed.filter(x=>nameListHas(movieActors(x.m),actorState[type]));
  }
+ if(isWatchlist && platformState.watchlist!=="all"){
+   const wantPlatform=platformState.watchlist;
+   indexed=indexed.filter(x=>providerNamesOfMovie(x.m).includes(wantPlatform));
+ }
  indexed=sortIndexed(indexed,sortState[type]);
 
  listEl.innerHTML="";
@@ -3663,6 +3803,7 @@ function renderColumn(type){
  // metin varsa) filtreyi yeni kartlara da uygula - aksi halde sıralama/kategori
  // değişince ya da liste yenilenince filtre sıfırlanmış gibi görünürdü.
  applyFindFilter(type);
+ if(isWatchlist){ renderPlatformRow(); scheduleProviderScan(); }
 }
 
 function render(){
@@ -3671,6 +3812,7 @@ function render(){
 }
 
 function refreshCardsInPlace(force){
+ try{ scheduleProviderScan(); }catch(e){}
  // Performans düzeltmesi: eskiden HER kart için allData.watched+watchlist
  // baştan BİRLEŞTİRİLİP (concat, yeni dizi kopyası) baştan sona TARANIYORDU
  // (find). Bu, kart sayısı * film sayısı kadar işlem demekti (karesel
