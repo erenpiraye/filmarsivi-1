@@ -800,6 +800,23 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 </div>
 
 <script>
+/* ===== PERFORMANS YARDIMCILARI =====
+   1) "tr" ile localeCompare her çağrıda yeni bir Collator kurduğu için çok
+      yavaştı (binlerce isim sıralanırken saniyeler sürebiliyordu). Aynı
+      sonucu veren tek bir Intl.Collator kullanılır.
+   2) cleanName/normNameKey her isim için regex + toLocaleLowerCase("tr-TR")
+      çalıştırıyordu ve her çizimde on binlerce kez çağrılıyordu; sonuçlar
+      Map'te önbelleğe alınır (girdi aynıysa çıktı hep aynıdır). */
+(function(){
+ try{
+   const col=new Intl.Collator("tr");
+   const orig=String.prototype.localeCompare;
+   String.prototype.localeCompare=function(that,loc,opts){
+     if(loc==="tr" && opts===undefined) return col.compare(String(this),String(that));
+     return orig.call(this,that,loc,opts);
+   };
+ }catch(e){}
+})();
 /* ===================== AYARLAR ===================== */
 // Kendi Firebase projenin bilgilerini buraya yapıştır (REHBER.md dosyasına bak)
 const firebaseConfig = {
@@ -2033,9 +2050,11 @@ function openAllPeopleList(kind){
  updateStatsPeopleScrollBtn();
  _lockBackgroundScroll();
 }
+let _peopleSearchTimer=null;
 function statsPeopleSearchInput(v){
  _peopleListState.query=v||"";
- renderPeopleListInner();
+ clearTimeout(_peopleSearchTimer);
+ _peopleSearchTimer=setTimeout(renderPeopleListInner,160);
 }
 function statsPeopleSetSort(mode){
  _peopleListState.sort=mode;
@@ -2054,10 +2073,53 @@ function peopleItemHtml(kind,name,count){
    <div class="people-count">${count} film</div>
   </div>`;
 }
+/* "Tüm oyuncular/yönetmenler" listesi binlerce kişi içerebiliyor (bu kütüphanede
+   ~24 bin oyuncu = ~97 bin DOM öğesi) ve hepsi tek seferde basılınca pencere
+   ~2 saniye donuyordu. Artık ilk parça hemen çizilir, kalanı arka planda küçük
+   dilimlerle eklenir (ekran takılmaz). Bir harfe tıklanırsa o harfe kadar olan
+   kısım hemen tamamlanır, böylece kaydırma doğru yere gider. */
+let _peopleFill={token:0,jobs:[],pos:0,timer:null,kind:"actor"};
+const PEOPLE_FILL_CHUNK=450;
+function _peopleFillStep(token,budget,stopLetter){
+ const F=_peopleFill;
+ if(token!==F.token) return;
+ clearTimeout(F.timer);
+ let left=budget, stop=false;
+ while(left>0 && !stop && F.pos<F.jobs.length){
+   const job=F.jobs[F.pos];
+   const take=Math.min(left,job.rows.length-job.done);
+   if(take>0 && job.el){
+     const before=job.el.children.length;
+     let html="";
+     for(let k=job.done;k<job.done+take;k++) html+=peopleItemHtml(F.kind,job.rows[k][0],job.rows[k][1]);
+     job.el.insertAdjacentHTML("beforeend",html);
+     job.done+=take; left-=take;
+     if(_peoplePhotoIO){
+       for(let k=before;k<job.el.children.length;k++){
+         const av=job.el.children[k].querySelector(".people-avatar[data-person-name]");
+         if(av) _peoplePhotoIO.observe(av);
+       }
+     }
+   }
+   if(job.done>=job.rows.length || !job.el){
+     F.pos++;
+     if(stopLetter && job.letter===stopLetter) stop=true;
+   }
+ }
+ updateStatsPeopleScrollBtn();
+ if(F.pos<F.jobs.length) F.timer=setTimeout(()=>_peopleFillStep(token,PEOPLE_FILL_CHUNK),0);
+}
+function _peopleEnsureLetter(letter){
+ const F=_peopleFill;
+ const idx=F.jobs.findIndex(j=>j.letter===letter);
+ if(idx>=F.pos) _peopleFillStep(F.token,Infinity,letter);
+}
 function renderPeopleListInner(){
  const {kind,sort,query}=_peopleListState;
  const inner=document.getElementById("statsPeopleListInner");
  if(!inner) return;
+ const F=_peopleFill;
+ F.token++; clearTimeout(F.timer); F.jobs=[]; F.pos=0; F.kind=kind;
  const map=statsPeopleMoviesMap[kind]||{};
  const q=normNameKey(query);
  let names=Object.keys(map);
@@ -2068,9 +2130,11 @@ function renderPeopleListInner(){
    return;
  }
 
+ const jobs=[];
  if(sort==="count"){
    const items=names.map(n=>({name:n,count:(map[n]||[]).length})).sort(statsByCountThenName);
-   inner.innerHTML=`<div class="people-grid">`+items.map(x=>peopleItemHtml(kind,x.name,x.count)).join("")+`</div>`;
+   inner.innerHTML=`<div class="people-grid" data-fill="0"></div>`;
+   jobs.push({letter:null,rows:items.map(x=>[x.name,x.count]),done:0});
  }else{
    names=names.sort((a,b)=>a.localeCompare(b,"tr"));
    const groups={};
@@ -2086,14 +2150,23 @@ function renderPeopleListInner(){
      const has=!!groups[l];
      return `<span class="people-az-btn${has?"":" people-az-btn--disabled"}"${has?` onclick="statsScrollToLetter('${l}')"`:""}>${l}</span>`;
    }).join("")+`</div>`;
-   const listHtml=presentLetters.map(letter=>`<div class="people-letter-group" id="people-letter-${letter}">
+   const listHtml=presentLetters.map((letter,gi)=>{
+     jobs.push({letter,rows:groups[letter].map(name=>[name,(map[name]||[]).length]),done:0});
+     return `<div class="people-letter-group" id="people-letter-${letter}">
      <div class="people-letter-heading">${letter==="#"?"Diğer":letter}</div>
-     <div class="people-grid">`+groups[letter].map(name=>peopleItemHtml(kind,name,(map[name]||[]).length)).join("")+`</div>
-    </div>`).join("");
+     <div class="people-grid" data-fill="${gi}"></div>
+    </div>`;
+   }).join("");
    inner.innerHTML=navHtml+listHtml;
    positionPeopleAzNav();
  }
+ const grids=inner.querySelectorAll(".people-grid[data-fill]");
+ jobs.forEach((j,i)=>{ j.el=grids[i]||null; });
+ F.jobs=jobs; F.pos=0;
  lazyLoadStatsPhotosOnScroll(document.getElementById("statsPeopleOverlay"));
+ const total=jobs.reduce((a,j)=>a+j.rows.length,0);
+ // Küçük listeler (ör. arama sonuçları) anında, büyükler dilimler halinde çizilir.
+ _peopleFillStep(F.token,total<=800?Infinity:PEOPLE_FILL_CHUNK);
  updateStatsPeopleScrollBtn();
 }
 /* ---- A-Z satırı, üstbardaki başlığın (Oyuncular/Yönetmenler) hemen altına
@@ -2115,6 +2188,7 @@ function scrollStatsPeopleToTop(){
  if(overlay) overlay.scrollTo({top:0,behavior:"smooth"});
 }
 function statsScrollToLetter(letter){
+ _peopleEnsureLetter(letter);
  const el=document.getElementById(`people-letter-${letter}`);
  const overlay=document.getElementById("statsPeopleOverlay");
  if(!el || !overlay) return;
@@ -2124,6 +2198,7 @@ function statsScrollToLetter(letter){
  overlay.scrollTo({top:Math.max(offset,0),behavior:"smooth"});
 }
 function closeStatsPeopleList(){
+ _peopleFill.token++; clearTimeout(_peopleFill.timer);
  document.getElementById("statsPeopleOverlay").classList.remove("open");
  _unlockBackgroundScroll();
 }
@@ -2178,8 +2253,10 @@ document.getElementById("statsPeopleOverlay").addEventListener("scroll",()=>{
    sınırlı kartların aksine, TÜM kişiler listesinde fotoğrafı PEŞİNEN değil
    sadece ekrana girdikçe (IntersectionObserver) yüklüyoruz - yüzlerce kişi
    olan hesaplarda tek seferde yüzlerce TMDB isteği atılmasını önlemek için. ---- */
+let _peoplePhotoIO=null;
 function lazyLoadStatsPhotosOnScroll(rootEl){
- const io=new IntersectionObserver((entries,obs)=>{
+ if(_peoplePhotoIO){ try{ _peoplePhotoIO.disconnect(); }catch(e){} }
+ const io=_peoplePhotoIO=new IntersectionObserver((entries,obs)=>{
    entries.forEach(entry=>{
      if(!entry.isIntersecting) return;
      const el=entry.target;
@@ -2770,7 +2847,14 @@ function searchMain(input,type){
  // tekrar çiziyordu. Elimizde zaten güncel veri (allData) varken bu gereksiz
  // ağ isteği, özellikle mobilde yazarken donmaya sebep oluyordu. Sadece yerel
  // veriyle normal görünüme dönmek (render) yeterli ve çok daha hızlı.
- if(raw.length<3){searchActive[type]=false;render();return;}
+ if(raw.length<3){
+   // Sadece arama sonucu ekranı açıksa o sütunu normal haline döndür; eskiden
+   // her harfte İKİ liste de baştan çiziliyordu (yazarken donmanın ana sebebi).
+   const wasActive=searchActive[type];
+   searchActive[type]=false;
+   if(wasActive) renderColumn(type);
+   return;
+ }
  searchActive[type]=true;
  searchTimer=setTimeout(()=>searchImmediate(raw,type,myGen),400);
 }
@@ -2944,7 +3028,7 @@ function card(m,i,isWatch){
  d.dataset.id=m.imdbID;
  d.dataset.hasPoster=hasOmdbPoster?"1":"0";
  d.innerHTML=`
- <img class="poster-link" src="${poster}" draggable="false" ondragstart="return false" onclick="openDetail('${m.imdbID}','${isWatch?'watchlist':'watched'}')">
+ <img class="poster-link" src="${poster}" loading="lazy" decoding="async" draggable="false" ondragstart="return false" onclick="openDetail('${m.imdbID}','${isWatch?'watchlist':'watched'}')">
  <div>
  <b>${m.Title}</b> (${m.Year})
  <div class="tr-title">${trTitle}</div>
@@ -3449,11 +3533,29 @@ function sortIndexed(indexed,mode){
    sayabiliyor ("5 film" yazan bir oyuncunun listesinde 4 film çıkıyordu) veya
    aynı kişi iki ayrı isimmiş gibi bölünüyordu. Aşağıdaki fonksiyonlar tüm
    sayımların TEK bir tekilleştirme kuralı kullanmasını sağlar. ---- */
+const _cleanNameCache=new Map();
 function cleanName(s){
- return String(s==null?"":s).replace(/[\u00A0\u2007\u202F]/g," ").replace(/\s+/g," ").trim();
+ const isStr=(typeof s==="string");
+ if(isStr){ const hit=_cleanNameCache.get(s); if(hit!==undefined) return hit; }
+ const out=String(s==null?"":s).replace(/[\u00A0\u2007\u202F]/g," ").replace(/\s+/g," ").trim();
+ if(isStr){ if(_cleanNameCache.size>60000) _cleanNameCache.clear(); _cleanNameCache.set(s,out); }
+ return out;
 }
+const _normKeyCache=new Map();
 function normNameKey(s){
- return cleanName(s).toLocaleLowerCase("tr-TR");
+ const isStr=(typeof s==="string");
+ if(isStr){ const hit=_normKeyCache.get(s); if(hit!==undefined) return hit; }
+ const out=cleanName(s).toLocaleLowerCase("tr-TR");
+ if(isStr){ if(_normKeyCache.size>60000) _normKeyCache.clear(); _normKeyCache.set(s,out); }
+ return out;
+}
+// Veri değişmediyse (ör. bulut senkronu yerel veriyle aynıysa) iki listeyi
+// baştan çizmek yerine mevcut ekran korunur.
+function _renderIfChanged(newData){
+ let same=false;
+ try{ same=JSON.stringify([newData&&newData.watched,newData&&newData.watchlist])===JSON.stringify([allData.watched,allData.watchlist]); }catch(e){}
+ allData=newData;
+ if(!same) render();
 }
 function uniqueNames(list){
  const seen=new Set(), out=[];
@@ -3555,13 +3657,17 @@ function movieActors(m){
  return uniqueNames((m.Actors||"").split(","));
 }
 
+function _setSelectOptions(sel,html){
+ if(sel._optHtml!==html){ sel.innerHTML=html; sel._optHtml=html; }
+}
+
 function populateGenreSelect(type){
  const sel=document.getElementById(type==="watchlist"?"genreWatch":"genreWatched");
  const current=genreState[type];
  const set=new Set();
  allData[type].forEach(m=>movieGenresTr(m).forEach(g=>set.add(g)));
  const genres=Array.from(set).sort((a,b)=>a.localeCompare(b,"tr"));
- sel.innerHTML='<option value="all">Kategori</option>'+genres.map(g=>`<option value="${g}">${g}</option>`).join("");
+ _setSelectOptions(sel,'<option value="all">Kategori</option>'+genres.map(g=>`<option value="${g}">${g}</option>`).join(""));
  if(current!=="all" && !genres.includes(current)) genreState[type]="all";
  sel.value=genreState[type];
 }
@@ -3572,7 +3678,7 @@ function populateDirectorSelect(type){
  const set=new Set();
  allData[type].forEach(m=>movieDirectors(m).forEach(dName=>set.add(dName)));
  const names=uniqueNames(Array.from(set)).sort((a,b)=>a.localeCompare(b,"tr"));
- sel.innerHTML='<option value="all">Yönetmen</option>'+names.map(n=>`<option value="${n}">${n}</option>`).join("");
+ _setSelectOptions(sel,'<option value="all">Yönetmen</option>'+names.map(n=>`<option value="${n}">${n}</option>`).join(""));
  // Seçili isim, listedeki yazımdan sadece boşluk/büyük-küçük harf olarak
  // farklıysa filtre sessizce sıfırlanmasın - listedeki yazıma eşitlenir.
  if(current!=="all"){
@@ -3600,7 +3706,7 @@ function populateActorSelect(type){
    set.add(current);
  }
  const names=uniqueNames(Array.from(set)).sort((a,b)=>a.localeCompare(b,"tr"));
- sel.innerHTML='<option value="all">Oyuncu</option>'+names.map(n=>`<option value="${n}">${n}</option>`).join("");
+ _setSelectOptions(sel,'<option value="all">Oyuncu</option>'+names.map(n=>`<option value="${n}">${n}</option>`).join(""));
  if(current!=="all"){
    const match=names.find(n=>normNameKey(n)===normNameKey(current));
    actorState[type]=match||"all";
@@ -3791,10 +3897,12 @@ function renderColumn(type){
  listEl.innerHTML="";
  listEl.classList.toggle("grid-view",viewState[type]==="grid");
  let totalMin=0;
+ const frag=document.createDocumentFragment();
  indexed.forEach((x,displayIdx)=>{
    totalMin+=runtimeMin(x.m.Runtime);
-   listEl.appendChild(card(x.m,displayIdx,isWatchlist));
+   frag.appendChild(card(x.m,displayIdx,isWatchlist));
  });
+ listEl.appendChild(frag);
 
  countEl.textContent=indexed.length;
  timeEl.textContent=formatTime(totalMin);
@@ -3829,6 +3937,10 @@ function refreshCardsInPlace(force){
    const id=el.dataset.id;
    const info=turkishCache[id];
    if(!info) return;
+   // TMDB bilgisi nesnesi her güncellemede yenisiyle değiştirilir; aynı nesneyse
+   // kart zaten güncel, tekrar işlemeye gerek yok.
+   if(!force && el._syncedInfo===info) return;
+   el._syncedInfo=info;
    if(info.title){
      const trEl=el.querySelector(".tr-title");
      if(trEl && !trEl.textContent) trEl.textContent=info.title;
@@ -3934,11 +4046,10 @@ async function reload(){
      db.collection("watchlist").get()
    ]);
    const sortByAdded=arr=>arr.slice().sort((a,b)=>(a._addedAt||0)-(b._addedAt||0));
-   allData={
+   _renderIfChanged({
      watched: sortByAdded(watchedSnap.docs.map(d=>d.data())),
      watchlist: sortByAdded(watchlistSnap.docs.map(d=>d.data()))
-   };
-   render();
+   });
    if(statusEl) statusEl.textContent="";
    saveToCache();
    preloadInfo().then(()=>{ refreshCardsInPlace(true); });
