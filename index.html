@@ -78,8 +78,6 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 .icon-btn{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;background:#2c2c2c;color:#999;cursor:pointer;user-select:none;transition:background .15s ease,color .15s ease}
 .icon-btn:hover,.icon-btn:active{background:#383838;color:#e8c877}
 .icon-btn svg{width:18px;height:18px;pointer-events:none}
-.icon-btn.spinning svg{animation:icon-spin 0.8s linear infinite}
-@keyframes icon-spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
 .search{width:95%;padding:10px;margin:0 auto 8px auto;display:block;background:#333;color:#eee;border:1px solid #555;border-radius:4px;font-size:16px}
 .sort-select{padding:6px 8px;font-size:13px;background:#222;color:#ccc;border:1px solid #444;border-radius:4px}
 .movie{width:95%;display:flex;align-items:center;margin:0 auto 15px auto;background:#222;padding:12px 16px;border-radius:8px;position:relative}
@@ -87,7 +85,6 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 .movie img.poster-link{cursor:pointer}
 .btn{margin-top:6px;padding:6px 12px;background:#555;color:#fff;border:none;border-radius:4px;cursor:pointer}
 .add-poster{cursor:pointer}
-.add-hint{font-size:11px;color:#888;margin-top:4px}
 .movie{touch-action:pan-y;user-select:none;-webkit-user-select:none}
 .movie img{-webkit-user-drag:none;-khtml-user-drag:none;-moz-user-drag:none;user-drag:none;-webkit-touch-callout:none}
 .dragging-source{opacity:0.35}
@@ -102,7 +99,6 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 .money-budget,.money-revenue{color:#bbb}
 .money-budget:empty,.money-revenue:empty{display:none}
 .my-rating-line:empty{display:none}
-.my-rating-line .my-star{color:#4fa8e8}
 .meta-icon{display:inline-flex;width:16px;justify-content:center;align-items:center;vertical-align:-3px}
 .tr-title{color:#888;font-size:13px;margin-top:2px}
 .controls{width:95%;margin:0 auto 10px auto;display:flex;flex-wrap:wrap;gap:8px}
@@ -283,8 +279,6 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 .detail-providers{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:-4px 0 16px}
 .detail-provider-label{color:#d9a441;font-size:11px;font-weight:bold;text-transform:uppercase;letter-spacing:.5px;margin-right:2px}
 .detail-provider-tag{background:#2a2a2a;border:1px solid #444;color:#ccc;padding:4px 10px;border-radius:14px;font-size:12px}
-.detail-provider-credit{width:100%;color:#666;font-size:10px}
-.detail-provider-credit a{color:#888;text-decoration:underline;cursor:pointer}
 .detail-added-date{color:#aaa;font-size:13px;margin-bottom:16px}
 .detail-section{margin-bottom:22px}
 .detail-section-title{font-size:12px;color:#d9a441;font-weight:bold;margin-bottom:9px;text-transform:uppercase;letter-spacing:.6px}
@@ -386,9 +380,6 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 .stats-section-title--clickable{cursor:pointer}
 .stats-section-title--clickable:hover{color:#e8c877}
 .stats-section-title--clickable::after{content:" ›";font-weight:normal}
-.stats-toggle{display:flex;gap:4px;background:#222;border-radius:6px;padding:3px}
-.stats-toggle-btn{padding:5px 12px;font-size:12px;border-radius:4px;color:#999;cursor:pointer;user-select:none;white-space:nowrap}
-.stats-toggle-btn.active{background:#3a3222;color:#e8c877}
 .stats-empty{color:#777;font-size:13px;padding:26px 10px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:10px}
 .stats-empty::before{content:"";width:40px;height:40px;flex-shrink:0;opacity:.32;background-repeat:no-repeat;background-position:center;background-size:contain;
  background-image:url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23d9a441' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='5' width='18' height='14' rx='2'/%3E%3Cpath d='M7 5v14M17 5v14M3 10h4M3 15h4M17 10h4M17 15h4'/%3E%3C/svg%3E")}
@@ -402,11 +393,6 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 .people-sort-btn.active{background:rgba(217,164,65,0.16);border-color:rgba(217,164,65,0.45);color:#e8c877}
 .stats-pending-note{margin:10px 0 4px 0;padding:9px 12px;border-radius:8px;background:rgba(217,164,65,0.12);border:1px solid rgba(217,164,65,0.3);color:#e8c877;font-size:13px;line-height:1.4}
 
-.year-chart{display:flex;align-items:flex-end;gap:2px;height:160px;overflow-x:auto;padding-bottom:4px}
-.year-bar-wrap{flex:1 0 auto;min-width:4px;height:100%;display:flex;align-items:flex-end;cursor:pointer}
-.year-bar{width:100%;min-height:2px;background:linear-gradient(180deg,#f0d9a3,#d9a441);border-radius:2px 2px 0 0}
-.year-bar-wrap:hover .year-bar{background:linear-gradient(180deg,#fff0cc,#e8b955)}
-.year-range-labels{display:flex;justify-content:space-between;color:#888;font-size:12px;margin-top:6px}
 .stats-tooltip{position:fixed;pointer-events:none;background:#000;color:#fff;padding:4px 9px;border-radius:5px;font-size:12px;z-index:500;white-space:nowrap;transform:translate(-50%,-100%);opacity:0;transition:opacity .1s ease;box-shadow:0 4px 12px rgba(0,0,0,0.5)}
 .stats-tooltip.show{opacity:1}
 
@@ -419,7 +405,6 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 
 .stats-columns{display:flex;flex-wrap:wrap;margin-left:-28px}
 .stats-col{flex:1;min-width:220px;margin-left:28px}
-.stats-col--single{max-width:420px}
 .bar-row{margin-bottom:11px;cursor:pointer}
 .bar-row-top{display:flex;justify-content:space-between;font-size:13px;color:#ddd;margin-bottom:4px}
 .bar-row-top .bar-val{color:#999}
@@ -427,8 +412,6 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 .bar-track{height:7px;border-radius:4px;background:#262626;overflow:hidden}
 .bar-fill{height:100%;border-radius:4px}
 .bar-fill.c-genre{background:#5ec86a}
-.bar-fill.c-country{background:#4fa8e8}
-.bar-fill.c-lang{background:#e8933f}
 
 .people-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(74px,1fr));gap:22px 16px}
 .people-item{width:auto;min-width:0;text-align:center;cursor:pointer}
@@ -482,8 +465,6 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 .rating-hist-bar-wrap:hover .rating-hist-bar{background:linear-gradient(180deg,#fff0cc,#e8b955)}
 .rating-hist-label{font-size:12px;color:#888;margin-top:6px}
 
-.bar-fill.c-runtime{background:#b98be0}
-.bar-fill.c-rating{background:#d9a441}
 
 .insight-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
 .insight-card{display:flex;gap:12px;background:#1e1e1e;border:1px solid #303030;border-radius:10px;padding:14px}
@@ -861,10 +842,8 @@ function decadeLabel(d){ return d+"'"+(DECADE_SUFFIX[d]||"ler"); }
 
 // Bölümlerdeki bir çubuğa/isme tıklandığında hangi filmlerin listeleneceğini
 // bulmak için renderStats() her seferinde bu haritaları günceller.
-let statsYearMoviesMap={};                                  // yıl -> [film,...]
 let statsBreakdownMoviesMap={genre:{}};                     // tür -> [film,...]
 let statsPeopleMoviesMap={actor:{},director:{}};             // tür -> {isim: [film,...]}
-let statsDiffBinMoviesMap={};                                // puan farkı kutusu -> [film,...]
 let statsPairsMoviesMap={};                                   // oyuncu-yönetmen ikili index -> [film,...]
 let statsDnaGenreMoviesMap={};                                // Film DNA radar ekseni (tür) -> [film,...]
 
@@ -939,21 +918,6 @@ function movieCountries(m){
  const info=turkishCache[m.imdbID];
  if(info && info.countryNames && info.countryNames.length) return uniqueNames(info.countryNames);
  return uniqueNames((m.Country||"").split(","));
-}
-function imdbVotesNum(m){
- if(!m.imdbVotes||m.imdbVotes==="N/A") return null;
- const n=parseInt(String(m.imdbVotes).replace(/[^0-9]/g,""),10);
- return isNaN(n)?null:n;
-}
-// Sıralı bir sayı dizisinde p. yüzdelik (lineer enterpolasyonlu) değeri.
-function statsPercentile(sortedVals,p){
- const n=sortedVals.length;
- if(!n) return null;
- if(n===1) return sortedVals[0];
- const idx=(p/100)*(n-1);
- const lo=Math.floor(idx), hi=Math.ceil(idx);
- if(lo===hi) return sortedVals[lo];
- return sortedVals[lo]+(sortedVals[hi]-sortedVals[lo])*(idx-lo);
 }
 function statsScrollTo(id){
  const el=document.getElementById(id);
@@ -1039,36 +1003,6 @@ function lazyLoadStatsPosterImgs(container){
  });
 }
 
-/* ---- Yıllara göre ---- */
-function statsSectionYears(movies){
- const counts={};
- statsYearMoviesMap={};
- statsUniqueMovies(movies).forEach(m=>{
-   const y=statsYearOf(m);
-   if(!y) return;
-   counts[y]=(counts[y]||0)+1;
-   (statsYearMoviesMap[y]=statsYearMoviesMap[y]||[]).push(m);
- });
- const years=Object.keys(counts).map(Number).sort((a,b)=>a-b);
- if(!years.length) return "";
- const minY=years[0], maxY=years[years.length-1];
- const maxCount=Math.max(...Object.values(counts));
- let bars="";
- for(let y=minY;y<=maxY;y++){
-   const c=counts[y]||0;
-   const h=maxCount?(c?Math.max(c/maxCount*100,4):0):0;
-   // Not: native "title" tooltip'i BİLEREK kullanılmıyor - tarayıcı bunu
-   // farenin altına çiziyor ve okunamıyordu. Bunun yerine mouseover/mousemove
-   // ile üstte gösterilen özel .stats-tooltip kullanılıyor (bkz. aşağıdaki
-   // olay dinleyicileri) ve tıklanınca o yılın filmleri listeleniyor.
-   bars+=`<div class="year-bar-wrap" data-year="${y}" data-count="${c}"><div class="year-bar" style="height:${h}%"></div></div>`;
- }
- return `<div class="stats-section" id="stats-sec-years">
-  <div class="stats-section-head"><span class="stats-section-title">Yıllara Göre</span></div>
-  <div class="year-chart">${bars}</div>
-  <div class="year-range-labels"><span>${minY}</span><span>${maxY}</span></div>
- </div>`;
-}
 
 /* ---- On yıllara göre derecelendirme: yan yana sekmeler + seçili on yılın TÜM filmleri altta ---- */
 let statsDecadeSelected=null;     // seçili on yıl (örn. 1990) - sekme durumu
@@ -1878,46 +1812,21 @@ function statsHideTooltip(){ statsTooltipEl.classList.remove("show"); }
 
 const statsBodyEl=document.getElementById("statsBody");
 statsBodyEl.addEventListener("mouseover",e=>{
- const bar=e.target.closest(".year-bar-wrap");
- if(bar){ statsShowTooltip(`${bar.dataset.year}: ${bar.dataset.count} film`,e.clientX,e.clientY); return; }
  const ratingBar=e.target.closest(".rating-hist-bar-wrap");
- if(ratingBar){
-   if(ratingBar.dataset.diffbin!==undefined){
-     const b=ratingBar.dataset.diffbin, label=Number(b)>0?`+${b}`:b;
-     statsShowTooltip(`Fark ${label}: ${ratingBar.dataset.count} film`,e.clientX,e.clientY);
-   } else {
-     statsShowTooltip(`${ratingBar.dataset.bin} Yıldız: ${ratingBar.dataset.count} film`,e.clientX,e.clientY);
-   }
- }
+ if(ratingBar) statsShowTooltip(`${ratingBar.dataset.bin} Yıldız: ${ratingBar.dataset.count} film`,e.clientX,e.clientY);
 });
 statsBodyEl.addEventListener("mousemove",e=>{
- const bar=e.target.closest(".year-bar-wrap");
- if(bar){ statsShowTooltip(`${bar.dataset.year}: ${bar.dataset.count} film`,e.clientX,e.clientY); return; }
  const ratingBar=e.target.closest(".rating-hist-bar-wrap");
- if(ratingBar){
-   if(ratingBar.dataset.diffbin!==undefined){
-     const b=ratingBar.dataset.diffbin, label=Number(b)>0?`+${b}`:b;
-     statsShowTooltip(`Fark ${label}: ${ratingBar.dataset.count} film`,e.clientX,e.clientY);
-   } else {
-     statsShowTooltip(`${ratingBar.dataset.bin} Yıldız: ${ratingBar.dataset.count} film`,e.clientX,e.clientY);
-   }
- }
+ if(ratingBar) statsShowTooltip(`${ratingBar.dataset.bin} Yıldız: ${ratingBar.dataset.count} film`,e.clientX,e.clientY);
 });
 statsBodyEl.addEventListener("mouseout",e=>{
- if(e.target.closest(".year-bar-wrap") || e.target.closest(".rating-hist-bar-wrap")) statsHideTooltip();
+ if(e.target.closest(".rating-hist-bar-wrap")) statsHideTooltip();
 });
 
 /* ---- Bir yıla / türe / oyuncuya / yönetmene / puan farkı kutusuna / ikiliye
    / seriye / Film DNA eksenine tıklandığında o kritere uyan filmleri
    afişleriyle listeleyen genel tıklama dinleyicisi ---- */
 statsBodyEl.addEventListener("click",e=>{
- const bar=e.target.closest(".year-bar-wrap");
- if(bar){
-   const y=bar.dataset.year;
-   const movies=statsYearMoviesMap[y]||[];
-   if(movies.length) openStatsList(`${y} Filmleri`,movies);
-   return;
- }
  const ratingBar=e.target.closest(".rating-hist-bar-wrap");
  if(ratingBar){
    const bin=ratingBar.dataset.bin;
@@ -2396,7 +2305,7 @@ const watchProviderCache={};
 // Google Play Filmler listelenmesin; "... with Ads" / "... Amazon Channel"
 // gibi varyantlar ana platform adına indirgenir (Netflix, Netflix Standard with
 // Ads -> tek "Netflix").
-function isHiddenProvider(name){ return /google\s*play/i.test(name||""); }
+function isHiddenProvider(name){ return /google\s*play|apple/i.test(name||""); }
 function normProviderName(name){
  return String(name||"")
    .replace(/\s+(?:Standard|Basic)?\s*with\s+Ads$/i,"")
@@ -2477,7 +2386,7 @@ function providerNamesOfMovie(m){
  const info=turkishCache[m.imdbID];
  const tid=info&&info.tmdbId;
  const rec=tid&&providerStore[tid];
- return rec?rec.n:[];
+ return rec?rec.n.filter(n=>!isHiddenProvider(n)):[];
 }
 function renderPlatformRow(){
  const row=document.getElementById("platformRow");
@@ -3087,9 +2996,7 @@ function fetchPoster(imdbID,imgEl,title,year){
 // Telefonda kartlar artık normal şekilde kaydırılabilir (scroll), taşıma
 // işlemi yapılamaz; taşımak için "izlendi" (✔) veya "sil" (✕) butonları,
 // ya da PC'den (fare ile) sürükleme kullanılabilir.
-const LONG_PRESS_MS=300;
 const DRAG_MOVE_THRESHOLD=8; // fare: düz tıkla sürüklemeyi ayırt etmek için (fare titremez, dar tutulabilir)
-const TOUCH_CANCEL_THRESHOLD=20; // (artık kullanılmıyor, dokunmatik sürükleme kapalı)
 
 function canReorderList(type){
  if(sortState[type]!=="added-desc" && sortState[type]!=="added-asc") return false;
@@ -3261,7 +3168,7 @@ document.addEventListener("dragstart",e=>{ if(e.target.closest(".movie")) e.prev
 
 function attachDragHandlers(cardEl,id,type){
  let dragging=false, longPressTimer=null, ghost=null, startX=0, startY=0, capturedPointerId=null;
- let lastTargetType=null, lastInsertIndex=0, lastClientX=0, lastClientY=0;
+ let lastTargetType=null, lastInsertIndex=0;
 
  function positionGhost(x,y){
    if(!ghost) return;
@@ -3308,7 +3215,6 @@ function attachDragHandlers(cardEl,id,type){
  }
 
  function onMove(e){
-   lastClientX=e.clientX; lastClientY=e.clientY;
    if(!dragging){
      const moved=Math.abs(e.clientX-startX)>DRAG_MOVE_THRESHOLD||Math.abs(e.clientY-startY)>DRAG_MOVE_THRESHOLD;
      if(!moved) return;
@@ -3359,7 +3265,6 @@ function attachDragHandlers(cardEl,id,type){
    if(e.target.closest(".delete-btn,.tick-btn,.poster-link,.person-link")) return;
    e.preventDefault();
    startX=e.clientX; startY=e.clientY;
-   lastClientX=e.clientX; lastClientY=e.clientY;
    lastTargetType=null;
    lastInsertIndex=0;
    capturedPointerId=e.pointerId;
@@ -4723,47 +4628,7 @@ async function backfillGenres(){
  if(changed){ render(); saveToCache(); }
 }
 
-/* ===================== İÇE / DIŞA AKTAR ===================== */
 
-async function handleImportFile(file){
- if(!file) return;
- const statusEl=document.getElementById("syncStatus");
- try{
-   const text=await file.text();
-   const data=JSON.parse(text);
-   const items=[];
-   for(const type of ["watched","watchlist"]){
-     (data[type]||[]).forEach((m,i)=>{ if(m.imdbID) items.push({type,m,i}); });
-   }
-   const base=Date.now()-items.length*1000;
-   let n=0;
-   for(let i=0;i<items.length;i+=400){
-     const chunk=items.slice(i,i+400);
-     const batch=db.batch();
-     chunk.forEach((item,idx)=>{
-       item.m._addedAt=base+(i+idx)*1000;
-       batch.set(db.collection(item.type).doc(item.m.imdbID), item.m);
-     });
-     await batch.commit();
-     n+=chunk.length;
-     if(statusEl) statusEl.textContent=`İçe aktarılıyor… ${n}/${items.length}`;
-   }
-   alert(`İçe aktarma tamamlandı: ${n} film eklendi.`);
-   reload();
- }catch(e){
-   console.error(e);
-   alert("İçe aktarma başarısız oldu: "+e.message);
- }
-}
-
-function exportData(){
- const blob=new Blob([JSON.stringify(allData,null,2)],{type:"application/json"});
- const url=URL.createObjectURL(blob);
- const a=document.createElement("a");
- a.href=url; a.download="movies_backup.json";
- a.click();
- URL.revokeObjectURL(url);
-}
 
 function isScrollContainer(el){
  return el && el.scrollHeight > el.clientHeight + 2;
