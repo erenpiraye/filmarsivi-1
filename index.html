@@ -3024,7 +3024,7 @@ function applyDisplayOrder(type,displayIds,movedId,newAddedAt){
    :displayIds.map(id=>map.get(id)).filter(Boolean);
  if(movedId!=null){
    const now=Date.now();
-   newArray=newArray.map(m=>m.imdbID===movedId?{...m,_addedAt:newAddedAt,_updatedAt:now}:m);
+   newArray=newArray.map(m=>m.imdbID===movedId?{...m,_order:newAddedAt,_updatedAt:now}:m);
  }
  allData[type]=newArray;
 }
@@ -3082,10 +3082,18 @@ function showDropVisual(listEl,insertIndex){
 // eskiden burada tüm listenin zaman damgası yeniden yazılıyordu ve üst
 // sıradaki filmler dakikalarca "gelecek" bir tarihe sahip oluyordu; az sonra
 // eklenen yeni bir film o yüzden en üste değil, onların altına düşüyordu.
+// Elle sıralama anahtarı: kart sürüklenince YALNIZCA _order değişir. İzlenme /
+// eklenme tarihi (_addedAt) asla değişmez; _order yoksa sıra tarihe göredir.
+function movieOrderKey(m){
+ if(m && typeof m._order==="number") return m._order;
+ if(m && typeof m._addedAt==="number") return m._addedAt;
+ return 0;
+}
+
 function computeNeighborAddedAt(type,idsExcludingMoved,k){
  const mode=sortState[type];
  const map=new Map(allData[type].map(m=>[m.imdbID,m]));
- const getAt=m=>(m&&typeof m._addedAt==="number")?m._addedAt:0;
+ const getAt=movieOrderKey;
  const beforeM=k>0?map.get(idsExcludingMoved[k-1]):null;
  const afterM=k<idsExcludingMoved.length?map.get(idsExcludingMoved[k]):null;
 
@@ -3102,7 +3110,7 @@ function computeNeighborAddedAt(type,idsExcludingMoved,k){
 
 function persistMovedItem(type,id,newAddedAt){
  saveToCache();
- db.collection(type).doc(id).update({_addedAt:newAddedAt,_updatedAt:Date.now()}).catch(e=>console.error(e));
+ db.collection(type).doc(id).update({_order:newAddedAt,_updatedAt:Date.now()}).catch(e=>console.error(e));
 }
 
 function reorderInList(type,id,toDisplayIndex){
@@ -3141,7 +3149,7 @@ async function moveToListAt(id,fromType,toType,toDisplayIndex){
 
  allData[fromType]=allData[fromType].filter(m=>m.imdbID!==id);
  const now=Date.now();
- allData[toType]=[...allData[toType],{...movie,_addedAt:newAddedAt,_updatedAt:now}];
+ allData[toType]=[...allData[toType],{...movie,_addedAt:now,_order:newAddedAt,_updatedAt:now}];
  if(targetIds) applyDisplayOrder(toType,targetIds,null,null);
  render();
  saveToCache();
@@ -3150,7 +3158,8 @@ async function moveToListAt(id,fromType,toType,toDisplayIndex){
    const srcSnap=await db.collection(fromType).doc(id).get();
    if(!srcSnap.exists) return;
    const data=srcSnap.data();
-   data._addedAt=newAddedAt;
+   data._addedAt=now;
+   data._order=newAddedAt;
    data._updatedAt=now;
    await db.collection(toType).doc(id).set(data);
    await db.collection(fromType).doc(id).delete();
@@ -3341,7 +3350,7 @@ async function move(id){
  // Optimistic: hemen izlenene taşı, tarihi tazele (en üste çıksın).
  if(movie){
    allData.watchlist=allData.watchlist.filter(m=>m.imdbID!==id);
-   allData.watched=[...allData.watched,{...movie,_addedAt:now,_updatedAt:now}];
+   allData.watched=[...allData.watched,{...movie,_addedAt:now,_order:null,_updatedAt:now}];
    render();
    saveToCache();
  }
@@ -3351,6 +3360,7 @@ async function move(id){
    if(snap.exists){
      const data=snap.data();
      data._addedAt=now;
+     delete data._order;
      data._updatedAt=now;
      await db.collection("watched").doc(id).set(data);
      await db.collection("watchlist").doc(id).delete();
@@ -3374,7 +3384,7 @@ async function moveToWatchlist(id){
  // Optimistic: hemen izleneceklere taşı, tarihi tazele.
  if(movie){
    allData.watched=allData.watched.filter(m=>m.imdbID!==id);
-   allData.watchlist=[...allData.watchlist,{...movie,_addedAt:now,_updatedAt:now}];
+   allData.watchlist=[...allData.watchlist,{...movie,_addedAt:now,_order:null,_updatedAt:now}];
    render();
    saveToCache();
  }
@@ -3384,6 +3394,7 @@ async function moveToWatchlist(id){
    if(snap.exists){
      const data=snap.data();
      data._addedAt=now;
+     delete data._order;
      data._updatedAt=now;
      await db.collection("watchlist").doc(id).set(data);
      await db.collection("watched").doc(id).delete();
@@ -3950,7 +3961,7 @@ async function reload(){
      db.collection("watched").get(),
      db.collection("watchlist").get()
    ]);
-   const sortByAdded=arr=>arr.slice().sort((a,b)=>(a._addedAt||0)-(b._addedAt||0));
+   const sortByAdded=arr=>arr.slice().sort((a,b)=>movieOrderKey(a)-movieOrderKey(b));
    _renderIfChanged({
      watched: sortByAdded(watchedSnap.docs.map(d=>d.data())),
      watchlist: sortByAdded(watchlistSnap.docs.map(d=>d.data()))
