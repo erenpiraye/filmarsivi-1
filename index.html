@@ -276,6 +276,18 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 .platform-btn.active{background:#d9a441;border-color:#d9a441;color:#111;font-weight:bold}
 .platform-btn.active i{color:#333}
 .platform-progress{flex:0 0 auto;color:#888;font-size:11px;white-space:nowrap}
+#pinGate{position:fixed;inset:0;z-index:2147483000;background:#141414;display:flex;align-items:center;justify-content:center;padding:20px}
+#pinGate.pin-hidden{display:none}
+#pinGate.pin-checking .pin-box{visibility:hidden}
+.pin-box{width:100%;max-width:300px;display:flex;flex-direction:column;gap:12px;text-align:center}
+.pin-title{color:#d9a441;font-size:22px;font-weight:bold}
+.pin-sub{color:#999;font-size:14px;margin-bottom:6px}
+.pin-input{width:100%;box-sizing:border-box;background:#222;border:1px solid #444;color:#eee;border-radius:10px;padding:12px;font-size:20px;text-align:center;letter-spacing:6px;outline:none}
+.pin-input:focus{border-color:#d9a441}
+.pin-btn{background:#d9a441;color:#111;border:0;border-radius:10px;padding:12px;font-size:16px;font-weight:bold;cursor:pointer}
+.pin-btn:disabled{opacity:.5;cursor:default}
+.pin-msg{min-height:18px;color:#e57373;font-size:13px}
+.pin-msg.ok{color:#999}
 .detail-providers{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:-4px 0 16px}
 .detail-provider-label{color:#d9a441;font-size:11px;font-weight:bold;text-transform:uppercase;letter-spacing:.5px;margin-right:2px}
 .detail-provider-tag{background:#2a2a2a;border:1px solid #444;color:#ccc;padding:4px 10px;border-radius:14px;font-size:12px}
@@ -535,6 +547,15 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 </style>
 </head>
 <body>
+<div id="pinGate" class="pin-checking" role="dialog" aria-modal="true" aria-label="PIN girişi">
+ <form class="pin-box" onsubmit="submitPin(event)" autocomplete="off">
+  <div class="pin-title">🎬 Film Arşivi</div>
+  <div class="pin-sub">Devam etmek için PIN girin</div>
+  <input id="pinInput" class="pin-input" type="password" inputmode="numeric" autocomplete="current-password" placeholder="PIN" aria-label="PIN" maxlength="64">
+  <button id="pinBtn" class="pin-btn" type="submit">Giriş</button>
+  <div id="pinMsg" class="pin-msg" aria-live="polite"></div>
+ </form>
+</div>
 
 <div class="detail-overlay" id="detailOverlay" onclick="if(event.target===this)closeDetail()">
  <div class="detail-modal" id="detailModalBox">
@@ -812,13 +833,58 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// PC sürümündeki (firestore_sync.py) ile AYNI sabit uygulama hesabı.
-// Kurallar artık "if true" değil, "if request.auth != null" olduğu için
-// Firestore'a her dokunmadan önce bu girişin tamamlanmış olması gerekiyor.
+// PC sürümündeki (firestore_sync.py) ile AYNI uygulama hesabı. Hesabın şifresi
+// artık kaynak kodda YOK: PIN'den türetilir (set_pin.py ile aynı formül) ve
+// doğrulamayı Firebase sunucusu yapar. Kaynağı GitHub'dan alan biri PIN'i
+// bilmeden veriye erişemez/değiştiremez. Oturum bu cihazda hatırlanır; PIN
+// yalnızca yeni bir cihaz/tarayıcıda (veya oturum kapatılınca) sorulur.
 const APP_EMAIL = "eren.filmarsivi@internal.app";
-const APP_PASSWORD = "Eren9285.";
-const authReady = firebase.auth().signInWithEmailAndPassword(APP_EMAIL, APP_PASSWORD)
-  .catch(err => { console.error("Firebase Auth giriş hatası:", err); });
+async function pinToPassword(pin){
+  if(!(window.crypto && crypto.subtle)) throw new Error("no-crypto");
+  const buf=await crypto.subtle.digest("SHA-256",new TextEncoder().encode("filmarsivi|"+pin));
+  const hex=Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,"0")).join("");
+  return "fa_"+hex.slice(0,40);
+}
+let _authResolve;
+const authReady = new Promise(res=>{ _authResolve=res; });
+const _pinGate=document.getElementById("pinGate");
+const _pinInput=document.getElementById("pinInput");
+const _pinBtn=document.getElementById("pinBtn");
+const _pinMsg=document.getElementById("pinMsg");
+function _pinSetMsg(t,ok){ _pinMsg.textContent=t||""; _pinMsg.classList.toggle("ok",!!ok); }
+firebase.auth().onAuthStateChanged(user=>{
+  if(user && user.email===APP_EMAIL){
+    _pinGate.classList.add("pin-hidden");
+    _authResolve();
+  }else{
+    _pinGate.classList.remove("pin-hidden","pin-checking");
+    _pinBtn.disabled=false;
+    setTimeout(()=>{ try{ _pinInput.focus(); }catch(e){} },50);
+  }
+});
+async function submitPin(ev){
+  if(ev) ev.preventDefault();
+  const pin=_pinInput.value.trim();
+  if(!pin) return;
+  _pinBtn.disabled=true;
+  _pinSetMsg("Kontrol ediliyor…",true);
+  try{
+    const pw=await pinToPassword(pin);
+    await firebase.auth().signInWithEmailAndPassword(APP_EMAIL,pw);
+    _pinInput.value="";
+    _pinSetMsg("");
+  }catch(err){
+    const c=(err&&err.code)||"";
+    if(c==="auth/too-many-requests") _pinSetMsg("Çok fazla hatalı deneme. Bir süre bekleyip tekrar deneyin.");
+    else if(c==="auth/network-request-failed") _pinSetMsg("Bağlantı hatası. İnternetinizi kontrol edin.");
+    else if(err&&err.message==="no-crypto") _pinSetMsg("Bu sayfa güvenli (https) bağlantıyla açılmalı.");
+    else _pinSetMsg("PIN yanlış.");
+    _pinInput.select();
+  }
+  _pinBtn.disabled=false;
+}
+// İsteğe bağlı: bu cihazda oturumu kapatıp PIN ekranını geri getirir.
+function lockApp(){ firebase.auth().signOut().then(()=>location.reload()); }
 
 // via.placeholder.com artık çalışmıyor (servis kapandı) - afiş/fotoğraf eksikse
 // yerel, ağa bağlı olmayan bir SVG kullanılıyor.
