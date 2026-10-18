@@ -2258,16 +2258,30 @@ function lazyLoadStatsPhotosOnScroll(rootEl){
 }
 
 
-const OMDB_API_KEY = "3fe09fcd";
-// Mobil sürüm config.json okuyamıyor (bağımsız statik sayfa), o yüzden PC ile
-// aynı iki anahtar burada sabit tutuluyor. TEK anahtar kullanmak asıl sorundu:
-// çok sayıda film olan hesaplarda (ön-yükleme + oyuncu/kişi istekleri) bu tek
-// anahtar TMDB'nin hız sınırına (429) çok kolay takılıyor, o andan sonra TMDB
-// bilgisi/oyuncular BAZI filmlerde hiç gelmiyordu. Artık PC'deki gibi anahtar
-// değiştirerek devam ediyor.
-let TMDB_KEYS=["a5857b5312ef2f6ba36d4e5314c2b231","740c0c0aacc8c5f292083b11e9dc3de2"];
+// TMDB/OMDb anahtarları artık bu dosyada (GitHub'da) YOK. PIN ile giriş
+// yapıldıktan sonra Firestore'daki "config/keys" belgesinden okunur (bu belgeyi
+// yalnızca giriş yapmış uygulama hesabı okuyabilir). Belgeyi upload_keys.py yazar.
+// TMDB'de birden fazla anahtar var çünkü tek anahtar hız sınırına (429) çabuk
+// takılıyor; biri hata verince diğerine geçilir (aşağıdaki fetchJson).
+let OMDB_API_KEY="";
+let TMDB_KEYS=[];
 let tmdbKeyIndex=0;
-let TMDB_KEY=TMDB_KEYS[tmdbKeyIndex];
+let TMDB_KEY="";
+async function loadApiKeys(){
+ try{
+   const snap=await db.collection("config").doc("keys").get();
+   const k=snap.exists?snap.data():null;
+   if(!k) throw new Error("config/keys belgesi yok");
+   const t=[].concat(k.tmdb||[]).filter(Boolean);
+   if(t.length){ TMDB_KEYS=t; tmdbKeyIndex=0; TMDB_KEY=TMDB_KEYS[0]; }
+   const o=[].concat(k.omdb||[]).filter(Boolean);
+   if(o.length) OMDB_API_KEY=o[0];
+ }catch(e){
+   console.error("API anahtarları alınamadı:",e);
+   const st=document.getElementById("syncStatus");
+   if(st) st.textContent="API anahtarları alınamadı";
+ }
+}
 const MY_STAR_SVG_SMALL='<svg viewBox="0 0 24 24" width="14" height="14" style="vertical-align:-2px"><path d="M12 2.5l2.9 6.24 6.87.86-5.06 4.76 1.4 6.79L12 17.9l-6.11 3.25 1.4-6.79-5.06-4.76 6.87-.86z" fill="none" stroke="#4fa8e8" stroke-width="1.6" stroke-linejoin="round"/></svg>';
 const MY_STAR_SVG_BIG='<svg viewBox="0 0 24 24" width="20" height="20"><path d="M12 2.5l2.9 6.24 6.87.86-5.06 4.76 1.4 6.79L12 17.9l-6.11 3.25 1.4-6.79-5.06-4.76 6.87-.86z" fill="none" stroke="#4fa8e8" stroke-width="1.6" stroke-linejoin="round"/></svg>';
 let turkishCache={};   // imdbID -> {title, poster, genres:[...]}
@@ -4759,17 +4773,22 @@ function toggleView(type){
 // (Hiç önbellek yoksa - ilk açılış - bir kereliğine buluttan çekiyoruz.)
 // TMDB bilgilerini diskten (localStorage) yükle - film listesinden ÖNCE,
 // böylece ilk çizimde ve istatistiklerde tam kadro/tür bilgisi hazır olur.
-loadTmdbCache();
-if(!loadFromCache()){
- reload().then(()=>{ syncOverlaysToHistory(); });
-}else{
- const statusEl=document.getElementById("syncStatus");
- if(statusEl) statusEl.textContent="";
- // Sayfa, açık bir film kartıyla history state'i varken (ör. IMDb/TMDB
- // ziyaretinden dönüşte) sıfırdan yeniden yüklenmiş olabilir - veri artık
- // hazır olduğuna göre ilgili kartı hemen geri aç.
- syncOverlaysToHistory();
+// Uygulama, PIN girilip anahtarlar alındıktan SONRA başlar: PIN verilmeden ne
+// liste çizilir ne de TMDB/OMDb isteği atılır.
+function startApp(){
+ loadTmdbCache();
+ if(!loadFromCache()){
+  reload().then(()=>{ syncOverlaysToHistory(); });
+ }else{
+  const statusEl=document.getElementById("syncStatus");
+  if(statusEl && statusEl.textContent!=="API anahtarları alınamadı") statusEl.textContent="";
+  // Sayfa, açık bir film kartıyla history state'i varken (ör. IMDb/TMDB
+  // ziyaretinden dönüşte) sıfırdan yeniden yüklenmiş olabilir - veri artık
+  // hazır olduğuna göre ilgili kartı hemen geri aç.
+  syncOverlaysToHistory();
+ }
 }
+authReady.then(loadApiKeys).then(startApp);
 </script>
 
 </body>
