@@ -280,8 +280,6 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 #pinGate.pin-hidden{display:none}
 #pinGate.pin-checking .pin-box{visibility:hidden}
 .pin-box{width:100%;max-width:300px;display:flex;flex-direction:column;gap:12px;text-align:center}
-.pin-title{color:#d9a441;font-size:22px;font-weight:bold}
-.pin-sub{color:#999;font-size:14px;margin-bottom:6px}
 .pin-input{width:100%;box-sizing:border-box;background:#222;border:1px solid #444;color:#eee;border-radius:10px;padding:12px;font-size:20px;text-align:center;letter-spacing:6px;outline:none}
 .pin-input:focus{border-color:#d9a441}
 .pin-btn{background:#d9a441;color:#111;border:0;border-radius:10px;padding:12px;font-size:16px;font-weight:bold;cursor:pointer}
@@ -549,9 +547,7 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 <body>
 <div id="pinGate" class="pin-checking" role="dialog" aria-modal="true" aria-label="PIN girişi">
  <form class="pin-box" onsubmit="submitPin(event)" autocomplete="off">
-  <div class="pin-title">🎬 Film Arşivi</div>
-  <div class="pin-sub">Devam etmek için PIN girin</div>
-  <input id="pinInput" class="pin-input" type="password" inputmode="numeric" autocomplete="current-password" placeholder="PIN" aria-label="PIN" maxlength="64">
+  <input id="pinInput" class="pin-input" type="password" inputmode="numeric" autocomplete="current-password" aria-label="PIN" maxlength="64">
   <button id="pinBtn" class="pin-btn" type="submit">Giriş</button>
   <div id="pinMsg" class="pin-msg" aria-live="polite"></div>
  </form>
@@ -836,8 +832,8 @@ const db = firebase.firestore();
 // PC sürümündeki (firestore_sync.py) ile AYNI uygulama hesabı. Hesabın şifresi
 // artık kaynak kodda YOK: PIN'den türetilir (set_pin.py ile aynı formül) ve
 // doğrulamayı Firebase sunucusu yapar. Kaynağı GitHub'dan alan biri PIN'i
-// bilmeden veriye erişemez/değiştiremez. Oturum bu cihazda hatırlanır; PIN
-// yalnızca yeni bir cihaz/tarayıcıda (veya oturum kapatılınca) sorulur.
+// bilmeden veriye erişemez/değiştiremez. Oturum hatırlanmaz: sayfa her
+// açıldığında PIN sorulur.
 const APP_EMAIL = "eren.filmarsivi@internal.app";
 async function pinToPassword(pin){
   if(!(window.crypto && crypto.subtle)) throw new Error("no-crypto");
@@ -852,16 +848,26 @@ const _pinInput=document.getElementById("pinInput");
 const _pinBtn=document.getElementById("pinBtn");
 const _pinMsg=document.getElementById("pinMsg");
 function _pinSetMsg(t,ok){ _pinMsg.textContent=t||""; _pinMsg.classList.toggle("ok",!!ok); }
-firebase.auth().onAuthStateChanged(user=>{
-  if(user && user.email===APP_EMAIL){
-    _pinGate.classList.add("pin-hidden");
-    _authResolve();
-  }else{
-    _pinGate.classList.remove("pin-hidden","pin-checking");
-    _pinBtn.disabled=false;
-    setTimeout(()=>{ try{ _pinInput.focus(); }catch(e){} },50);
-  }
-});
+// Oturum hiçbir yerde saklanmaz (Persistence.NONE) ve açılışta varsa eski
+// oturum kapatılır: sayfa her açıldığında/yenilendiğinde PIN sorulur.
+// Dinleyici, bu işlem bitmeden bağlanmaz; yoksa eski oturum kısa süre "açık"
+// görünüp kilidi atlatabilirdi.
+const _auth=firebase.auth();
+_auth.setPersistence(firebase.auth.Auth.Persistence.NONE)
+  .then(()=>_auth.signOut())
+  .catch(e=>console.error("Auth ayarı:",e))
+  .then(()=>{
+    _auth.onAuthStateChanged(user=>{
+      if(user && user.email===APP_EMAIL){
+        _pinGate.classList.add("pin-hidden");
+        _authResolve();
+      }else{
+        _pinGate.classList.remove("pin-hidden","pin-checking");
+        _pinBtn.disabled=false;
+        setTimeout(()=>{ try{ _pinInput.focus(); }catch(e){} },50);
+      }
+    });
+  });
 async function submitPin(ev){
   if(ev) ev.preventDefault();
   const pin=_pinInput.value.trim();
@@ -883,8 +889,6 @@ async function submitPin(ev){
   }
   _pinBtn.disabled=false;
 }
-// İsteğe bağlı: bu cihazda oturumu kapatıp PIN ekranını geri getirir.
-function lockApp(){ firebase.auth().signOut().then(()=>location.reload()); }
 
 // via.placeholder.com artık çalışmıyor (servis kapandı) - afiş/fotoğraf eksikse
 // yerel, ağa bağlı olmayan bir SVG kullanılıyor.
