@@ -1927,7 +1927,7 @@ statsBodyEl.addEventListener("click",e=>{
  if(pairCard){
    const idx=pairCard.dataset.pairIdx;
    const movies=statsPairsMoviesMap[idx]||[];
-   if(movies.length) openStatsList(pairCard.dataset.pairTitle||"İkili",movies);
+   if(movies.length) openStatsList(pairCard.dataset.pairTitle||"İkili",movies,true);
    return;
  }
  const hCard=e.target.closest(".stat-highlight-card[data-kind]");
@@ -1937,7 +1937,7 @@ statsBodyEl.addEventListener("click",e=>{
    if(kind==="genre") movies=(statsBreakdownMoviesMap.genre&&statsBreakdownMoviesMap.genre[name])||[];
    else if(kind==="country") movies=(statsBreakdownMoviesMap.country&&statsBreakdownMoviesMap.country[name])||[];
    else if(kind==="director"||kind==="actor") movies=(statsPeopleMoviesMap[kind]&&statsPeopleMoviesMap[kind][name])||[];
-   if(movies.length) openStatsList(name,movies);
+   if(movies.length) openStatsList(name,movies,kind==="director"||kind==="actor");
    return;
  }
  const barRow=e.target.closest(".bar-row");
@@ -1952,7 +1952,7 @@ statsBodyEl.addEventListener("click",e=>{
    const kind=peopleItem.dataset.kind;
    const name=peopleItem.dataset.personName;
    const movies=(statsPeopleMoviesMap[kind]&&statsPeopleMoviesMap[kind][name])||[];
-   if(movies.length) openStatsList(name,movies);
+   if(movies.length) openStatsList(name,movies,kind==="director"||kind==="actor");
    return;
  }
 });
@@ -1960,12 +1960,30 @@ statsBodyEl.addEventListener("click",e=>{
 /* ---- Yıl/tür/kişi tıklamasıyla açılan film listesi modalı ----
    Başlığın yanına, hangi sekmeden açıldığına bakılmaksızın (yıl/tür/oyuncu/
    yönetmen), kaç film bulunduğu her zaman ekleniyor. */
-function openStatsList(title,movies){
+// Ana sayfadaki sıralamayı (izlenenler/izlenecekler sütunlarında seçili sıralama)
+// film -> sıra numarası olarak verir. Oyuncu/yönetmen film listeleri bununla dizilir.
+function statsMainOrderRank(){
+ const rank=new Map(); let n=0;
+ ["watched","watchlist"].forEach(type=>{
+   const list=allData[type]||[];
+   sortIndexed(list.map((m,i)=>({m,i})),sortState[type]).forEach(x=>{
+     if(!rank.has(x.m.imdbID)) rank.set(x.m.imdbID,n++);
+   });
+ });
+ return rank;
+}
+function openStatsList(title,movies,byMainOrder){
  // Başlıktaki sayı ile aşağıdaki afiş sayısı her zaman aynı olsun diye liste
  // burada da tekilleştirilir; sıralama eşitliklerde başlığa göre sabitlenir.
  const unique=statsUniqueMovies(movies);
  document.getElementById("statsListTitle").textContent=`${title} (${unique.length})`;
- const sorted=unique.slice().sort((a,b)=>((statsYearOf(b)||0)-(statsYearOf(a)||0)) || String(a.Title||"").localeCompare(String(b.Title||""),"tr"));
+ let sorted;
+ if(byMainOrder){
+   const rank=statsMainOrderRank(), far=1e9;
+   sorted=unique.slice().sort((a,b)=>(rank.has(a.imdbID)?rank.get(a.imdbID):far)-(rank.has(b.imdbID)?rank.get(b.imdbID):far));
+ }else{
+   sorted=unique.slice().sort((a,b)=>((statsYearOf(b)||0)-(statsYearOf(a)||0)) || String(a.Title||"").localeCompare(String(b.Title||""),"tr"));
+ }
  const body=document.getElementById("statsListBody");
  body.innerHTML = sorted.length
    ? `<div class="stats-movie-grid">`+sorted.map(m=>{
@@ -2276,6 +2294,8 @@ function lazyLoadStatsPhotosOnScroll(rootEl){
 // TMDB'de birden fazla anahtar var çünkü tek anahtar hız sınırına (429) çabuk
 // takılıyor; biri hata verince diğerine geçilir (aşağıdaki fetchJson).
 let OMDB_API_KEY="";
+let OMDB_KEYS=[];
+let omdbKeyIndex=0;
 let TMDB_KEYS=[];
 let tmdbKeyIndex=0;
 let TMDB_KEY="";
@@ -2287,7 +2307,7 @@ async function loadApiKeys(){
    const t=[].concat(k.tmdb||[]).filter(Boolean);
    if(t.length){ TMDB_KEYS=t; tmdbKeyIndex=0; TMDB_KEY=TMDB_KEYS[0]; }
    const o=[].concat(k.omdb||[]).filter(Boolean);
-   if(o.length) OMDB_API_KEY=o[0];
+   if(o.length){ OMDB_KEYS=o; omdbKeyIndex=0; OMDB_API_KEY=o[0]; }
  }catch(e){
    console.error("API anahtarları alınamadı:",e);
    const st=document.getElementById("syncStatus");
@@ -2990,6 +3010,140 @@ function searchPerson(name,role,type,myGen){
  .catch(()=>{});
 }
 
+/* ===================== IMDb PUANI GÜNCELLİĞİ =====================
+   Filmin IMDb puanı eskiden yalnızca eklendiği anda kaydediliyordu ve bir daha
+   güncellenmiyordu (öneri kartları ise canlı çekildiği için listedeki puanla
+   uyuşmuyordu). Artık:
+   - Uygulama açıldıktan sonra arka planda, 3 günden uzun süredir kontrol
+     edilmemiş filmlerin puanı OMDb'den tazelenir (bir açılışta en fazla 200 film,
+     OMDb günlük limitini aşmamak için; kalanı sonraki açılışta devam eder).
+   - Film detayı açılınca, son kontrolü 6 saatten eskiyse o film hemen kontrol edilir.
+   - Puan değiştiyse kart, detay, istatistik ve (rating sıralamasındaysa) liste
+     güncellenir; yeni puan kalıcı olarak kaydedilir.
+   Son kontrol zamanı bu cihazın tarayıcısında tutulur (kayıtlara yazılmaz). */
+const RATING_TTL_MS=3*24*3600*1000;
+const RATING_OPEN_TTL_MS=6*3600*1000;
+const RATING_MAX_PER_RUN=200;
+const RATING_LS_KEY="filmarsivi_rating_checked_v1";
+let ratingChecked={};
+try{ ratingChecked=JSON.parse(localStorage.getItem(RATING_LS_KEY)||"{}")||{}; }catch(e){ ratingChecked={}; }
+let _ratingSaveTimer=null;
+function saveRatingChecked(){
+ clearTimeout(_ratingSaveTimer);
+ _ratingSaveTimer=setTimeout(()=>{ try{ localStorage.setItem(RATING_LS_KEY,JSON.stringify(ratingChecked)); }catch(e){} },1000);
+}
+function ratingValid(v){ return !!v && v!=="N/A" && !isNaN(parseFloat(v)); }
+function _ratingFindMovie(id){
+ return allData.watched.find(m=>m.imdbID===id)||allData.watchlist.find(m=>m.imdbID===id)||null;
+}
+async function fetchOmdbFull(id){
+ const d=await fetchOmdbById(id);
+ return (d && d.Response!=="False")?d:null;
+}
+function persistRatingChanges(changes){
+ saveToCache();
+ changes.forEach(c=>{
+   const type=allData.watched.some(m=>m.imdbID===c.id)?"watched":"watchlist";
+   const f={imdbRating:c.imdbRating};
+   if(c.imdbVotes) f.imdbVotes=c.imdbVotes;
+   db.collection(type).doc(c.id).update(f).catch(e=>console.error(e));
+ });
+}
+// Dönüş: değişiklik nesnesi | false (aynı/geçersiz) | null (istek başarısız)
+async function _checkRating(id){
+ const movie=_ratingFindMovie(id);
+ if(!movie) return false;
+ const d=await fetchOmdbFull(id);
+ if(!d) return null;
+ ratingChecked[id]=Date.now(); saveRatingChecked();
+ if(!ratingValid(d.imdbRating) || String(movie.imdbRating)===String(d.imdbRating)) return false;
+ return {id, imdbRating:String(d.imdbRating), imdbVotes:(d.imdbVotes&&d.imdbVotes!=="N/A")?String(d.imdbVotes):""};
+}
+function applyRatingChanges(changes){
+ if(!changes.length) return;
+ const byId=new Map(changes.map(c=>[c.id,c]));
+ ["watched","watchlist"].forEach(t=>{
+   allData[t].forEach(m=>{
+     const c=byId.get(m.imdbID);
+     if(c){ m.imdbRating=c.imdbRating; if(c.imdbVotes) m.imdbVotes=c.imdbVotes; }
+   });
+ });
+ changes.forEach(c=>{
+   document.querySelectorAll('.movie[data-id="'+c.id+'"] .imdb-line').forEach(el=>{
+     el.innerHTML='<span class="meta-icon">⭐</span> '+c.imdbRating;
+   });
+ });
+ try{
+   if(detailState && byId.has(detailState.id)){
+     const el=document.getElementById("detailImdbRating");
+     if(el) el.textContent=`${byId.get(detailState.id).imdbRating} / 10`;
+   }
+ }catch(e){}
+ persistRatingChanges(changes);
+ try{ refreshStatsIfOpen(); }catch(e){}
+}
+async function refreshImdbRating(id,maxAgeMs){
+ if(maxAgeMs!=null && Date.now()-(ratingChecked[id]||0)<maxAgeMs) return;
+ const c=await _checkRating(id);
+ if(c) applyRatingChanges([c]);
+}
+let _ratingRunStarted=false, _ratingTimer=null;
+function scheduleRatingRefresh(){
+ if(_ratingRunStarted) return;
+ clearTimeout(_ratingTimer);
+ _ratingTimer=setTimeout(runRatingRefresh,8000);
+}
+async function runRatingRefresh(){
+ if(_ratingRunStarted) return;
+ // İzlenecekler önce: karar verirken en çok onların puanına bakılır.
+ const all=[...allData.watchlist,...allData.watched];
+ if(!all.length) return; // veri henüz gelmedi; sonraki çizimde yeniden zamanlanır
+ _ratingRunStarted=true;
+ const now=Date.now();
+ const ids=all.map(m=>m.imdbID)
+   .filter(id=>id && now-(ratingChecked[id]||0)>RATING_TTL_MS)
+   .sort((a,b)=>(ratingChecked[a]||0)-(ratingChecked[b]||0))
+   .slice(0,RATING_MAX_PER_RUN);
+ if(!ids.length) return;
+ let i=0, fails=0, stop=false, pending=[], totalChanged=0;
+ const flush=()=>{
+   if(!pending.length) return;
+   const c=pending; pending=[]; totalChanged+=c.length;
+   applyRatingChanges(c);
+ };
+ const worker=async()=>{
+   while(!stop && i<ids.length){
+     const id=ids[i++];
+     const r=await _checkRating(id);
+     if(r===null){ if(++fails>=5) stop=true; } // limit/ağ sorunu: boşuna denemeyi bırak
+     else{
+       fails=0;
+       if(r){ pending.push(r); if(pending.length>=20) flush(); }
+     }
+     await new Promise(res=>setTimeout(res,150));
+   }
+ };
+ await Promise.all([worker(),worker(),worker()]);
+ flush();
+ if(totalChanged){
+   ["watched","watchlist"].forEach(t=>{ if(/^rating/.test(sortState[t])) renderColumn(t); });
+ }
+}
+// Arama sonuçlarındaki film için puan (OMDb "s=" araması puan döndürmez)
+const searchRatingCache=new Map();
+function fillSearchRating(id){
+ let p=searchRatingCache.get(id);
+ if(!p){
+   p=fetchOmdbFull(id).then(d=>(d&&d.imdbRating)?d.imdbRating:null).catch(()=>null);
+   searchRatingCache.set(id,p);
+ }
+ p.then(r=>{
+   if(!r) searchRatingCache.delete(id); // başarısızsa sonraki aramada tekrar denensin
+   const el=document.getElementById("sr-rating-"+id);
+   if(el) el.textContent=r||"N/A";
+ });
+}
+
 /* ===================== KARTLAR ===================== */
 
 function addSearchResultCard(m,type,myGen){
@@ -3004,8 +3158,10 @@ function addSearchResultCard(m,type,myGen){
  <div>
  <b>${m.Title}</b> (${m.Year})
  <div class="tr-title" id="tr-${m.imdbID}"></div>
+ <div class="meta"><span class="meta-icon">⭐</span> <span id="sr-rating-${m.imdbID}">${(m.imdbRating&&m.imdbRating!=="undefined")?m.imdbRating:"…"}</span></div>
  </div>`;
  list.appendChild(div);
+ if(!m.imdbRating) fillSearchRating(m.imdbID);
 
  const imgEl=div.querySelector("img");
  imgEl.onerror=()=>fetchPoster(m.imdbID,imgEl,m.Title,m.Year);
@@ -3037,7 +3193,7 @@ function card(m,i,isWatch){
  <div>
  <b>${m.Title}</b> (${m.Year})
  <div class="tr-title">${trTitle}</div>
- <div class="meta"><span class="meta-icon">⭐</span> ${m.imdbRating}</div>
+ <div class="meta imdb-line"><span class="meta-icon">⭐</span> ${m.imdbRating}</div>
  <div class="meta my-rating-line">${(m.myRating!=null&&m.myRating!=="")?`<span class="meta-icon">${MY_STAR_SVG_SMALL}</span> ${Number(m.myRating).toFixed(1)}`:""}</div>
  <div class="meta"><span class="meta-icon">⏱</span> ${m.Runtime}</div>
  <div class="meta money-budget" data-boxoffice="${(m.BoxOffice&&m.BoxOffice!=='N/A')?m.BoxOffice:''}">${moneyLines(m.BoxOffice,info).budget}</div>
@@ -3929,6 +4085,7 @@ function renderColumn(type){
 function render(){
  renderColumn("watched");
  renderColumn("watchlist");
+ scheduleRatingRefresh();
 }
 
 function refreshCardsInPlace(force){
@@ -4001,10 +4158,20 @@ function refreshCardsInPlace(force){
 }
 
 async function fetchOmdbById(imdbId){
- try{
-   const r=await fetch(`https://www.omdbapi.com/?apikey=${OMDB_API_KEY}&i=${imdbId}&plot=short`);
-   return await r.json();
- }catch(e){console.error("OMDb hata:",e);return {Response:"False"};}
+ const keys=OMDB_KEYS.length?OMDB_KEYS:[OMDB_API_KEY];
+ let last={Response:"False"};
+ for(let n=0;n<keys.length;n++){
+   const idx=(omdbKeyIndex+n)%keys.length, key=keys[idx];
+   try{
+     const r=await fetch(`https://www.omdbapi.com/?apikey=${key}&i=${imdbId}&plot=short`);
+     const d=await r.json();
+     const err=String((d&&d.Error)||"").toLowerCase();
+     if(r.status===401||r.status===403||err.includes("request limit")||err.includes("invalid api key")){ last=d; continue; }
+     omdbKeyIndex=idx; OMDB_API_KEY=key; // çalışan anahtarı hatırla
+     return d;
+   }catch(e){ console.error("OMDb hata:",e); last={Response:"False"}; }
+ }
+ return last;
 }
 
 async function searchOmdb(query){
@@ -4504,6 +4671,7 @@ function openDetail(id,type,fromHistory){
  document.getElementById("detailTitle").textContent=movie.Title||"";
  document.getElementById("detailMyRatingIcon").innerHTML=MY_STAR_SVG_BIG;
  document.getElementById("detailImdbRating").textContent=(movie.imdbRating&&movie.imdbRating!=="N/A")?`${movie.imdbRating} / 10`:"—";
+ refreshImdbRating(id,RATING_OPEN_TTL_MS);
  document.getElementById("detailTrailerLink").onclick=()=>{openTrailer(id);return false;};
  document.getElementById("detailMyRating").value=(movie.myRating!=null&&movie.myRating!=="")?Number(movie.myRating).toFixed(1):"";
  document.getElementById("detailAddedDate").textContent=formatTrDate(movie._addedAt);
