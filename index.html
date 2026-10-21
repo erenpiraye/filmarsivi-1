@@ -279,16 +279,17 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 #pinGate{position:fixed;inset:0;z-index:2147483000;background:#141414;display:flex;align-items:center;justify-content:center;padding:20px}
 #pinGate.pin-hidden{display:none}
 #pinGate.pin-checking .pin-box{visibility:hidden}
-.pin-box{width:100%;max-width:300px;display:flex;flex-direction:column;gap:12px;text-align:center}
+.pin-box{width:100%;max-width:400px;display:flex;flex-direction:column;gap:12px;text-align:center}
 .pin-input{width:100%;box-sizing:border-box;background:#222;border:1px solid #444;color:#eee;border-radius:10px;padding:12px;font-size:20px;text-align:center;letter-spacing:6px;outline:none}
 .pin-input:focus{border-color:#d9a441}
 .pin-input::placeholder{letter-spacing:2px;color:#777}
 .pin-input{caret-color:transparent;cursor:default;-webkit-user-select:none;user-select:none}
-.pin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:6px}
-.pin-key{height:64px;width:64px;border-radius:50%;justify-self:center;background:#222;border:1px solid #444;color:#eee;font-size:24px;font-family:inherit;display:flex;align-items:center;justify-content:center;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;user-select:none;-webkit-user-select:none}
-.pin-key:active{background:#d9a441;border-color:#d9a441;color:#111}
-.pin-key-empty{background:none;border:none;pointer-events:none}
-.pin-key-del{font-size:22px;color:#aaa}
+.pin-pad{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(12px,3.6vw,18px);margin-top:10px;width:100%}
+.pin-key{width:100%;aspect-ratio:1/1;height:auto;border-radius:50%;background:#262626;border:0;color:#fff;font-size:clamp(30px,9vw,42px);font-weight:300;font-family:inherit;display:flex;align-items:center;justify-content:center;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;user-select:none;-webkit-user-select:none;transition:background-color .45s ease,color .45s ease}
+.pin-key.lit{background:#d9a441;color:#111;transition:none}
+.pin-key-empty{background:none;pointer-events:none}
+.pin-key-del{background:none;font-size:clamp(26px,7.5vw,34px);color:#aaa}
+.pin-key-del.lit{background:none;color:#d9a441}
 .rate-row{display:flex;align-items:center;gap:6px;line-height:1.2}
 .rate-row .meta-icon{width:16px;height:16px;flex:0 0 16px;font-size:13px;line-height:1;vertical-align:baseline}
 .rate-row svg{display:block;vertical-align:baseline!important}
@@ -900,7 +901,14 @@ _pinInput.addEventListener("input",()=>{
   clearTimeout(_pinTimer);
   if(_pinInput.value.trim().length>=6) _pinTimer=setTimeout(()=>submitPin(),450);
 });
+function _pinFlash(btn){
+  if(!btn) return;
+  btn.classList.add("lit");
+  clearTimeout(btn._lt);
+  btn._lt=setTimeout(()=>btn.classList.remove("lit"),90);
+}
 function _pinPress(k){
+  _pinFlash(document.querySelector('#pinPad [data-k="'+k+'"]'));
   if(_pinBusy || _pinGate.classList.contains("pin-hidden")) return;
   if(k==="del") _pinInput.value=_pinInput.value.slice(0,-1);
   else if(/^[0-9]$/.test(k) && _pinInput.value.length<64) _pinInput.value+=k;
