@@ -166,6 +166,17 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
  .findbox{padding:3px 6px;font-size:11px}
  .sync-bar{padding:3px 12px 0 12px!important}
 }
+/* ===================== MOBİL: SABİT KABUK =====================
+   Telefonda sayfanın kendisi artık kaymıyor (body sabit, 100dvh); sadece
+   liste alanı (.container) kayıyor. Üstteki senkron çubuğu ve sticky
+   başlıklar bu yüzden yerinde duruyor, aşağı/yukarı çekince (lastik
+   etkisi / adres çubuğu hareketi) oynamıyor. */
+@media (max-width:700px){
+ html,body{height:100%;overflow:hidden;overscroll-behavior:none}
+ body{display:flex;flex-direction:column;height:100vh;height:100dvh}
+ .sync-bar{flex:0 0 auto}
+ .container{flex:1 1 auto;min-height:0;height:auto;overflow-y:auto;overflow-x:hidden;overscroll-behavior:none;-webkit-overflow-scrolling:touch}
+}
 /* ===================== TEK LİSTE ODAK MODU (SADECE mobilde, ikisi birden küçük kaldığında) =====================
    Bu kurallar bilinçli olarak 700px altı ekranla sınırlı: PC'de bölünmüş
    (iki sütunlu) görünüm her zaman korunur, tek liste moduna hiç geçilmez. */
