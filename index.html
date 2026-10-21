@@ -345,6 +345,15 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 .site-link-footer{flex-shrink:0;height:24px;display:flex;align-items:center;justify-content:center;border-top:1px solid #333;font-size:10px;font-weight:800;letter-spacing:.4px;cursor:pointer;transition:filter .15s ease;background:rgba(1,180,228,0.16);color:#01b4e4;margin-top:auto}
 .site-link-footer:hover{filter:brightness(1.2)}
 .site-link-footer:active{filter:brightness(0.92)}
+.detail-tabs{display:flex;gap:4px;padding:4px;margin:16px 0 18px;background:#1d1d1d;border:1px solid #2e2e2e;border-radius:10px}
+.detail-tab{flex:1;min-width:0;text-align:center;padding:9px 4px;border-radius:7px;font-size:13px;font-weight:600;color:#999;cursor:pointer;user-select:none;background:none;border:none;font-family:inherit;transition:background .15s ease,color .15s ease}
+.detail-tab:hover{color:#ddd}
+.detail-tab.active{background:#2e2e2e;color:#fff;font-weight:700}
+.detail-pane{display:none}
+.detail-pane.active{display:block}
+.detail-pane-empty{display:none;color:#888;font-size:13px;text-align:center;padding:26px 0}
+.detail-pane.is-empty .detail-pane-empty{display:block}
+.detail-pane>.detail-section:last-child{margin-bottom:0}
 .detail-footer{position:relative;z-index:1;display:flex;justify-content:space-between;align-items:center;padding:16px 24px;border-top:1px solid #2a2a2a;background:#151515}
 .detail-cancel{color:#999;cursor:pointer;font-size:14px}
 .detail-cancel:hover{color:#ccc}
@@ -369,7 +378,6 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
      görünmeye devam eder, burada hiçbir şey silinmiyor/bozulmuyor. */
   #detailSimilarRow{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
   #detailSimilarRow .similar-movie-card{width:100%}
-  #detailSimilarRow .similar-movie-card:nth-child(n+5){display:none}
   #detailSimilarRow .similar-movie-poster{width:100%;height:auto;aspect-ratio:2/3}
   #detailSimilarRow .similar-movie-info{padding:5px 6px}
   #detailSimilarRow .similar-movie-title{font-size:10px}
@@ -594,6 +602,14 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
     <a class="detail-link-btn detail-imdb-link" id="detailImdbLink" href="#" onclick="return false;">IMDb</a>
     <a class="detail-link-btn detail-tmdb-link" id="detailTmdbLink" href="#" onclick="return false;">TMDB</a>
    </div>
+   <div class="detail-tabs" id="detailTabs" role="tablist">
+    <button type="button" class="detail-tab active" data-tab="giris" role="tab">Giriş</button>
+    <button type="button" class="detail-tab" data-tab="kadro" role="tab">Kadro</button>
+    <button type="button" class="detail-tab" data-tab="yapim" role="tab">Yapım</button>
+    <button type="button" class="detail-tab" data-tab="benzer" role="tab">Benzer</button>
+   </div>
+
+   <div class="detail-pane active" data-pane="giris">
    <div class="detail-ratings-row">
     <div class="detail-rating-box imdb-box">
      <span class="detail-rating-icon">⭐</span>
@@ -625,17 +641,9 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
     <div class="detail-plot" id="detailPlot"></div>
    </div>
 
-   <div class="detail-money-row" id="detailMoneyRow">
-    <div class="detail-money-box" id="detailBudgetBox">
-     <div class="detail-section-title">💰 Bütçe</div>
-     <div id="detailBudget"></div>
-    </div>
-    <div class="detail-money-box" id="detailRevenueBox">
-     <div class="detail-section-title">💵 Hasılat</div>
-     <div id="detailRevenue"></div>
-    </div>
    </div>
 
+   <div class="detail-pane" data-pane="kadro">
    <div class="detail-people-row">
     <div class="detail-people-box">
      <div class="detail-section-title">🎬 Yönetmen</div>
@@ -652,14 +660,35 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
     <div class="detail-cast-row" id="detailCastRow"></div>
    </div>
 
+   </div>
+
+   <div class="detail-pane" data-pane="yapim">
+   <div class="detail-money-row" id="detailMoneyRow">
+    <div class="detail-money-box" id="detailBudgetBox">
+     <div class="detail-section-title">💰 Bütçe</div>
+     <div id="detailBudget"></div>
+    </div>
+    <div class="detail-money-box" id="detailRevenueBox">
+     <div class="detail-section-title">💵 Hasılat</div>
+     <div id="detailRevenue"></div>
+    </div>
+   </div>
+
    <div class="detail-section" id="detailProductionSection" style="display:none">
     <div class="detail-section-title">🏢 Yapım Şirketleri</div>
     <div class="detail-cast-row" id="detailProductionRow"></div>
    </div>
 
+   <div class="detail-pane-empty">Yapım bilgisi bulunamadı.</div>
+   </div>
+
+   <div class="detail-pane" data-pane="benzer">
    <div class="detail-section" id="detailSimilarSection" style="display:none">
     <div class="detail-section-title">🎬 Benzer Filmler</div>
     <div class="detail-cast-row" id="detailSimilarRow"></div>
+   </div>
+
+  <div class="detail-pane-empty">Benzer film bulunamadı.</div>
    </div>
 
   </div>
@@ -4363,7 +4392,7 @@ async function loadCastForDetail(tmdbId){
  if(castCache[tmdbId]) return castCache[tmdbId];
  try{
    const data=await fetchJson(`https://api.themoviedb.org/3/movie/${tmdbId}/credits?api_key=${TMDB_KEY}&language=tr-TR`);
-   const cast=(data.cast||[]).slice(0,12);
+   const cast=(data.cast||[]).slice(0,20);
    const crew=data.crew||[];
    const director=crew.filter(c=>c.job==="Director");
    const writers=crew.filter(c=>["Screenplay","Writer","Story"].includes(c.job));
@@ -4471,7 +4500,7 @@ async function loadSimilarMovies(tmdbId){
  if(similarMovieCache[tmdbId]!==undefined){renderSimilarMovies(similarMovieCache[tmdbId]);return;}
  try{
    const data=await fetchJson(`https://api.themoviedb.org/3/movie/${tmdbId}/recommendations?api_key=${TMDB_KEY}&language=tr-TR`);
-   const results=(data.results||[]).slice(0,5);
+   const results=(data.results||[]).slice(0,16);
    similarMovieCache[tmdbId]=results;
    renderSimilarMovies(results);
  }catch(e){
@@ -4695,10 +4724,38 @@ function persistTmdbCacheSoon(){
  }catch(e){}
 }
 
+
+/* ---- Film detayı sekmeleri (Giriş / Kadro / Yapım / Benzer) ---- */
+function setDetailTab(name){
+ document.querySelectorAll("#detailTabs .detail-tab").forEach(t=>t.classList.toggle("active",t.dataset.tab===name));
+ document.querySelectorAll(".detail-pane").forEach(p=>p.classList.toggle("active",p.dataset.pane===name));
+}
+document.getElementById("detailTabs").addEventListener("click",e=>{
+ const t=e.target.closest(".detail-tab");
+ if(t) setDetailTab(t.dataset.tab);
+});
+// Yapım/Benzer sekmesinde gösterilecek bir şey yoksa boş-durum mesajı çıkar.
+// İçerik farklı yerlerden (async) dolduğu için DOM değişimini izliyoruz.
+function refreshDetailPaneEmpty(){
+ const shown=id=>{const el=document.getElementById(id);return !!el&&el.style.display!=="none";};
+ const yap=document.querySelector('.detail-pane[data-pane="yapim"]');
+ const ben=document.querySelector('.detail-pane[data-pane="benzer"]');
+ if(yap) yap.classList.toggle("is-empty",!(shown("detailMoneyRow")||shown("detailProductionSection")));
+ if(ben) ben.classList.toggle("is-empty",!shown("detailSimilarSection"));
+}
+(function(){
+ const body=document.querySelector(".detail-body");
+ let raf=0;
+ new MutationObserver(()=>{cancelAnimationFrame(raf);raf=requestAnimationFrame(refreshDetailPaneEmpty);})
+  .observe(body,{subtree:true,childList:true,attributes:true,attributeFilter:["style"]});
+ refreshDetailPaneEmpty();
+})();
+
 function openDetail(id,type,fromHistory){
  const movie=(allData[type]||[]).find(m=>m.imdbID===id);
  if(!movie) return;
  detailState={id,type};
+ setDetailTab("giris");
  const info=turkishCache[id]||{};
 
  const posterForBackdrop=(movie.Poster&&movie.Poster!=="N/A")?movie.Poster:(info.poster||null);
