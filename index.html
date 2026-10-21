@@ -283,6 +283,15 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 .pin-input{width:100%;box-sizing:border-box;background:#222;border:1px solid #444;color:#eee;border-radius:10px;padding:12px;font-size:20px;text-align:center;letter-spacing:6px;outline:none}
 .pin-input:focus{border-color:#d9a441}
 .pin-input::placeholder{letter-spacing:2px;color:#777}
+.pin-input{caret-color:transparent;cursor:default;-webkit-user-select:none;user-select:none}
+.pin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:6px}
+.pin-key{height:64px;width:64px;border-radius:50%;justify-self:center;background:#222;border:1px solid #444;color:#eee;font-size:24px;font-family:inherit;display:flex;align-items:center;justify-content:center;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+.pin-key:active{background:#d9a441;border-color:#d9a441;color:#111}
+.pin-key-empty{background:none;border:none;pointer-events:none}
+.pin-key-del{font-size:22px;color:#aaa}
+.rate-row{display:flex;align-items:center;gap:6px;line-height:1.2}
+.rate-row .meta-icon{width:16px;height:16px;flex:0 0 16px;font-size:13px;line-height:1;vertical-align:baseline}
+.rate-row svg{display:block;vertical-align:baseline!important}
 .pin-msg{min-height:18px;color:#e57373;font-size:13px}
 .pin-msg.ok{color:#999}
 .detail-providers{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:-4px 0 16px}
@@ -546,8 +555,22 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 <body>
 <div id="pinGate" class="pin-checking" role="dialog" aria-modal="true" aria-label="PIN girişi">
  <form class="pin-box" onsubmit="submitPin(event)" autocomplete="off">
-  <input id="pinInput" class="pin-input" type="password" inputmode="numeric" autocomplete="current-password" placeholder="PIN" aria-label="PIN" maxlength="64">
+  <input id="pinInput" class="pin-input" type="password" inputmode="none" readonly tabindex="-1" autocomplete="off" placeholder="PIN" aria-label="PIN" maxlength="64">
   <div id="pinMsg" class="pin-msg" aria-live="polite"></div>
+  <div class="pin-pad" id="pinPad">
+   <button type="button" class="pin-key" data-k="7">7</button>
+   <button type="button" class="pin-key" data-k="8">8</button>
+   <button type="button" class="pin-key" data-k="9">9</button>
+   <button type="button" class="pin-key" data-k="4">4</button>
+   <button type="button" class="pin-key" data-k="5">5</button>
+   <button type="button" class="pin-key" data-k="6">6</button>
+   <button type="button" class="pin-key" data-k="1">1</button>
+   <button type="button" class="pin-key" data-k="2">2</button>
+   <button type="button" class="pin-key" data-k="3">3</button>
+   <span class="pin-key pin-key-empty"></span>
+   <button type="button" class="pin-key" data-k="0">0</button>
+   <button type="button" class="pin-key pin-key-del" data-k="del" aria-label="Sil">⌫</button>
+  </div>
  </form>
 </div>
 
@@ -865,7 +888,7 @@ _authInit
       }else{
         try{ sessionStorage.removeItem(UNLOCK_KEY); }catch(e){}
         _pinGate.classList.remove("pin-hidden","pin-checking");
-        setTimeout(()=>{ try{ _pinInput.focus(); }catch(e){} },50);
+        
       }
     });
   });
@@ -876,6 +899,21 @@ _pinInput.addEventListener("input",()=>{
   _pinSetMsg("");
   clearTimeout(_pinTimer);
   if(_pinInput.value.trim().length>=6) _pinTimer=setTimeout(()=>submitPin(),450);
+});
+function _pinPress(k){
+  if(_pinBusy || _pinGate.classList.contains("pin-hidden")) return;
+  if(k==="del") _pinInput.value=_pinInput.value.slice(0,-1);
+  else if(/^[0-9]$/.test(k) && _pinInput.value.length<64) _pinInput.value+=k;
+  else return;
+  _pinInput.dispatchEvent(new Event("input"));
+}
+document.getElementById("pinPad").addEventListener("click",e=>{
+  const b=e.target.closest("[data-k]"); if(b) _pinPress(b.dataset.k);
+});
+document.addEventListener("keydown",e=>{
+  if(_pinGate.classList.contains("pin-hidden")) return;
+  if(/^[0-9]$/.test(e.key)) _pinPress(e.key);
+  else if(e.key==="Backspace") _pinPress("del");
 });
 async function submitPin(ev){
   if(ev) ev.preventDefault();
@@ -3070,7 +3108,7 @@ function applyRatingChanges(changes){
  });
  changes.forEach(c=>{
    document.querySelectorAll('.movie[data-id="'+c.id+'"] .imdb-line').forEach(el=>{
-     el.innerHTML='<span class="meta-icon">⭐</span> '+c.imdbRating;
+     el.innerHTML='<span class="meta-icon">⭐</span><span>'+c.imdbRating+'</span>';
    });
  });
  try{
@@ -3158,7 +3196,7 @@ function addSearchResultCard(m,type,myGen){
  <div>
  <b>${m.Title}</b> (${m.Year})
  <div class="tr-title" id="tr-${m.imdbID}"></div>
- <div class="meta"><span class="meta-icon">⭐</span> <span id="sr-rating-${m.imdbID}">${(m.imdbRating&&m.imdbRating!=="undefined")?m.imdbRating:"…"}</span></div>
+ <div class="meta rate-row"><span class="meta-icon">⭐</span><span id="sr-rating-${m.imdbID}">${(m.imdbRating&&m.imdbRating!=="undefined")?m.imdbRating:"…"}</span></div>
  </div>`;
  list.appendChild(div);
  if(!m.imdbRating) fillSearchRating(m.imdbID);
@@ -3193,8 +3231,8 @@ function card(m,i,isWatch){
  <div>
  <b>${m.Title}</b> (${m.Year})
  <div class="tr-title">${trTitle}</div>
- <div class="meta imdb-line"><span class="meta-icon">⭐</span> ${m.imdbRating}</div>
- <div class="meta my-rating-line">${(m.myRating!=null&&m.myRating!=="")?`<span class="meta-icon">${MY_STAR_SVG_SMALL}</span> ${Number(m.myRating).toFixed(1)}`:""}</div>
+ <div class="meta rate-row imdb-line"><span class="meta-icon">⭐</span><span>${m.imdbRating}</span></div>
+ <div class="meta rate-row my-rating-line">${(m.myRating!=null&&m.myRating!=="")?`<span class="meta-icon">${MY_STAR_SVG_SMALL}</span><span>${Number(m.myRating).toFixed(1)}</span>`:""}</div>
  <div class="meta"><span class="meta-icon">⏱</span> ${m.Runtime}</div>
  <div class="meta money-budget" data-boxoffice="${(m.BoxOffice&&m.BoxOffice!=='N/A')?m.BoxOffice:''}">${moneyLines(m.BoxOffice,info).budget}</div>
  <div class="meta money-revenue">${moneyLines(m.BoxOffice,info).revenue}</div>
