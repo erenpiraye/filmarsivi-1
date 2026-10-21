@@ -5081,12 +5081,14 @@ function toggleFocus(){
    }
    return false;
  }
+ const EDGE=36; // kenar bölgesi (px): en soldan/en sağdan başlayan jest daha hassas
+ let edge=false;
  document.addEventListener("touchstart",e=>{
    tracking=false;
    if(e.touches.length!==1) return;
    const t=e.touches[0];
-   if(t.clientX<24) return; // iOS "kenardan geri" jestiyle çakışmasın
-   if(blocked(e.target)) return;
+   edge = t.clientX<EDGE || t.clientX>window.innerWidth-EDGE;
+   if(blocked(edge?null:e.target)) return;
    sx=t.clientX; sy=t.clientY; t0=Date.now();
    tracking=true; decided=false; horizontal=false;
  },{passive:true});
@@ -5094,23 +5096,27 @@ function toggleFocus(){
    if(!tracking) return;
    const t=e.touches[0];
    const dx=t.clientX-sx, dy=t.clientY-sy;
-   if(!decided && (Math.abs(dx)>10||Math.abs(dy)>10)){
+   if(!decided && (Math.abs(dx)>6||Math.abs(dy)>6)){
      decided=true;
-     horizontal=Math.abs(dx)>Math.abs(dy)*1.6;
+     horizontal=Math.abs(dx)>Math.abs(dy)*(edge?1.0:1.3);
    }
- },{passive:true});
+   // Yatay jest kesinleşince tarayıcının kendi "geri" kaydırmasını engelle.
+   if(decided && horizontal && e.cancelable) e.preventDefault();
+ },{passive:false});
  document.addEventListener("touchend",e=>{
    if(!tracking) return;
    tracking=false;
    if(!horizontal) return;
    const t=e.changedTouches[0];
    const dx=t.clientX-sx, dy=t.clientY-sy;
-   const fast=(Date.now()-t0)<350 && Math.abs(dx)>45;
-   if(Math.abs(dy)>Math.abs(dx)*0.6) return;
-   if(Math.abs(dx)<85 && !fast) return;
-   const cur=currentFocus();
-   if(cur==="watched" && dx<0) setFocus("watchlist",1);
-   else if(cur==="watchlist" && dx>0) setFocus("watched",-1);
+   const dt=Math.max(Date.now()-t0,1);
+   const speed=Math.abs(dx)/dt; // px/ms
+   const minDx = edge ? 22 : 40;
+   const flick = speed>0.35 && Math.abs(dx)>minDx*0.7;
+   if(Math.abs(dx)<minDx && !flick) return;
+   if(Math.abs(dy)>Math.abs(dx)) return;
+   if(dx<0) setFocus("watchlist",1);
+   else setFocus("watched",-1);
  },{passive:true});
 })();
 
