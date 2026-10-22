@@ -4642,8 +4642,8 @@ function setDetailBackdrop(backdrop,posterFallback){
 
 /* TMDB'nin images uç noktasındaki "logos" listesi, filmin afişindeki özgün
    yazı tipiyle hazırlanmış şeffaf arka planlı başlık görselini verir.
-   ÖNCELİK: filmin orijinal dilindeki logo (Türkçe logo KULLANILMAZ); yoksa İngilizce,
-   o da yoksa dilsiz (null) sürüm. */
+   ÖNCELİK: Türkçe logo (varsa); yoksa filmin orijinal dilindeki logo, o da yoksa
+   İngilizce, o da yoksa dilsiz (null) sürüm. */
 function titleLogoUrl(path){
  if(!path) return null;
  return /\.svg$/i.test(path)
@@ -4653,18 +4653,19 @@ function titleLogoUrl(path){
 async function fetchTitleLogo(tmdbId,originalLang){
  const orig=originalLang||"en";
  try{
-   const langs=[orig,"en","null"].filter((v,i,a)=>a.indexOf(v)===i).join(",");
+   const langs=["tr",orig,"en","null"].filter((v,i,a)=>a.indexOf(v)===i).join(",");
    const d=await fetchJson(`https://api.themoviedb.org/3/movie/${tmdbId}/images?api_key=${TMDB_KEY}&include_image_language=${langs}`);
    const logos=(d&&d.logos)||[];
    if(!logos.length) return null;
    const rank=l=>{
      const lang=l.iso_639_1;
-     if(lang===orig) return 0;   // filmin orijinal dili - afişteki hali
-     if(lang==="en") return 1;
-     if(!lang) return 2;         // dilsiz (yazısız/evrensel) sürüm
-     return 9;                   // Türkçe dahil diğer diller kullanılmaz
+     if(lang==="tr") return 0;   // Türkçe logo - öncelikli
+     if(lang===orig) return 1;   // filmin orijinal dili - afişteki hali
+     if(lang==="en") return 2;
+     if(!lang) return 3;         // dilsiz (yazısız/evrensel) sürüm
+     return 4;
    };
-   const best=logos.filter(l=>rank(l)<9).sort((a,b)=>
+   const best=logos.slice().sort((a,b)=>
      rank(a)-rank(b) || (b.vote_average||0)-(a.vote_average||0) || (b.width||0)-(a.width||0)
    )[0];
    return best?best.file_path:null;
@@ -4709,13 +4710,13 @@ function showDetailTitleLogo(path,title){
  probe.onerror=()=>{ clearDetailTitleLogo(); }; // logo inmezse düz metin başlık kalır
  probe.src=url;
 }
-// Logo adresi önbelleğe yazılır (_logoV4), böylece aynı film ikinci kez
+// Logo adresi önbelleğe yazılır (_logoV3), böylece aynı film ikinci kez
 // açıldığında ek istek atılmadan ANINDA görünür (geçiş de olmaz); logosu
-// olmayan filmler için de bir daha sorulmaz. _logoV4: önceki sürümde Türkçe
+// olmayan filmler için de bir daha sorulmaz. _logoV3: önceki sürümde Türkçe
 // logo tercih ediliyordu - o kayıtlar bir kereliğine yeniden seçiliyor.
 async function ensureDetailTitleLogo(imdbId,tmdbId,title,originalLang){
  const cached=turkishCache[imdbId];
- if(cached && cached._logoV4){
+ if(cached && cached._logoV3){
    if(cached.logo) showDetailTitleLogo(cached.logo,title);
    else resolveDetailTitlePending();
    return;
@@ -4723,7 +4724,7 @@ async function ensureDetailTitleLogo(imdbId,tmdbId,title,originalLang){
  if(!tmdbId){ resolveDetailTitlePending(); return; }
  const path=await fetchTitleLogo(tmdbId,originalLang);
  const rec=turkishCache[imdbId];
- if(rec){ rec.logo=path||null; rec._logoV4=true; delete rec._logoChecked; persistTmdbCacheSoon(); }
+ if(rec){ rec.logo=path||null; rec._logoV3=true; delete rec._logoChecked; persistTmdbCacheSoon(); }
  if(!detailState || detailState.id!==imdbId) return;
  if(path) showDetailTitleLogo(path,title);
  else resolveDetailTitlePending();
@@ -4778,7 +4779,7 @@ function openDetail(id,type,fromHistory){
  clearDetailTitleLogo();
  // Önbellekte logo bilgisi varsa doğrudan doğru hâlde açılır (hiç geçiş yok);
  // yoksa logo bilgisi gelene kadar metin başlık geçici gizlenir.
- if(info._logoV4){ if(info.logo) showDetailTitleLogo(info.logo,movie.Title); }
+ if(info._logoV3){ if(info.logo) showDetailTitleLogo(info.logo,movie.Title); }
  else markDetailTitlePending();
  document.getElementById("detailYear").textContent=movie.Year||"";
  document.getElementById("detailRuntime").textContent=(movie.Runtime&&movie.Runtime!=="N/A")?movie.Runtime:"";
