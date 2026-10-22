@@ -286,6 +286,7 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 .detail-genre-tag,.detail-provider-tag{height:32px;display:flex;align-items:center;padding:0 12px;background:#222;border:1px solid #333;border-radius:16px;font-size:13px;font-weight:500;color:#ddd}
 .detail-providers{background:#1f1f1f;border:1px solid #2a2a2a;border-radius:14px;margin-bottom:16px}
 .detail-provider-row{display:grid;grid-template-columns:76px 1fr;gap:10px;align-items:center;padding:10px 14px}
+.detail-provider-row.no-label{grid-template-columns:1fr}
 .detail-provider-row+.detail-provider-row{border-top:1px solid #2a2a2a}
 .detail-provider-label{color:#d9a441;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase}
 .detail-provider-chips{display:flex;flex-wrap:wrap;gap:8px}
@@ -2504,6 +2505,19 @@ function normProviderName(name){
    .replace(/\s+(?:Amazon|Apple TV|Apple)\s+Channel$/i,"")
    .trim();
 }
+// TMDB/JustWatch'in Türkiye "Disney Plus" verisi çok sayıda üçüncü taraf filmi (Universal,
+// Warner vb.) yanlışlıkla "var" gösteriyor. Disney+ yalnızca yapım şirketlerinden biri
+// Disney grubuna aitse güvenilir sayılır; şirket bilgisi henüz yoksa göstermeye devam eder.
+const DISNEY_GROUP_RE=/disney|pixar|marvel|lucasfilm|20th century|twentieth century|fox|searchlight|touchstone|hollywood pictures|walt|abc |hulu|\bfx\b|national geographic|blue sky|miramax|buena vista/i;
+function disneyPlausible(imdbId){
+ const info=turkishCache[imdbId];
+ const cos=info&&info.productionCompanies;
+ if(!cos||!cos.length) return true;
+ return cos.some(c=>DISNEY_GROUP_RE.test(c&&c.name||""));
+}
+function isProviderHiddenFor(imdbId,name){
+ return /disney/i.test(name||"") && !disneyPlausible(imdbId);
+}
 function resetWatchProviders(){
  const el=document.getElementById("detailProviders");
  if(el){ el.style.display="none"; el.innerHTML=""; }
@@ -2531,18 +2545,19 @@ function renderWatchProviders(tr){
  const el=document.getElementById("detailProviders");
  if(!el) return;
  // Kirala/Satın Al gösterilmez; yalnızca abonelik, ücretsiz ve reklamlı seçenekler.
- const groups=[["flatrate","Abonelik"],["free","Ücretsiz"],["ads","Reklamlı"]];
+ const groups=[["flatrate",""],["free",""],["ads",""]];
  const seen=new Set();
  let html="";
  groups.forEach(([key,label])=>{
    const list=((tr&&tr[key])||[]).map(p=>p&&p.provider_name).filter(n=>{
      if(!n||isHiddenProvider(n)) return false;
      const k=normProviderName(n);
+     if(isProviderHiddenFor(detailState&&detailState.id,k)) return false;
      if(seen.has(k)) return false;
      seen.add(k); return true;
    }).map(normProviderName);
    if(!list.length) return;
-   html+=`<div class="detail-provider-row"><span class="detail-provider-label">${label}</span><div class="detail-provider-chips">`+
+   html+=`<div class="detail-provider-row${label?"":" no-label"}">${label?`<span class="detail-provider-label">${label}</span>`:""}<div class="detail-provider-chips">`+
          list.map(n=>`<span class="detail-provider-tag">${escapeHtml(n)}</span>`).join("")+`</div></div>`;
  });
  if(!html){
@@ -2579,7 +2594,7 @@ function providerNamesOfMovie(m){
  const info=turkishCache[m.imdbID];
  const tid=info&&info.tmdbId;
  const rec=tid&&providerStore[tid];
- return rec?rec.n.filter(n=>!isHiddenProvider(n)):[];
+ return rec?rec.n.filter(n=>!isHiddenProvider(n)&&!isProviderHiddenFor(m.imdbID,n)):[];
 }
 function renderPlatformRow(){
  const row=document.getElementById("platformRow");
@@ -4627,8 +4642,7 @@ function setDetailBackdrop(backdrop,posterFallback){
 
 /* TMDB'nin images uç noktasındaki "logos" listesi, filmin afişindeki özgün
    yazı tipiyle hazırlanmış şeffaf arka planlı başlık görselini verir.
-   ÖNCELİK: Türkçe logo (varsa) - Netflix'teki gibi kendi özel yazı tipiyle
-   Türkçe başlık; yoksa filmin orijinal dilindeki logo, o da yoksa İngilizce,
+   ÖNCELİK: filmin orijinal dilindeki logo (Türkçe logo KULLANILMAZ); yoksa İngilizce,
    o da yoksa dilsiz (null) sürüm. */
 function titleLogoUrl(path){
  if(!path) return null;
@@ -4639,19 +4653,18 @@ function titleLogoUrl(path){
 async function fetchTitleLogo(tmdbId,originalLang){
  const orig=originalLang||"en";
  try{
-   const langs=["tr",orig,"en","null"].filter((v,i,a)=>a.indexOf(v)===i).join(",");
+   const langs=[orig,"en","null"].filter((v,i,a)=>a.indexOf(v)===i).join(",");
    const d=await fetchJson(`https://api.themoviedb.org/3/movie/${tmdbId}/images?api_key=${TMDB_KEY}&include_image_language=${langs}`);
    const logos=(d&&d.logos)||[];
    if(!logos.length) return null;
    const rank=l=>{
      const lang=l.iso_639_1;
-     if(lang==="tr") return 0;   // Türkçe logo - öncelikli
-     if(lang===orig) return 1;   // filmin orijinal dili - afişteki hali
-     if(lang==="en") return 2;
-     if(!lang) return 3;         // dilsiz (yazısız/evrensel) sürüm
-     return 4;
+     if(lang===orig) return 0;   // filmin orijinal dili - afişteki hali
+     if(lang==="en") return 1;
+     if(!lang) return 2;         // dilsiz (yazısız/evrensel) sürüm
+     return 9;                   // Türkçe dahil diğer diller kullanılmaz
    };
-   const best=logos.slice().sort((a,b)=>
+   const best=logos.filter(l=>rank(l)<9).sort((a,b)=>
      rank(a)-rank(b) || (b.vote_average||0)-(a.vote_average||0) || (b.width||0)-(a.width||0)
    )[0];
    return best?best.file_path:null;
@@ -4696,13 +4709,13 @@ function showDetailTitleLogo(path,title){
  probe.onerror=()=>{ clearDetailTitleLogo(); }; // logo inmezse düz metin başlık kalır
  probe.src=url;
 }
-// Logo adresi önbelleğe yazılır (_logoV3), böylece aynı film ikinci kez
+// Logo adresi önbelleğe yazılır (_logoV4), böylece aynı film ikinci kez
 // açıldığında ek istek atılmadan ANINDA görünür (geçiş de olmaz); logosu
-// olmayan filmler için de bir daha sorulmaz. _logoV3: önceki sürümde Türkçe
+// olmayan filmler için de bir daha sorulmaz. _logoV4: önceki sürümde Türkçe
 // logo tercih ediliyordu - o kayıtlar bir kereliğine yeniden seçiliyor.
 async function ensureDetailTitleLogo(imdbId,tmdbId,title,originalLang){
  const cached=turkishCache[imdbId];
- if(cached && cached._logoV3){
+ if(cached && cached._logoV4){
    if(cached.logo) showDetailTitleLogo(cached.logo,title);
    else resolveDetailTitlePending();
    return;
@@ -4710,7 +4723,7 @@ async function ensureDetailTitleLogo(imdbId,tmdbId,title,originalLang){
  if(!tmdbId){ resolveDetailTitlePending(); return; }
  const path=await fetchTitleLogo(tmdbId,originalLang);
  const rec=turkishCache[imdbId];
- if(rec){ rec.logo=path||null; rec._logoV3=true; delete rec._logoChecked; persistTmdbCacheSoon(); }
+ if(rec){ rec.logo=path||null; rec._logoV4=true; delete rec._logoChecked; persistTmdbCacheSoon(); }
  if(!detailState || detailState.id!==imdbId) return;
  if(path) showDetailTitleLogo(path,title);
  else resolveDetailTitlePending();
@@ -4765,7 +4778,7 @@ function openDetail(id,type,fromHistory){
  clearDetailTitleLogo();
  // Önbellekte logo bilgisi varsa doğrudan doğru hâlde açılır (hiç geçiş yok);
  // yoksa logo bilgisi gelene kadar metin başlık geçici gizlenir.
- if(info._logoV3){ if(info.logo) showDetailTitleLogo(info.logo,movie.Title); }
+ if(info._logoV4){ if(info.logo) showDetailTitleLogo(info.logo,movie.Title); }
  else markDetailTitlePending();
  document.getElementById("detailYear").textContent=movie.Year||"";
  document.getElementById("detailRuntime").textContent=(movie.Runtime&&movie.Runtime!=="N/A")?movie.Runtime:"";
