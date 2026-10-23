@@ -2571,7 +2571,7 @@ function renderWatchProviders(tr){
    Her izlenecek filmin Türkiye'deki abonelik/ücretsiz/reklamlı platformları
    arka planda (4 paralel istek) TMDB'den çekilir, tarayıcıda 3 gün saklanır.
    Kirala/Satın Al seçenekleri filtreye dahil değildir. */
-const PROVIDER_TTL_MS=3*24*3600*1000;
+const PROVIDER_TTL_MS=7*24*3600*1000; // 3 günden 7 güne: TMDB kotasını azaltmak için
 const PROVIDER_LS_KEY="filmarsivi_providers_v1";
 let providerStore={};
 try{ providerStore=JSON.parse(localStorage.getItem(PROVIDER_LS_KEY)||"{}")||{}; }catch(e){ providerStore={}; }
@@ -2628,7 +2628,7 @@ function onPlatformClick(ev){
    if(Math.abs(e.deltaY)>Math.abs(e.deltaX)){ row.scrollLeft+=e.deltaY; e.preventDefault(); }
  },{passive:false});
 })();
-let providerScanTimer=null, providerScanRunning=false;
+let providerScanTimer=null, providerScanRunning=false, providerScanBlockedUntil=0;
 function scheduleProviderScan(delay){
  clearTimeout(providerScanTimer);
  providerScanTimer=setTimeout(runProviderScan,delay==null?2500:delay);
@@ -2646,6 +2646,9 @@ function missingProviderIds(){
 }
 async function runProviderScan(){
  if(providerScanRunning) return;
+ // Hata alındıysa 10 dk boyunca yeniden taramayı denemeyiz (her liste çiziminde
+ // aynı başarısız istekleri tekrar tekrar atıp TMDB anahtarını tüketiyordu).
+ if(Date.now()<providerScanBlockedUntil) return;
  providerScanRunning=true;
  let fetched=0, hadError=false;
  try{
@@ -2653,21 +2656,26 @@ async function runProviderScan(){
    if(uniq.length){
      platformProgress={done:0,total:uniq.length};
      renderPlatformRow();
-     let i=0, sinceRender=0;
+     let i=0, sinceRender=0, errCount=0;
      const worker=async()=>{
        while(i<uniq.length){
          const tid=uniq[i++];
          const tr=await getWatchProvidersTR(tid);
-         if(tr===undefined){ hadError=true; }
+         if(tr===undefined){
+           hadError=true;
+           if(++errCount>=3){ i=uniq.length; break; } // art arda hata: tarama durur, kota yakılmaz
+         }
          else{ providerStore[tid]={n:providerNamesFromTR(tr),t:Date.now()}; fetched++; }
          platformProgress.done++;
-         if(++sinceRender>=8){ sinceRender=0; renderPlatformRow(); }
+         // İlerleme düzenli kaydedilir: sekme kapanır/yenilenirse tarama baştan başlamaz.
+         if(++sinceRender>=8){ sinceRender=0; renderPlatformRow(); saveProviderStore(); }
        }
      };
      await Promise.all([worker(),worker(),worker(),worker()]);
      saveProviderStore();
    }
  }catch(e){ hadError=true; }
+ if(hadError) providerScanBlockedUntil=Date.now()+10*60*1000;
  providerScanRunning=false;
  platformProgress=null;
  renderPlatformRow();
