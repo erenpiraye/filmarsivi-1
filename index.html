@@ -4855,7 +4855,8 @@ document.getElementById("detailCastRow").innerHTML="";
    renderCompanyRow(freshInfo.productionCompanies);
 
    if(!freshInfo.tmdbId){document.getElementById("detailSimilarSection").style.display="none";return;}
-   loadWatchProviders(freshInfo.tmdbId,id);
+   // Platform bilgisi yalnızca İzlenecekler için çekilir/gösterilir (İzlenenlerde istek atılmaz).
+   if(detailState.type==="watchlist") loadWatchProviders(freshInfo.tmdbId,id);
    loadCastForDetail(freshInfo.tmdbId).then(castInfo=>{
      if(detailState.id!==id || !castInfo) return;
      renderPersonPhotoRow("detailDirector",castInfo.director,false);
