@@ -116,6 +116,10 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
 .find-nav-btn:active{background:#3a3a3a}
 .find-row.has-matches .find-nav-btn{display:flex}
 .find-row.has-matches .find-count{display:inline-block}
+.find-toggle{flex-shrink:0;width:28px;height:28px;border-radius:5px;background:#2a2a2a;border:1px solid #444;color:#aaa;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
+.find-toggle:active{background:#3a3a3a}
+.find-toggle.active{background:#d9a441;border-color:#d9a441;color:#1a1a1a}
+.movie.find-match{outline:2px solid rgba(217,164,65,.55)}
 .movie.highlight{outline:3px solid #ffd700;box-shadow:0 0 14px #ffd700}
 .movie.find-hidden{display:none!important}
 .person-link{color:inherit;text-decoration:none;cursor:pointer}
@@ -776,6 +780,7 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
  <input id="findWatched" class="findbox" placeholder="Listede ara" oninput="findInList(this,'watched')" onkeydown="findKeydown(event,'watched')">
  <span class="find-nav-btn" onclick="findNext('watched',1)">›</span>
  <span class="find-count" id="findCountWatched"></span>
+ <button type="button" class="find-toggle" id="findToggleWatched" onclick="toggleFindShowAll('watched')" title="Tüm listeyi göster" aria-label="Tüm listeyi göster"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="3.5" cy="6" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="18" r="1"/></svg></button>
 </div>
 </div>
 <div class="list-wrap"><div id="watchedList"></div></div>
@@ -825,6 +830,7 @@ h2{text-align:center;margin-bottom:10px;font-size:20px}
  <input id="findWatch" class="findbox" placeholder="Listede ara" oninput="findInList(this,'watchlist')" onkeydown="findKeydown(event,'watchlist')">
  <span class="find-nav-btn" onclick="findNext('watchlist',1)">›</span>
  <span class="find-count" id="findCountWatch"></span>
+ <button type="button" class="find-toggle" id="findToggleWatch" onclick="toggleFindShowAll('watchlist')" title="Tüm listeyi göster" aria-label="Tüm listeyi göster"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="3.5" cy="6" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="18" r="1"/></svg></button>
 </div>
 <div class="platform-row" id="platformRow" style="display:none" onclick="onPlatformClick(event)"></div>
 </div>
@@ -1917,19 +1923,32 @@ function _personPhotoPump(){
    job().finally(()=>{ _personPhotoActive--; _personPhotoPump(); });
  }
 }
+function _normPersonName(s){
+ return String(s||"").toLowerCase().replace(/ı/g,"i").normalize("NFKD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g," ").trim();
+}
 function fetchStatsPersonPhoto(name){
  if(statsPersonPhotoCache[name]!==undefined) return Promise.resolve(statsPersonPhotoCache[name]);
  if(_personPhotoInFlight[name]) return _personPhotoInFlight[name];
  const p=new Promise(resolve=>{
    _personPhotoQueue.push(async ()=>{
-     let url=null;
+     let url=null, failed=false;
      try{
        const d=await fetchJson(`https://api.themoviedb.org/3/search/person?api_key=${TMDB_KEY}&query=${encodeURIComponent(name)}`);
-       const person=d?.results?.[0];
-       url=(person && person.profile_path) ? `https://image.tmdb.org/t/p/w185${person.profile_path}` : null;
-     }catch(e){ url=null; }
-     statsPersonPhotoCache[name]=url;
+       const list=Array.isArray(d?.results)?d.results:[];
+       // Eskiden yalnız ilk sonuç alınıyordu; aynı/benzer isimli, fotoğrafsız ya da
+       // yanlış kişi başa gelirse avatar boş kalıyordu. Şimdi: ismi (büyük/küçük harf,
+       // ı/i ve aksan farkı gözetmeden) aynı olan ve FOTOĞRAFI olan kişiler arasından
+       // en popüler olan seçilir; böyle biri yoksa eski davranışa (ilk sonuç) dönülür.
+       const want=_normPersonName(name);
+       const exact=list.filter(p=>p && p.profile_path && _normPersonName(p.name)===want)
+                       .sort((a,b)=>(b.popularity||0)-(a.popularity||0));
+       const first=(list[0] && list[0].profile_path)?list[0]:null;
+       const person=exact[0]||first;
+       url=person ? `https://image.tmdb.org/t/p/w185${person.profile_path}` : null;
+     }catch(e){ failed=true; url=null; }
      delete _personPhotoInFlight[name];
+     // Geçici bir ağ/kota hatasını kalıcı "fotoğraf yok" olarak saklama (sonra yeniden denensin).
+     if(!failed) statsPersonPhotoCache[name]=url;
      resolve(url);
    });
  });
@@ -4007,7 +4026,9 @@ let findState={watched:{matches:[],index:-1},watchlist:{matches:[],index:-1}};
 // gizler). Hem kullanıcı yazarken hem de liste sıralama/filtre değişikliği ile
 // yeniden çizildiğinde (renderColumn içinden) çağrılır, böylece arama aktifken
 // liste her yeniden çizildiğinde filtre kaybolmaz.
+let findShowAll={watched:false,watchlist:false};
 function applyFindFilter(type){
+ const showAll=!!findShowAll[type];
  const inputEl=document.getElementById(type==="watchlist"?"findWatch":"findWatched");
  const q=inputEl?inputEl.value.trim().toLowerCase():"";
  const listEl=type==="watchlist"?watchList:watchedList;
@@ -4017,6 +4038,7 @@ function applyFindFilter(type){
    st.index=-1;
    updateFindCount(type);
    listEl.querySelectorAll(".movie.find-hidden").forEach(el=>el.classList.remove("find-hidden"));
+   listEl.querySelectorAll(".movie.find-match").forEach(el=>el.classList.remove("find-match"));
    return;
  }
  const cards=Array.from(listEl.querySelectorAll(".movie"));
@@ -4026,7 +4048,8 @@ function applyFindFilter(type){
    const trEl=c.querySelector(".tr-title");
    const text=((titleEl?titleEl.textContent:"")+" "+(trEl?trEl.textContent:"")).toLowerCase();
    const isMatch=text.includes(q);
-   c.classList.toggle("find-hidden",!isMatch);
+   c.classList.toggle("find-hidden",!isMatch&&!showAll);
+   c.classList.toggle("find-match",showAll&&isMatch);
    if(isMatch) st.matches.push(c);
  });
  st.index=st.matches.length?0:-1;
@@ -4055,6 +4078,7 @@ function findInList(input,type){
    listEl.querySelectorAll(".movie.highlight").forEach(el=>el.classList.remove("highlight"));
    // Arama kutusu boşaltılınca listedeki tüm filmler tekrar görünür olsun.
    listEl.querySelectorAll(".movie.find-hidden").forEach(el=>el.classList.remove("find-hidden"));
+   listEl.querySelectorAll(".movie.find-match").forEach(el=>el.classList.remove("find-match"));
    return;
  }
 
@@ -4068,6 +4092,33 @@ function findInList(input,type){
    applyFindFilter(type);
    goToFindMatch(type);
  },140);
+}
+
+// "Listede ara" kutusundaki yan düğme: AÇIKKEN arama sonuçları filtrelenmez, tüm
+// liste görünür kalır; eşleşenler hafif çerçeveyle işaretlenir, aktif eşleşme
+// parlak çerçeveyle vurgulanır ve ekranın ortasına getirilir (Enter / Shift+Enter ile
+// eşleşmeler arasında gezilir). KAPALIYKEN eskisi gibi yalnız eşleşenler görünür.
+function toggleFindShowAll(type){
+ findShowAll[type]=!findShowAll[type];
+ const on=findShowAll[type];
+ const btn=document.getElementById(type==="watchlist"?"findToggleWatch":"findToggleWatched");
+ if(btn){
+   btn.classList.toggle("active",on);
+   btn.title=on?"Sadece eşleşenleri göster":"Tüm listeyi göster";
+   btn.setAttribute("aria-label",btn.title);
+ }
+ const inputEl=document.getElementById(type==="watchlist"?"findWatch":"findWatched");
+ if(!inputEl||!inputEl.value.trim()) return;
+ clearTimeout(findDebounceTimer[type]);
+ findDebounceTimer[type]=null;
+ const st=findState[type];
+ const prev=st.index>=0?st.matches[st.index]:null;
+ applyFindFilter(type);
+ if(prev){
+   const ni=st.matches.indexOf(prev);
+   if(ni>=0) st.index=ni;
+ }
+ goToFindMatch(type);
 }
 
 function findKeydown(e,type){
