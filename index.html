@@ -1926,8 +1926,11 @@ function _personPhotoPump(){
 function _normPersonName(s){
  return String(s||"").toLowerCase().replace(/ı/g,"i").normalize("NFKD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g," ").trim();
 }
+const _personPhotoRetryAt={};
 function fetchStatsPersonPhoto(name){
  if(statsPersonPhotoCache[name]!==undefined) return Promise.resolve(statsPersonPhotoCache[name]);
+ // Hata alan isim 60 sn boyunca yeniden denenmez (kota/ağ sorununda istek yağmuru olmasın).
+ if(_personPhotoRetryAt[name] && Date.now()<_personPhotoRetryAt[name]) return Promise.resolve(null);
  if(_personPhotoInFlight[name]) return _personPhotoInFlight[name];
  const p=new Promise(resolve=>{
    _personPhotoQueue.push(async ()=>{
@@ -1940,15 +1943,21 @@ function fetchStatsPersonPhoto(name){
        // ı/i ve aksan farkı gözetmeden) aynı olan ve FOTOĞRAFI olan kişiler arasından
        // en popüler olan seçilir; böyle biri yoksa eski davranışa (ilk sonuç) dönülür.
        const want=_normPersonName(name);
+       const top=list[0];
+       const topOk=!!(top && top.profile_path && _normPersonName(top.name)===want);
        const exact=list.filter(p=>p && p.profile_path && _normPersonName(p.name)===want)
                        .sort((a,b)=>(b.popularity||0)-(a.popularity||0));
-       const first=(list[0] && list[0].profile_path)?list[0]:null;
-       const person=exact[0]||first;
+       const first=(top && top.profile_path)?top:null;
+       // İlk sonuç zaten doğru isimli ve fotoğraflıysa ONU kullan (eski, işe yarayan davranış).
+       // Yalnız ilk sonuç fotoğrafsız/yanlış isimliyse, doğru isimli+fotoğraflı olanlar arasından
+       // en popüler olana bakılır.
+       const person=topOk?top:(exact[0]||first);
        url=person ? `https://image.tmdb.org/t/p/w185${person.profile_path}` : null;
      }catch(e){ failed=true; url=null; }
      delete _personPhotoInFlight[name];
      // Geçici bir ağ/kota hatasını kalıcı "fotoğraf yok" olarak saklama (sonra yeniden denensin).
-     if(!failed) statsPersonPhotoCache[name]=url;
+     if(!failed){ statsPersonPhotoCache[name]=url; delete _personPhotoRetryAt[name]; }
+     else _personPhotoRetryAt[name]=Date.now()+60000;
      resolve(url);
    });
  });
